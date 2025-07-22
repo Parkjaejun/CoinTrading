@@ -3,16 +3,23 @@
 업데이트된 설정 파일 - 알림 시스템 포함
 기존 config.py를 이 파일로 교체하세요
 """
+import os
+import json
+from datetime import datetime
+
 
 # OKX API 인증 정보
-API_KEY = "your_api_key_here"
-API_SECRET = "your_api_secret_here" 
-PASSPHRASE = "your_passphrase_here"
+API_KEY = "ea882939-e193-4c0b-b2c2-0ab9363a3c09"
+API_SECRET = "06A9784F2379D554478A61FE85CAF240" 
+PASSPHRASE = "Qkrwowns123!@"
+#참고
+APIkeyname = "TradingAPI"
+Permissions = "Read/Trade"
 
 # 거래 기본 설정
 TRADING_CONFIG = {
-    # 초기 자본
-    "initial_capital": 10000,
+    # 초기 자본 #$
+    "initial_capital": 100, 
     
     # 거래 대상
     "symbols": ["BTC-USDT-SWAP"],
@@ -143,4 +150,92 @@ LOGGING_CONFIG = {
     "log_to_file": True,          # 파일 로깅 활성화
     "log_to_console": True,       # 콘솔 로깅 활성화
     "max_log_files": 30,          # 최대 로그 파일 수
+}
+
+def validate_config():
+    """기본 설정 검증"""
+    errors = []
     
+    # API 키 검증
+    if not API_KEY or API_KEY == "your_api_key_here":
+        errors.append("API_KEY가 설정되지 않았습니다")
+    
+    if not API_SECRET or API_SECRET == "your_api_secret_here":
+        errors.append("API_SECRET이 설정되지 않았습니다")
+    
+    if not PASSPHRASE or PASSPHRASE == "your_passphrase_here":
+        errors.append("PASSPHRASE가 설정되지 않았습니다")
+    
+    # 거래 설정 검증
+    if TRADING_CONFIG.get('initial_capital', 0) < 100:
+        errors.append("초기 자본이 너무 적습니다 (최소 $100)")
+    
+    symbols = TRADING_CONFIG.get('symbols', [])
+    if not symbols:
+        errors.append("거래 심볼이 설정되지 않았습니다")
+    
+    if errors:
+        print("❌ 설정 오류:")
+        for error in errors:
+            print(f"  - {error}")
+        raise ValueError("설정 검증 실패")
+    
+    print("✅ 설정 검증 완료")
+
+def print_config_summary():
+    """설정 요약 출력"""
+    print("\n📋 현재 설정 요약:")
+    print(f"  💰 초기 자본: ${TRADING_CONFIG.get('initial_capital', 0):,}")
+    print(f"  📊 거래 심볼: {', '.join(TRADING_CONFIG.get('symbols', []))}")
+    print(f"  📈 롱 레버리지: {LONG_STRATEGY_CONFIG.get('leverage', 0)}배")
+    print(f"  📉 숏 레버리지: {SHORT_STRATEGY_CONFIG.get('leverage', 0)}배")
+    
+    # 알림 채널 확인
+    active_notifications = []
+    for channel, config in NOTIFICATION_CONFIG.items():
+        if isinstance(config, dict) and config.get('enabled', False):
+            active_notifications.append(channel)
+    
+    if active_notifications:
+        print(f"  🔔 활성 알림: {', '.join(active_notifications)}")
+    else:
+        print(f"  🔕 알림: 비활성화")
+
+def load_environment_config(environment="production"):
+    """환경별 설정 로드"""
+    print(f"📍 환경 설정: {environment}")
+    
+    if environment == "development":
+        TRADING_CONFIG["paper_trading"] = True
+        TRADING_CONFIG["initial_capital"] = min(TRADING_CONFIG.get("initial_capital", 10000), 1000)
+        print("🧪 개발 모드: Paper Trading 활성화")
+    elif environment == "testing":
+        TRADING_CONFIG["paper_trading"] = True
+        print("🔬 테스트 모드: Paper Trading 활성화")
+    else:
+        print("🚀 실제 거래 모드")
+
+def backup_config():
+    """설정 백업"""
+    try:
+        backup_dir = "config_backups"
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = os.path.join(backup_dir, f"config_backup_{timestamp}.json")
+        
+        config_data = {
+            'trading_config': TRADING_CONFIG,
+            'long_strategy_config': LONG_STRATEGY_CONFIG,
+            'short_strategy_config': SHORT_STRATEGY_CONFIG,
+            'notification_config': NOTIFICATION_CONFIG,
+            'backup_time': datetime.now().isoformat()
+        }
+        
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            json.dump(config_data, f, indent=2, ensure_ascii=False)
+        
+        return backup_file
+    except Exception as e:
+        print(f"⚠️ 설정 백업 실패: {e}")
+        return None

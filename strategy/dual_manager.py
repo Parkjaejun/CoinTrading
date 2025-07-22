@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from strategy.long_strategy import LongStrategy
 from strategy.short_strategy import ShortStrategy
-from okx.simple_position import SimplePositionManager
+from okx.position import SimplePositionManager
 from utils.data_generator import convert_to_strategy_data
 
 class DualStrategyManager:

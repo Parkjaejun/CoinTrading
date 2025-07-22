@@ -1,8 +1,4 @@
-# utils/data_loader.py
-"""
-초기 캔들 데이터 로딩
-WebSocket 시작 전 과거 데이터를 불러와 EMA 계산 준비
-"""
+# utils/data_loader.py 수정된 부분
 
 import requests
 import pandas as pd
@@ -34,16 +30,7 @@ class HistoricalDataLoader:
     
     def get_historical_candles(self, inst_id: str, timeframe: str = "30m", 
                              limit: int = 300) -> Optional[pd.DataFrame]:
-        """과거 캔들 데이터 조회
-        
-        Args:
-            inst_id: 거래 상품 (예: BTC-USDT-SWAP)
-            timeframe: 시간프레임 (30m, 1H, 4H, 1D 등)
-            limit: 조회할 캔들 개수 (최대 300)
-        
-        Returns:
-            pandas.DataFrame: 캔들 데이터 또는 None
-        """
+        """과거 캔들 데이터 조회 - 타임스탬프 변환 오류 수정"""
         self._wait_for_rate_limit()
         
         endpoint = "/api/v5/market/history-candles"
@@ -77,10 +64,31 @@ class HistoricalDataLoader:
                 'volCcy', 'volCcyQuote', 'confirm'
             ])
             
+            # 타임스탬프 변환 수정 - int 크기 문제 해결
+            try:
+                # 문자열을 정수로 변환한 후 ms 단위를 s 단위로 변환
+                timestamps = []
+                for ts in df['timestamp']:
+                    # 문자열을 정수로 변환
+                    ts_int = int(ts)
+                    # 밀리초를 초로 변환 (13자리 → 10자리)
+                    if ts_int > 10**10:  # 밀리초인 경우
+                        ts_int = ts_int // 1000
+                    timestamps.append(ts_int)
+                
+                df['timestamp'] = pd.to_datetime(timestamps, unit='s')
+            except (ValueError, OverflowError) as e:
+                log_error(f"타임스탬프 변환 오류: {e}")
+                # 대안: 현재 시간부터 역산
+                now = datetime.now()
+                df['timestamp'] = [now - timedelta(minutes=30*i) for i in range(len(df)-1, -1, -1)]
+            
             # 데이터 타입 변환
-            df['timestamp'] = pd.to_datetime(df['timestamp'].astype(int), unit='ms')
             for col in ['open', 'high', 'low', 'close', 'volume']:
-                df[col] = pd.to_numeric(df[col])
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+            # NaN 값이 있는 행 제거
+            df = df.dropna(subset=['open', 'high', 'low', 'close', 'volume'])
             
             # 시간순 정렬 (오래된 것부터)
             df = df.sort_values('timestamp').reset_index(drop=True)
@@ -97,15 +105,7 @@ class HistoricalDataLoader:
     
     def prepare_strategy_data(self, df: pd.DataFrame, 
                             ema_periods: Dict[str, int] = None) -> Optional[pd.DataFrame]:
-        """전략용 데이터 준비 (EMA 계산 포함)
-        
-        Args:
-            df: 원본 캔들 데이터
-            ema_periods: EMA 기간 설정
-        
-        Returns:
-            EMA가 추가된 DataFrame
-        """
+        """전략용 데이터 준비 (EMA 계산 포함)"""
         if df is None or len(df) < 10:
             return None
         
@@ -199,51 +199,6 @@ class HistoricalDataLoader:
         except Exception as e:
             log_error(f"최신 가격 조회 실패: {inst_id}", e)
             return None
-    
-    def validate_data_quality(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """데이터 품질 검증"""
-        if df is None or len(df) == 0:
-            return {'valid': False, 'reason': 'Empty dataframe'}
-        
-        issues = []
-        
-        # 기본 컬럼 확인
-        required_columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
-        missing_cols = [col for col in required_columns if col not in df.columns]
-        if missing_cols:
-            issues.append(f"Missing columns: {missing_cols}")
-        
-        # 가격 데이터 검증
-        price_cols = ['open', 'high', 'low', 'close']
-        for col in price_cols:
-            if col in df.columns:
-                if (df[col] <= 0).any():
-                    issues.append(f"Invalid {col} prices (<=0)")
-                
-                if df[col].isna().any():
-                    issues.append(f"NaN values in {col}")
-        
-        # 시간 순서 검증
-        if 'timestamp' in df.columns and len(df) > 1:
-            if not df['timestamp'].is_monotonic_increasing:
-                issues.append("Timestamps not in chronological order")
-        
-        # EMA 컬럼 확인 (있다면)
-        ema_cols = [col for col in df.columns if col.startswith('ema_')]
-        for col in ema_cols:
-            if df[col].isna().all():
-                issues.append(f"All NaN in {col}")
-        
-        return {
-            'valid': len(issues) == 0,
-            'issues': issues,
-            'row_count': len(df),
-            'ema_columns': len(ema_cols),
-            'date_range': {
-                'start': df['timestamp'].min() if 'timestamp' in df.columns else None,
-                'end': df['timestamp'].max() if 'timestamp' in df.columns else None
-            }
-        }
 
 # 전역 데이터 로더 인스턴스
 historical_loader = HistoricalDataLoader()

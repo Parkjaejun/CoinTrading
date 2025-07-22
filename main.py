@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Optional
 
 # 모든 필요한 모듈 임포트
-from config_updated import (
+from config import (
     validate_config, print_config_summary, TRADING_CONFIG, NOTIFICATION_CONFIG,
     CONNECTION_CONFIG, load_environment_config, backup_config
 )

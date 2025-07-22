@@ -41,7 +41,7 @@ class OrderValidator:
             return False, "심볼이 없습니다"
         
         # OKX SWAP 심볼 패턴 검증
-        pattern = r'^[A-Z]+-[A-Z]+-SWAP
+        pattern = r'^[A-Z]+-[A-Z]+-SWAP'
         if not re.match(pattern, symbol):
             return False, f"잘못된 심볼 형식: {symbol} (예: BTC-USDT-SWAP)"
         

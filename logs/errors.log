@@ -1,0 +1,10 @@
+2025-07-23 02:07:36 | ERROR | 시스템 초기화 실패: 설정 검증 실패
+2025-07-23 02:09:56 | ERROR | 캔들 데이터 처리 오류: BTC-USDT-SWAP: Python int too large to convert to C long
+2025-07-23 02:09:56 | ERROR | ❌ BTC-USDT-SWAP 캔들 데이터 로딩 실패
+2025-07-23 02:09:57 | ERROR | 초기 데이터 로딩 실패
+2025-07-23 02:09:57 | ERROR | 시스템 초기화 실패: 초기 데이터를 로드할 수 없습니다
+2025-07-23 02:11:28 | ERROR | 시스템 초기화 실패: 설정 검증 실패
+2025-07-23 02:11:39 | ERROR | 캔들 데이터 처리 오류: BTC-USDT-SWAP: Python int too large to convert to C long
+2025-07-23 02:11:39 | ERROR | ❌ BTC-USDT-SWAP 캔들 데이터 로딩 실패
+2025-07-23 02:11:40 | ERROR | 초기 데이터 로딩 실패
+2025-07-23 02:11:40 | ERROR | 시스템 초기화 실패: 초기 데이터를 로드할 수 없습니다
