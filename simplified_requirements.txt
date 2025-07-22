@@ -1,0 +1,12 @@
+# 필수 라이브러리만 포함
+
+# API 통신
+requests==2.31.0
+websocket-client==1.6.4
+
+# 데이터 처리
+pandas==2.1.4
+numpy==1.24.3
+
+# 날짜/시간 처리
+python-dateutil==2.8.2
