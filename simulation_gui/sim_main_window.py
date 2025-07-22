@@ -1,7 +1,7 @@
-# simulation_gui/sim_main_window.py
+# simulation_gui/sim_main_window.py - 수정된 버전
 """
-실시간 라이브 시뮬레이션 전용 GUI
-가상 거래 시뮬레이션을 위한 특화된 인터페이스
+실시간 라이브 시뮬레이션 전용 GUI (오류 수정)
+QTextEdit -> QPlainTextEdit 변경으로 setMaximumBlockCount 오류 해결
 """
 
 import sys
@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QTabWidget, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
     QGroupBox, QGridLayout, QSplitter, QProgressBar, QSlider,
-    QSpinBox, QDoubleSpinBox, QTextEdit, QMessageBox, QStatusBar
+    QSpinBox, QDoubleSpinBox, QPlainTextEdit, QMessageBox, QStatusBar
 )
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QColor
@@ -91,7 +91,7 @@ class SimulationThread(QThread):
         except Exception as e:
             self.status_updated.emit({'error': f'시뮬레이션 오류: {str(e)}'})
     
-    def stop_simulation(self):
+    def stop(self):
         """시뮬레이션 중지"""
         self.is_running = False
         if hasattr(self, 'simulation_system'):
@@ -379,7 +379,7 @@ class SimulationControlWidget(QWidget):
         self.signals_label.setText(f"처리된 신호: {signals}개")
 
 class TradingLogWidget(QWidget):
-    """거래 로그 위젯"""
+    """거래 로그 위젯 - QPlainTextEdit 사용"""
     
     def __init__(self):
         super().__init__()
@@ -388,13 +388,13 @@ class TradingLogWidget(QWidget):
     def setup_ui(self):
         layout = QVBoxLayout()
         
-        # 거래 로그
+        # 거래 로그 - QPlainTextEdit로 변경
         log_group = QGroupBox("📝 거래 로그")
         log_layout = QVBoxLayout()
         
-        self.log_display = QTextEdit()
+        self.log_display = QPlainTextEdit()  # QTextEdit -> QPlainTextEdit 변경
         self.log_display.setReadOnly(True)
-        self.log_display.setMaximumBlockCount(500)  # 최대 500줄
+        self.log_display.setMaximumBlockCount(500)  # 이제 정상 작동
         self.log_display.setMaximumHeight(200)
         
         log_layout.addWidget(self.log_display)
@@ -419,17 +419,12 @@ class TradingLogWidget(QWidget):
         self.setLayout(layout)
     
     def add_log_message(self, message: str, level: str = "INFO"):
-        """로그 메시지 추가"""
+        """로그 메시지 추가 - QPlainTextEdit용 수정"""
         timestamp = datetime.now().strftime('%H:%M:%S')
-        color = {
-            'INFO': 'white',
-            'TRADE': '#4CAF50',
-            'ERROR': '#F44336',
-            'WARNING': '#FF9800'
-        }.get(level, 'white')
         
-        formatted_message = f"<span style='color: {color}'>[{timestamp}] [{level}] {message}</span>"
-        self.log_display.append(formatted_message)
+        # QPlainTextEdit는 HTML을 지원하지 않으므로 plain text 사용
+        formatted_message = f"[{timestamp}] [{level}] {message}"
+        self.log_display.appendPlainText(formatted_message)
     
     def update_trades(self, trade_history: list):
         """거래 내역 업데이트"""
@@ -592,7 +587,7 @@ class SimulationMainWindow(QMainWindow):
                 color: #ffffff;
                 padding: 2px;
             }
-            QTextEdit {
+            QPlainTextEdit {
                 background-color: #1a1a1a;
                 color: #ffffff;
                 border: 1px solid #555555;
@@ -637,7 +632,7 @@ class SimulationMainWindow(QMainWindow):
     def stop_simulation(self):
         """시뮬레이션 중지"""
         if self.simulation_thread and self.simulation_thread.isRunning():
-            self.simulation_thread.stop_simulation()
+            self.simulation_thread.stop()
             self.simulation_thread.wait(5000)  # 5초 대기
         
         # UI 상태 업데이트
