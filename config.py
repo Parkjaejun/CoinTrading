@@ -57,3 +57,31 @@ EMA_PERIODS = {
     'exit_fast_short': 100,
     'exit_slow_short': 200
 }
+
+def validate_config():
+    """설정값 검증"""
+    errors = []
+    
+    # API 키 검증
+    if API_KEY == "your_api_key_here" or not API_KEY:
+        errors.append("API_KEY가 설정되지 않았습니다")
+    
+    if API_SECRET == "your_api_secret_here" or not API_SECRET:
+        errors.append("API_SECRET가 설정되지 않았습니다")
+    
+    if PASSPHRASE == "your_passphrase_here" or not PASSPHRASE:
+        errors.append("PASSPHRASE가 설정되지 않았습니다")
+    
+    # 자본 검증
+    if TRADING_CONFIG['initial_capital'] <= 0:
+        errors.append("초기 자본은 0보다 커야 합니다")
+    
+    # 심볼 검증
+    if not TRADING_CONFIG['symbols'] or len(TRADING_CONFIG['symbols']) == 0:
+        errors.append("거래 심볼이 설정되지 않았습니다")
+    
+    if errors:
+        raise ValueError("\n설정 오류:\n" + "\n".join([f"- {error}" for error in errors]))
+    
+    print("✅ 설정 검증 완료")
+    return True

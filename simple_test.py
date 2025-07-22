@@ -6,6 +6,7 @@
 import sys
 from datetime import datetime
 from okx.account import AccountManager
+from config import validate_config
 
 def test_api_connection():
     """기본 API 연결 테스트"""
@@ -47,6 +48,14 @@ def main():
     print("🧪 단순화된 시스템 테스트")
     print(f"시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
+    # 설정 검증
+    try:
+        print("\n0. 설정 검증...")
+        validate_config()
+    except Exception as e:
+        print(f"❌ 설정 오류: {e}")
+        return False
+    
     success = test_api_connection()
     
     if success:
@@ -55,6 +64,8 @@ def main():
     else:
         print("\n❌ 테스트 실패")
         print("config.py의 API 설정을 확인해주세요.")
+        
+    return success
 
 if __name__ == "__main__":
     main()

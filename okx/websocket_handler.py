@@ -136,7 +136,7 @@ class WebSocketHandler:
                 return
             
             # 전략용 데이터 생성
-            strategy_data = generate_strategy_data(df)
+            strategy_data = generate_strategy_data(df, EMA_PERIODS)
             if strategy_data is None:
                 return
             
@@ -265,4 +265,3 @@ class WebSocketHandler:
             if df is not None and len(df) > 0:
                 return df.iloc[-1]['close']
         return None
-            

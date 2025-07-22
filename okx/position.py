@@ -3,6 +3,7 @@
 복잡한 ORM이나 클래스 없이 기본 기능만 제공
 """
 
+import time
 from datetime import datetime
 from okx.order_manager import OrderManager
 
@@ -27,19 +28,31 @@ class SimplePositionManager:
             )
             
             if not order_result:
+                print(f"❌ 주문 실패: {symbol}")
                 return None
+            
+            # 체결 확인 대기
+            time.sleep(2)
+            order_status = self.order_manager.get_order_status(symbol, order_result['order_id'])
+            
+            if not order_status or order_status['status'] != 'filled':
+                print(f"❌ 주문 미체결: {symbol}")
+                return None
+            
+            entry_price = float(order_status.get('avg_price', 0))
+            actual_size = float(order_status.get('filled_size', size))
             
             # 포지션 정보 저장
             position_info = {
                 'symbol': symbol,
                 'side': side,
-                'size': size,
+                'size': actual_size,
                 'leverage': leverage,
                 'strategy': strategy_name,
-                'entry_price': 0,  # 체결 후 업데이트
+                'entry_price': entry_price,
                 'entry_time': datetime.now(),
-                'peak_price': 0,
-                'trough_price': 0,
+                'peak_price': entry_price if side == 'long' else 0,
+                'trough_price': entry_price if side == 'short' else 0,
                 'trailing_stop_ratio': trailing_stop_ratio,
                 'order_id': order_result['order_id']
             }
@@ -50,7 +63,7 @@ class SimplePositionManager:
             if trailing_stop_ratio:
                 self._set_trailing_stop(symbol, trailing_stop_ratio)
             
-            print(f"✅ {strategy_name} 포지션 오픈: {side.upper()} {size} {symbol} (레버리지: {leverage}배)")
+            print(f"✅ {strategy_name} 포지션 오픈: {side.upper()} {actual_size} {symbol} @ ${entry_price:.2f}")
             return symbol
             
         except Exception as e:

@@ -6,7 +6,8 @@ import time
 from datetime import datetime
 from okx.websocket_handler import WebSocketHandler
 from strategy.dual_manager import DualStrategyManager
-from config import TRADING_CONFIG
+from config import TRADING_CONFIG, validate_config
+from utils.logger import trading_logger, log_system
 
 def main():
     """메인 실행 함수"""
@@ -15,6 +16,10 @@ def main():
     print("=" * 50)
     
     try:
+        # 설정 검증
+        log_system("설정 검증 중...")
+        validate_config()
+        
         # 전략 관리자 초기화
         strategy_manager = DualStrategyManager(
             total_capital=TRADING_CONFIG.get('initial_capital', 10000),

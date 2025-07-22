@@ -7,13 +7,16 @@ import pandas as pd
 from utils.indicators import calculate_ema
 from config import EMA_PERIODS
 
-def generate_strategy_data(df):
-    """전략용 데이터 생성"""
-    if len(df) < max(EMA_PERIODS.values()) + 2:
+def generate_strategy_data(df, ema_periods=None):
+    """전략용 데이터 생성 (WebSocket에서 호출)"""
+    if ema_periods is None:
+        ema_periods = EMA_PERIODS
+        
+    if len(df) < max(ema_periods.values()) + 2:
         return None
     
     # 모든 EMA 계산
-    for key, period in EMA_PERIODS.items():
+    for key, period in ema_periods.items():
         df[f"ema_{key}"] = calculate_ema(df["close"], period)
     
     # 최신/이전 인덱스
