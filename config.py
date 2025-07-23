@@ -11,7 +11,7 @@ from datetime import datetime
 # OKX API 인증 정보
 API_KEY = "ea882939-e193-4c0b-b2c2-0ab9363a3c09"
 API_SECRET = "06A9784F2379D554478A61FE85CAF240" 
-PASSPHRASE = "Qkrwowns123!@"
+PASSPHRASE = "Fortis931!@"
 #참고
 APIkeyname = "TradingAPI"
 Permissions = "Read/Trade"
