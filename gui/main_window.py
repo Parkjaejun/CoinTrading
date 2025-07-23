@@ -34,27 +34,14 @@ except ImportError:
 # 프로젝트 모듈들 임포트
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-try:
-    from config import (
-        API_KEY, API_SECRET, PASSPHRASE, TRADING_CONFIG, 
-        LONG_STRATEGY_CONFIG, SHORT_STRATEGY_CONFIG, NOTIFICATION_CONFIG
-    )
-    from okx.account_manager import AccountManager
-    from okx.websocket_handler import WebSocketHandler
-    from okx.connection_manager import connection_manager
-    from utils.logger import log_system, log_error
-    from utils.data_loader import historical_loader
-except ImportError as e:
-    print(f"모듈 임포트 오류: {e}")
-
-class RealDataThread(QThread):
-    """실제 OKX 데이터 수신 스레드"""
+class SimulatedDataThread(QThread):
+    """시뮬레이션된 데이터 스레드 (OKX API 없이도 작동)"""
     
     # 시그널 정의
-    price_updated = pyqtSignal(str, float, dict)  # symbol, price, full_data
-    account_updated = pyqtSignal(dict)  # 계좌 정보
-    position_updated = pyqtSignal(list)  # 포지션 정보
-    connection_status_changed = pyqtSignal(bool)  # 연결 상태
+    price_updated = pyqtSignal(str, float, dict)
+    account_updated = pyqtSignal(dict)
+    position_updated = pyqtSignal(list)
+    connection_status_changed = pyqtSignal(bool)
     error_occurred = pyqtSignal(str)
     
     def __init__(self):
@@ -62,75 +49,84 @@ class RealDataThread(QThread):
         self.is_running = False
         self.should_stop = False
         
-        # OKX 연결 관리
-        self.account_manager = None
-        self.ws_handler = None
-        
-        # 데이터 저장
+        # 시뮬레이션 데이터
         self.latest_prices = {}
         self.price_history = {}
+        
+        # 시뮬레이션 계좌
+        self.simulated_account = {
+            'USDT': {
+                'available': 10000.0,
+                'total': 10000.0,
+                'frozen': 0.0
+            }
+        }
+        
+        # 시뮬레이션 포지션
+        self.simulated_positions = []
         
     def run(self):
         """메인 실행 루프"""
         self.is_running = True
-        print("🔗 실제 OKX 데이터 연결 시작")
+        print("🔗 시뮬레이션 데이터 연결 시작")
         
         try:
-            # API 연결 테스트
-            self.account_manager = AccountManager()
+            # 연결 성공 시뮬레이션
+            self.connection_status_changed.emit(True)
+            self.account_updated.emit(self.simulated_account)
             
-            # 계좌 정보 조회 테스트
-            balances = self.account_manager.get_account_balance()
-            if balances:
-                self.connection_status_changed.emit(True)
-                self.account_updated.emit(balances)
-                print("✅ OKX API 연결 성공")
-            else:
-                self.error_occurred.emit("API 연결 실패")
-                return
+            print("✅ 시뮬레이션 API 연결 성공")
             
-            # WebSocket 연결 (실제 데이터)
-            self.ws_handler = RealWebSocketHandler()
-            self.ws_handler.price_updated.connect(self.on_price_update)
-            
-            symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
-            self.ws_handler.start_real_websocket(symbols)
-            
-            # 주기적 계좌 정보 업데이트
+            # 주기적 데이터 업데이트
+            last_price_update = 0
             last_account_update = 0
-            last_position_update = 0
             
             while self.is_running and not self.should_stop:
                 try:
                     current_time = time.time()
                     
+                    # 1초마다 가격 업데이트
+                    if current_time - last_price_update >= 1:
+                        self.update_simulated_prices()
+                        last_price_update = current_time
+                    
                     # 30초마다 계좌 정보 업데이트
                     if current_time - last_account_update >= 30:
-                        self.update_account_info()
+                        self.update_simulated_account()
                         last_account_update = current_time
-                    
-                    # 10초마다 포지션 정보 업데이트
-                    if current_time - last_position_update >= 10:
-                        self.update_position_info()
-                        last_position_update = current_time
                     
                     # 1초 대기
                     time.sleep(1)
                     
                 except Exception as e:
-                    self.error_occurred.emit(f"데이터 수신 오류: {str(e)}")
+                    self.error_occurred.emit(f"시뮬레이션 데이터 오류: {str(e)}")
                     time.sleep(5)
                     
         except Exception as e:
-            self.error_occurred.emit(f"초기화 오류: {str(e)}")
+            self.error_occurred.emit(f"시뮬레이션 초기화 오류: {str(e)}")
     
-    def on_price_update(self, symbol: str, price_data: dict):
-        """실시간 가격 업데이트"""
+    def update_simulated_prices(self):
+        """가격 데이터 시뮬레이션"""
         try:
-            price = float(price_data.get('last', 0))
+            symbols = ['BTC-USDT-SWAP', 'ETH-USDT-SWAP']
             
-            if price > 0:
-                self.latest_prices[symbol] = price
+            for symbol in symbols:
+                # 기본 가격 설정
+                if symbol not in self.latest_prices:
+                    if 'BTC' in symbol:
+                        self.latest_prices[symbol] = 45000.0
+                    elif 'ETH' in symbol:
+                        self.latest_prices[symbol] = 3000.0
+                    else:
+                        self.latest_prices[symbol] = 1.0
+                
+                # 랜덤 가격 변동 시뮬레이션
+                import random
+                current_price = self.latest_prices[symbol]
+                change_percent = random.uniform(-0.001, 0.001)  # ±0.1% 변동
+                new_price = current_price * (1 + change_percent)
+                
+                self.latest_prices[symbol] = new_price
                 
                 # 가격 히스토리 저장
                 if symbol not in self.price_history:
@@ -138,96 +134,114 @@ class RealDataThread(QThread):
                 
                 self.price_history[symbol].append({
                     'timestamp': time.time(),
-                    'price': price,
-                    'volume': float(price_data.get('vol24h', 0))
+                    'price': new_price,
+                    'volume': random.uniform(1000, 10000)
                 })
                 
                 # 최근 500개만 유지
                 if len(self.price_history[symbol]) > 500:
                     self.price_history[symbol] = self.price_history[symbol][-500:]
                 
+                # 24시간 변화율 시뮬레이션
+                change_24h = random.uniform(-5.0, 5.0)
+                
                 # GUI에 시그널 전송
-                self.price_updated.emit(symbol, price, price_data)
+                price_data = {
+                    'last': new_price,
+                    'bid': new_price * 0.999,
+                    'ask': new_price * 1.001,
+                    'vol24h': random.uniform(10000, 100000),
+                    'change_24h': change_24h,
+                    'high_24h': new_price * 1.02,
+                    'low_24h': new_price * 0.98,
+                    'timestamp': int(time.time() * 1000)
+                }
+                
+                self.price_updated.emit(symbol, new_price, price_data)
         
         except Exception as e:
-            print(f"가격 업데이트 오류: {e}")
+            print(f"가격 시뮬레이션 오류: {e}")
     
-    def update_account_info(self):
-        """계좌 정보 업데이트"""
+    def update_simulated_account(self):
+        """계좌 정보 시뮬레이션"""
         try:
-            if self.account_manager:
-                balances = self.account_manager.get_account_balance()
-                if balances:
-                    self.account_updated.emit(balances)
+            # 계좌 잔고에 약간의 변동 추가
+            import random
+            change = random.uniform(-10, 10)
+            self.simulated_account['USDT']['available'] += change
+            self.simulated_account['USDT']['total'] = self.simulated_account['USDT']['available']
+            
+            # 최소값 보장
+            if self.simulated_account['USDT']['available'] < 1000:
+                self.simulated_account['USDT']['available'] = 10000.0
+                self.simulated_account['USDT']['total'] = 10000.0
+            
+            self.account_updated.emit(self.simulated_account)
+            
+            # 포지션 시뮬레이션 (가끔 추가)
+            if random.random() < 0.1:  # 10% 확률
+                self.update_simulated_positions()
+            
         except Exception as e:
-            print(f"계좌 정보 업데이트 오류: {e}")
+            print(f"계좌 시뮬레이션 오류: {e}")
     
-    def update_position_info(self):
-        """포지션 정보 업데이트"""
+    def update_simulated_positions(self):
+        """포지션 시뮬레이션"""
         try:
-            if self.account_manager:
-                positions = self.account_manager.get_positions()
-                self.position_updated.emit(positions)
+            import random
+            
+            # 랜덤하게 포지션 생성/제거
+            if len(self.simulated_positions) == 0 and random.random() < 0.3:
+                # 새 포지션 생성
+                symbol = random.choice(['BTC-USDT-SWAP', 'ETH-USDT-SWAP'])
+                price = self.latest_prices.get(symbol, 45000)
+                
+                position = {
+                    'instrument': symbol,
+                    'position_side': random.choice(['long', 'short']),
+                    'size': random.uniform(0.001, 0.1),
+                    'avg_price': price,
+                    'mark_price': price,
+                    'unrealized_pnl': random.uniform(-100, 100),
+                    'unrealized_pnl_ratio': random.uniform(-0.05, 0.05),
+                    'margin': random.uniform(100, 1000),
+                    'leverage': random.randint(1, 10),
+                    'last_trade_id': '12345'
+                }
+                
+                self.simulated_positions.append(position)
+            
+            elif len(self.simulated_positions) > 0 and random.random() < 0.2:
+                # 포지션 제거
+                self.simulated_positions.clear()
+            
+            # 기존 포지션 PnL 업데이트
+            for position in self.simulated_positions:
+                symbol = position['instrument']
+                current_price = self.latest_prices.get(symbol, position['avg_price'])
+                
+                # PnL 계산
+                if position['position_side'] == 'long':
+                    pnl_change = (current_price - position['avg_price']) / position['avg_price']
+                else:
+                    pnl_change = (position['avg_price'] - current_price) / position['avg_price']
+                
+                position['mark_price'] = current_price
+                position['unrealized_pnl'] = position['margin'] * pnl_change * position['leverage']
+                position['unrealized_pnl_ratio'] = pnl_change * position['leverage']
+            
+            self.position_updated.emit(self.simulated_positions)
+            
         except Exception as e:
-            print(f"포지션 정보 업데이트 오류: {e}")
-    
-    def get_historical_data(self, symbol: str, days: int = 1):
-        """과거 데이터 조회"""
-        try:
-            df = historical_loader.get_historical_candles(symbol, "1m", limit=days*1440)
-            if df is not None:
-                return df.to_dict('records')
-            return []
-        except Exception as e:
-            print(f"과거 데이터 조회 오류: {e}")
-            return []
+            print(f"포지션 시뮬레이션 오류: {e}")
     
     def stop(self):
         """데이터 수신 중지"""
         self.should_stop = True
         self.is_running = False
-        
-        if self.ws_handler:
-            self.ws_handler.stop_websocket()
 
-class RealWebSocketHandler(QThread):
-    """실제 WebSocket 연결 처리"""
-    
-    price_updated = pyqtSignal(str, dict)
-    
-    def __init__(self):
-        super().__init__()
-        self.ws_handler = None
-    
-    def start_real_websocket(self, symbols):
-        """실제 WebSocket 시작"""
-        try:
-            from okx.websocket_handler import WebSocketHandler
-            
-            self.ws_handler = WebSocketHandler()
-            
-            # 실제 WebSocket 연결
-            public_thread, private_thread = self.ws_handler.start_ws(symbols)
-            
-            # 가격 업데이트 콜백 등록
-            self.ws_handler.on_price_callback = self.on_price_data
-            
-            print("✅ 실제 WebSocket 연결 완료")
-            
-        except Exception as e:
-            print(f"WebSocket 연결 오류: {e}")
-    
-    def on_price_data(self, symbol: str, data: dict):
-        """실시간 가격 데이터 콜백"""
-        self.price_updated.emit(symbol, data)
-    
-    def stop_websocket(self):
-        """WebSocket 중지"""
-        if self.ws_handler:
-            self.ws_handler.stop_ws()
-
-class RealAccountWidget(QWidget):
-    """실제 계좌 정보 위젯"""
+class AccountWidget(QWidget):
+    """계좌 정보 위젯"""
     
     def __init__(self):
         super().__init__()
@@ -237,7 +251,7 @@ class RealAccountWidget(QWidget):
         layout = QVBoxLayout()
         
         # 계좌 요약
-        account_group = QGroupBox("💰 실제 계좌 정보")
+        account_group = QGroupBox("💰 계좌 정보")
         account_layout = QGridLayout()
         
         # 잔고 표시 레이블들
@@ -247,50 +261,37 @@ class RealAccountWidget(QWidget):
         self.available_balance_label = QLabel("사용가능: $0.00")
         self.frozen_balance_label = QLabel("동결: $0.00")
         
-        # 다른 자산 표시
-        self.other_assets_label = QLabel("기타 자산: 없음")
+        # 기타 정보
+        self.connection_info_label = QLabel("연결 상태: 시뮬레이션 모드")
         
         account_layout.addWidget(self.usdt_balance_label, 0, 0, 1, 2)
         account_layout.addWidget(self.available_balance_label, 1, 0)
         account_layout.addWidget(self.frozen_balance_label, 1, 1)
-        account_layout.addWidget(self.other_assets_label, 2, 0, 1, 2)
+        account_layout.addWidget(self.connection_info_label, 2, 0, 1, 2)
         
         account_group.setLayout(account_layout)
         layout.addWidget(account_group)
         
         # 계좌 설정 정보
-        config_group = QGroupBox("⚙️ 계좌 설정")
+        config_group = QGroupBox("⚙️ 시뮬레이션 설정")
         config_layout = QGridLayout()
         
-        self.account_level_label = QLabel("계좌 레벨: -")
-        self.position_mode_label = QLabel("포지션 모드: -")
-        self.margin_mode_label = QLabel("마진 모드: -")
+        self.mode_label = QLabel("모드: 시뮬레이션")
+        self.update_interval_label = QLabel("업데이트: 1초")
+        self.data_source_label = QLabel("데이터: 가상 생성")
         
-        config_layout.addWidget(self.account_level_label, 0, 0)
-        config_layout.addWidget(self.position_mode_label, 1, 0)
-        config_layout.addWidget(self.margin_mode_label, 2, 0)
+        config_layout.addWidget(self.mode_label, 0, 0)
+        config_layout.addWidget(self.update_interval_label, 1, 0)
+        config_layout.addWidget(self.data_source_label, 2, 0)
         
         config_group.setLayout(config_layout)
         layout.addWidget(config_group)
-        
-        # 수수료 정보
-        fee_group = QGroupBox("💸 수수료 정보")
-        fee_layout = QGridLayout()
-        
-        self.maker_fee_label = QLabel("Maker: 0.000%")
-        self.taker_fee_label = QLabel("Taker: 0.000%")
-        
-        fee_layout.addWidget(self.maker_fee_label, 0, 0)
-        fee_layout.addWidget(self.taker_fee_label, 0, 1)
-        
-        fee_group.setLayout(fee_layout)
-        layout.addWidget(fee_group)
         
         layout.addStretch()
         self.setLayout(layout)
     
     def update_account_data(self, balances: Dict[str, Any]):
-        """실제 계좌 데이터 업데이트"""
+        """계좌 데이터 업데이트"""
         try:
             # USDT 잔고 업데이트
             if 'USDT' in balances:
@@ -304,49 +305,18 @@ class RealAccountWidget(QWidget):
                 self.frozen_balance_label.setText(f"동결: ${frozen_usdt:,.2f}")
                 
                 # 잔고에 따른 색상 변경
-                if total_usdt > 1000:
+                if total_usdt > 10000:
                     self.usdt_balance_label.setStyleSheet("color: #4CAF50;")  # 녹색
-                elif total_usdt > 100:
+                elif total_usdt > 5000:
                     self.usdt_balance_label.setStyleSheet("color: #FF9800;")  # 주황색
                 else:
                     self.usdt_balance_label.setStyleSheet("color: #F44336;")  # 빨간색
-            
-            # 기타 자산 표시
-            other_assets = []
-            for currency, data in balances.items():
-                if currency != 'USDT' and data.get('total', 0) > 0:
-                    other_assets.append(f"{currency}: {data['total']:.6f}")
-            
-            if other_assets:
-                self.other_assets_label.setText("기타 자산: " + ", ".join(other_assets[:3]))
-            else:
-                self.other_assets_label.setText("기타 자산: 없음")
                 
         except Exception as e:
             print(f"계좌 데이터 업데이트 오류: {e}")
-    
-    def update_account_config(self, config: Dict[str, Any]):
-        """계좌 설정 정보 업데이트"""
-        try:
-            self.account_level_label.setText(f"계좌 레벨: {config.get('account_level', 'Unknown')}")
-            self.position_mode_label.setText(f"포지션 모드: {config.get('position_mode', 'Unknown')}")
-            self.margin_mode_label.setText(f"마진 모드: {config.get('margin_mode', 'Unknown')}")
-        except Exception as e:
-            print(f"계좌 설정 업데이트 오류: {e}")
-    
-    def update_fee_info(self, fees: Dict[str, float]):
-        """수수료 정보 업데이트"""
-        try:
-            maker_fee = fees.get('maker_fee', 0) * 100
-            taker_fee = fees.get('taker_fee', 0) * 100
-            
-            self.maker_fee_label.setText(f"Maker: {maker_fee:.3f}%")
-            self.taker_fee_label.setText(f"Taker: {taker_fee:.3f}%")
-        except Exception as e:
-            print(f"수수료 정보 업데이트 오류: {e}")
 
-class RealPositionWidget(QWidget):
-    """실제 포지션 정보 위젯"""
+class PositionWidget(QWidget):
+    """포지션 정보 위젯"""
     
     def __init__(self):
         super().__init__()
@@ -356,7 +326,7 @@ class RealPositionWidget(QWidget):
         layout = QVBoxLayout()
         
         # 포지션 테이블
-        position_group = QGroupBox("📊 실제 포지션")
+        position_group = QGroupBox("📊 포지션")
         position_layout = QVBoxLayout()
         
         self.position_table = QTableWidget()
@@ -391,7 +361,7 @@ class RealPositionWidget(QWidget):
         self.setLayout(layout)
     
     def update_positions(self, positions: list):
-        """실제 포지션 데이터 업데이트"""
+        """포지션 데이터 업데이트"""
         try:
             self.position_table.setRowCount(len(positions))
             
@@ -444,15 +414,14 @@ class RealPositionWidget(QWidget):
         except Exception as e:
             print(f"포지션 업데이트 오류: {e}")
 
-class RealChartWidget(QWidget):
-    """실제 데이터를 사용하는 차트 위젯"""
+class ChartWidget(QWidget):
+    """차트 위젯"""
     
     def __init__(self):
         super().__init__()
         self.setup_ui()
         self.price_data = []
         self.time_data = []
-        self.volume_data = []
         
     def setup_ui(self):
         layout = QVBoxLayout()
@@ -480,13 +449,13 @@ class RealChartWidget(QWidget):
         
         layout.addLayout(header_layout)
         
-        # 실제 차트 (pyqtgraph)
+        # 차트 (pyqtgraph 사용 가능한 경우)
         if pg is not None:
             # 차트 위젯 생성
             self.chart_widget = pg.GraphicsLayoutWidget()
             
             # 가격 차트
-            self.price_plot = self.chart_widget.addPlot(title="실시간 가격", row=0, col=0)
+            self.price_plot = self.chart_widget.addPlot(title="시뮬레이션 가격", row=0, col=0)
             self.price_plot.setLabel('left', 'Price ($)')
             self.price_plot.setLabel('bottom', 'Time')
             self.price_plot.showGrid(x=True, y=True)
@@ -497,45 +466,32 @@ class RealChartWidget(QWidget):
                 name='Price'
             )
             
-            # 볼륨 차트 (하단)
-            self.volume_plot = self.chart_widget.addPlot(title="거래량", row=1, col=0)
-            self.volume_plot.setLabel('left', 'Volume')
-            self.volume_plot.setLabel('bottom', 'Time')
-            self.volume_plot.setMaximumHeight(150)
-            
-            # 볼륨 바
-            self.volume_bars = pg.BarGraphItem(
-                x=[], height=[], width=0.8, 
-                brush=pg.mkBrush(color='#4CAF50')
-            )
-            self.volume_plot.addItem(self.volume_bars)
-            
             layout.addWidget(self.chart_widget)
             
         else:
             # pyqtgraph가 없는 경우
-            no_chart_label = QLabel("실시간 차트를 보려면 pyqtgraph를 설치하세요:\npip install pyqtgraph")
+            no_chart_label = QLabel("시뮬레이션 차트를 보려면 pyqtgraph를 설치하세요:\npip install pyqtgraph")
             no_chart_label.setAlignment(Qt.AlignCenter)
             no_chart_label.setStyleSheet("color: #FF9800; font-size: 14px;")
             layout.addWidget(no_chart_label)
         
         self.setLayout(layout)
     
-    def update_real_price(self, symbol: str, price: float, full_data: dict):
-        """실제 가격 데이터로 차트 업데이트"""
+    def update_price(self, symbol: str, price: float, full_data: dict):
+        """가격 데이터로 차트 업데이트"""
         try:
             # 헤더 정보 업데이트
             self.symbol_label.setText(symbol)
             self.price_label.setText(f"${price:,.2f}")
             
-            # 24시간 변화율 계산
-            change_24h = float(full_data.get('change_24h', '0'))
+            # 24시간 변화율
+            change_24h = full_data.get('change_24h', 0)
             change_color = "#4CAF50" if change_24h >= 0 else "#F44336"
             self.change_label.setText(f"({change_24h:+.2f}%)")
             self.change_label.setStyleSheet(f"color: {change_color};")
             
             # 24시간 거래량
-            volume_24h = float(full_data.get('vol24h', '0'))
+            volume_24h = full_data.get('vol24h', 0)
             if volume_24h >= 1000000:
                 vol_str = f"Vol: {volume_24h/1000000:.1f}M"
             elif volume_24h >= 1000:
@@ -550,76 +506,31 @@ class RealChartWidget(QWidget):
                 
                 self.time_data.append(current_time)
                 self.price_data.append(price)
-                self.volume_data.append(volume_24h)
                 
-                # 최근 200개 데이터만 유지 (더 많은 히스토리)
-                max_points = 200
+                # 최근 100개 데이터만 유지
+                max_points = 100
                 if len(self.price_data) > max_points:
                     self.time_data = self.time_data[-max_points:]
                     self.price_data = self.price_data[-max_points:]
-                    self.volume_data = self.volume_data[-max_points:]
                 
                 # 가격 차트 업데이트
                 if len(self.price_data) > 1:
                     self.price_curve.setData(self.time_data, self.price_data)
-                
-                # 볼륨 차트 업데이트
-                if len(self.volume_data) > 1:
-                    bar_width = (self.time_data[-1] - self.time_data[0]) / len(self.time_data) * 0.8
-                    self.volume_bars.setOpts(
-                        x=self.time_data,
-                        height=self.volume_data,
-                        width=bar_width
-                    )
             
         except Exception as e:
             print(f"차트 업데이트 오류: {e}")
-    
-    def load_historical_data(self, symbol: str):
-        """과거 데이터 로드하여 차트 초기화"""
-        try:
-            # 과거 1일 데이터 로드
-            df = historical_loader.get_historical_candles(symbol, "5m", limit=288)  # 5분봉 1일
-            
-            if df is not None and len(df) > 0:
-                # 데이터 변환
-                timestamps = [dt.timestamp() for dt in df['timestamp']]
-                prices = df['close'].tolist()
-                volumes = df['volume'].tolist()
-                
-                # 초기 차트 데이터 설정
-                self.time_data = timestamps[-100:]  # 최근 100개
-                self.price_data = prices[-100:]
-                self.volume_data = volumes[-100:]
-                
-                # 차트 그리기
-                if pg is not None and hasattr(self, 'price_curve'):
-                    self.price_curve.setData(self.time_data, self.price_data)
-                    
-                    if hasattr(self, 'volume_bars'):
-                        bar_width = (self.time_data[-1] - self.time_data[0]) / len(self.time_data) * 0.8
-                        self.volume_bars.setOpts(
-                            x=self.time_data,
-                            height=self.volume_data,
-                            width=bar_width
-                        )
-                
-                print(f"✅ {symbol} 과거 데이터 로드 완료: {len(df)}개 캔들")
-                
-        except Exception as e:
-            print(f"과거 데이터 로드 오류: {e}")
 
-class ImprovedTradingMainWindow(QMainWindow):
-    """개선된 메인 윈도우 - 실제 OKX 데이터 연동"""
+class TradingMainWindow(QMainWindow):
+    """메인 윈도우 - 시뮬레이션 모드"""
     
     def __init__(self):
         super().__init__()
-        self.real_data_thread = None
+        self.data_thread = None
         self.setup_ui()
         
     def setup_ui(self):
-        self.setWindowTitle("🚀 OKX 자동매매 시스템 v2.0 - 실제 데이터 연동")
-        self.setGeometry(100, 100, 1600, 1000)
+        self.setWindowTitle("🚀 OKX 자동매매 시스템 - 시뮬레이션 모드")
+        self.setGeometry(100, 100, 1400, 900)
         
         # 메인 위젯
         central_widget = QWidget()
@@ -633,21 +544,19 @@ class ImprovedTradingMainWindow(QMainWindow):
         # 탭 위젯
         self.tab_widget = QTabWidget()
         
-        # 실제 데이터 위젯들
-        self.real_chart_tab = RealChartWidget()
-        self.real_account_tab = RealAccountWidget()
-        self.real_position_tab = RealPositionWidget()
+        # 위젯들
+        self.chart_tab = ChartWidget()
+        self.account_tab = AccountWidget()
+        self.position_tab = PositionWidget()
         
-        # 기존 탭들 (개선된 버전)
-        self.trading_log_tab = self.create_trading_log_tab()
-        self.settings_tab = self.create_settings_tab()
+        # 로그 탭
+        self.log_tab = self.create_log_tab()
         
         # 탭 추가
-        self.tab_widget.addTab(self.real_chart_tab, "📈 실시간 차트")
-        self.tab_widget.addTab(self.real_account_tab, "💰 계좌 정보")
-        self.tab_widget.addTab(self.real_position_tab, "📊 포지션")
-        self.tab_widget.addTab(self.trading_log_tab, "📝 거래 로그")
-        self.tab_widget.addTab(self.settings_tab, "⚙️ 설정")
+        self.tab_widget.addTab(self.chart_tab, "📈 시뮬레이션 차트")
+        self.tab_widget.addTab(self.account_tab, "💰 계좌 정보")
+        self.tab_widget.addTab(self.position_tab, "📊 포지션")
+        self.tab_widget.addTab(self.log_tab, "📝 로그")
         
         # 레이아웃 설정
         layout = QVBoxLayout()
@@ -655,86 +564,74 @@ class ImprovedTradingMainWindow(QMainWindow):
         central_widget.setLayout(layout)
         
         # 스타일 적용
-        self.apply_improved_theme()
+        self.apply_dark_theme()
         
         # 자동 시작
-        self.auto_start_data_connection()
+        self.auto_start_simulation()
+    
+    def create_log_tab(self):
+        """로그 탭 생성"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        # 시뮬레이션 로그
+        log_group = QGroupBox("📝 시뮬레이션 로그")
+        log_layout = QVBoxLayout()
+        
+        self.log_display = QTextEdit()
+        self.log_display.setReadOnly(True)
+        self.log_display.setMaximumHeight(400)
+        
+        log_layout.addWidget(self.log_display)
+        log_group.setLayout(log_layout)
+        layout.addWidget(log_group)
+        
+        widget.setLayout(layout)
+        return widget
     
     def setup_menubar(self):
         """메뉴바 설정"""
         menubar = self.menuBar()
         
-        # 연결 메뉴
-        connection_menu = menubar.addMenu('연결')
+        # 시뮬레이션 메뉴
+        sim_menu = menubar.addMenu('시뮬레이션')
         
-        self.connect_action = QAction('실제 데이터 연결', self)
-        self.connect_action.triggered.connect(self.start_real_data_connection)
-        connection_menu.addAction(self.connect_action)
+        self.start_action = QAction('시뮬레이션 시작', self)
+        self.start_action.triggered.connect(self.start_simulation)
+        sim_menu.addAction(self.start_action)
         
-        self.disconnect_action = QAction('연결 해제', self)
-        self.disconnect_action.triggered.connect(self.stop_real_data_connection)
-        self.disconnect_action.setEnabled(False)
-        connection_menu.addAction(self.disconnect_action)
-        
-        connection_menu.addSeparator()
-        
-        # 계좌 새로고침
-        refresh_account_action = QAction('계좌 새로고침', self)
-        refresh_account_action.triggered.connect(self.refresh_account_data)
-        connection_menu.addAction(refresh_account_action)
-        
-        # 포지션 새로고침
-        refresh_position_action = QAction('포지션 새로고침', self)
-        refresh_position_action.triggered.connect(self.refresh_position_data)
-        connection_menu.addAction(refresh_position_action)
-        
-        # 도구 메뉴
-        tools_menu = menubar.addMenu('도구')
-        
-        # API 연결 테스트
-        test_api_action = QAction('API 연결 테스트', self)
-        test_api_action.triggered.connect(self.test_api_connection)
-        tools_menu.addAction(test_api_action)
-        
-        # 과거 데이터 로드
-        load_history_action = QAction('과거 데이터 로드', self)
-        load_history_action.triggered.connect(self.load_historical_data)
-        tools_menu.addAction(load_history_action)
+        self.stop_action = QAction('시뮬레이션 중지', self)
+        self.stop_action.triggered.connect(self.stop_simulation)
+        self.stop_action.setEnabled(False)
+        sim_menu.addAction(self.stop_action)
     
     def setup_toolbar(self):
         """툴바 설정"""
         toolbar = QToolBar()
         self.addToolBar(toolbar)
         
-        # 연결 버튼
-        self.connect_btn = QPushButton("🔗 실제 데이터 연결")
-        self.connect_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 8px;")
-        self.connect_btn.clicked.connect(self.start_real_data_connection)
+        # 시뮬레이션 버튼
+        self.start_btn = QPushButton("🔗 시뮬레이션 시작")
+        self.start_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 8px;")
+        self.start_btn.clicked.connect(self.start_simulation)
         
-        self.disconnect_btn = QPushButton("🔌 연결 해제")
-        self.disconnect_btn.setStyleSheet("background-color: #F44336; color: white; font-weight: bold; padding: 8px;")
-        self.disconnect_btn.clicked.connect(self.stop_real_data_connection)
-        self.disconnect_btn.setEnabled(False)
-        
-        # 새로고침 버튼
-        self.refresh_btn = QPushButton("🔄 새로고침")
-        self.refresh_btn.setStyleSheet("background-color: #2196F3; color: white; font-weight: bold; padding: 8px;")
-        self.refresh_btn.clicked.connect(self.refresh_all_data)
+        self.stop_btn = QPushButton("🔌 시뮬레이션 중지")
+        self.stop_btn.setStyleSheet("background-color: #F44336; color: white; font-weight: bold; padding: 8px;")
+        self.stop_btn.clicked.connect(self.stop_simulation)
+        self.stop_btn.setEnabled(False)
         
         # 상태 표시
-        self.api_status_label = QLabel("🔴 연결 끊어짐")
-        self.api_status_label.setStyleSheet("color: #F44336; font-weight: bold; padding: 8px;")
+        self.status_label = QLabel("🔴 중지됨")
+        self.status_label.setStyleSheet("color: #F44336; font-weight: bold; padding: 8px;")
         
         self.data_count_label = QLabel("수신 데이터: 0건")
         self.data_count_label.setStyleSheet("color: #666; padding: 8px;")
         
         # 툴바에 추가
-        toolbar.addWidget(self.connect_btn)
-        toolbar.addWidget(self.disconnect_btn)
+        toolbar.addWidget(self.start_btn)
+        toolbar.addWidget(self.stop_btn)
         toolbar.addSeparator()
-        toolbar.addWidget(self.refresh_btn)
-        toolbar.addSeparator()
-        toolbar.addWidget(self.api_status_label)
+        toolbar.addWidget(self.status_label)
         toolbar.addWidget(self.data_count_label)
         
         # 우측 정렬
@@ -760,90 +657,8 @@ class ImprovedTradingMainWindow(QMainWindow):
         self.time_timer.timeout.connect(self.update_time_display)
         self.time_timer.start(1000)
     
-    def create_trading_log_tab(self):
-        """거래 로그 탭 생성"""
-        widget = QWidget()
-        layout = QVBoxLayout()
-        
-        # 실시간 로그
-        log_group = QGroupBox("📝 실시간 로그")
-        log_layout = QVBoxLayout()
-        
-        self.log_display = QTextEdit()
-        self.log_display.setReadOnly(True)
-        self.log_display.setMaximumHeight(300)
-        
-        log_layout.addWidget(self.log_display)
-        log_group.setLayout(log_layout)
-        layout.addWidget(log_group)
-        
-        # API 호출 로그
-        api_group = QGroupBox("🔗 API 호출 로그")
-        api_layout = QVBoxLayout()
-        
-        self.api_log_display = QTextEdit()
-        self.api_log_display.setReadOnly(True)
-        self.api_log_display.setMaximumHeight(200)
-        
-        api_layout.addWidget(self.api_log_display)
-        api_group.setLayout(api_layout)
-        layout.addWidget(api_group)
-        
-        widget.setLayout(layout)
-        return widget
-    
-    def create_settings_tab(self):
-        """설정 탭 생성"""
-        widget = QWidget()
-        layout = QVBoxLayout()
-        
-        # API 설정 표시
-        api_group = QGroupBox("🔑 API 설정 상태")
-        api_layout = QGridLayout()
-        
-        # API 키 상태 (마스킹)
-        api_key_status = "설정됨" if API_KEY and API_KEY != "your_api_key_here" else "미설정"
-        api_secret_status = "설정됨" if API_SECRET and API_SECRET != "your_api_secret_here" else "미설정"
-        passphrase_status = "설정됨" if PASSPHRASE and PASSPHRASE != "your_passphrase_here" else "미설정"
-        
-        api_layout.addWidget(QLabel("API Key:"), 0, 0)
-        api_layout.addWidget(QLabel(api_key_status), 0, 1)
-        api_layout.addWidget(QLabel("API Secret:"), 1, 0)
-        api_layout.addWidget(QLabel(api_secret_status), 1, 1)
-        api_layout.addWidget(QLabel("Passphrase:"), 2, 0)
-        api_layout.addWidget(QLabel(passphrase_status), 2, 1)
-        
-        api_group.setLayout(api_layout)
-        layout.addWidget(api_group)
-        
-        # 데이터 업데이트 설정
-        update_group = QGroupBox("⏱️ 업데이트 설정")
-        update_layout = QGridLayout()
-        
-        self.price_update_interval = QSpinBox()
-        self.price_update_interval.setRange(1, 60)
-        self.price_update_interval.setValue(1)
-        self.price_update_interval.setSuffix("초")
-        
-        self.account_update_interval = QSpinBox()
-        self.account_update_interval.setRange(10, 300)
-        self.account_update_interval.setValue(30)
-        self.account_update_interval.setSuffix("초")
-        
-        update_layout.addWidget(QLabel("가격 업데이트:"), 0, 0)
-        update_layout.addWidget(self.price_update_interval, 0, 1)
-        update_layout.addWidget(QLabel("계좌 업데이트:"), 1, 0)
-        update_layout.addWidget(self.account_update_interval, 1, 1)
-        
-        update_group.setLayout(update_layout)
-        layout.addWidget(update_group)
-        
-        layout.addStretch()
-        widget.setLayout(layout)
-        return widget
-    
-    def apply_improved_theme(self):
-        """개선된 다크 테마 적용"""
+    def apply_dark_theme(self):
+        """다크 테마 적용"""
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #1e1e1e;
@@ -928,67 +743,61 @@ class ImprovedTradingMainWindow(QMainWindow):
                 padding: 8px;
                 font-family: 'Consolas', 'Monaco', monospace;
             }
-            QSpinBox {
-                background-color: #2a2a2a;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 6px;
-                padding: 6px;
-            }
         """)
     
-    def auto_start_data_connection(self):
-        """자동으로 데이터 연결 시작"""
-        QTimer.singleShot(1000, self.start_real_data_connection)  # 1초 후 자동 연결
+    def auto_start_simulation(self):
+        """자동으로 시뮬레이션 시작"""
+        QTimer.singleShot(1000, self.start_simulation)  # 1초 후 자동 시작
     
-    def start_real_data_connection(self):
-        """실제 데이터 연결 시작"""
-        if self.real_data_thread and self.real_data_thread.isRunning():
-            self.add_log("⚠️ 이미 데이터 연결이 실행 중입니다")
+    def start_simulation(self):
+        """시뮬레이션 시작"""
+        if self.data_thread and self.data_thread.isRunning():
+            self.add_log("⚠️ 이미 시뮬레이션이 실행 중입니다")
             return
         
-        self.add_log("🔗 실제 OKX 데이터 연결 시작...")
+        self.add_log("🔗 시뮬레이션 데이터 연결 시작...")
         
         # 데이터 스레드 생성 및 시작
-        self.real_data_thread = RealDataThread()
+        self.data_thread = SimulatedDataThread()
         
         # 시그널 연결
-        self.real_data_thread.price_updated.connect(self.on_price_update)
-        self.real_data_thread.account_updated.connect(self.on_account_update)
-        self.real_data_thread.position_updated.connect(self.on_position_update)
-        self.real_data_thread.connection_status_changed.connect(self.on_connection_status_changed)
-        self.real_data_thread.error_occurred.connect(self.on_error_occurred)
+        self.data_thread.price_updated.connect(self.on_price_update)
+        self.data_thread.account_updated.connect(self.on_account_update)
+        self.data_thread.position_updated.connect(self.on_position_update)
+        self.data_thread.connection_status_changed.connect(self.on_connection_status_changed)
+        self.data_thread.error_occurred.connect(self.on_error_occurred)
         
         # 스레드 시작
-        self.real_data_thread.start()
+        self.data_thread.start()
         
         # UI 상태 업데이트
-        self.connect_btn.setEnabled(False)
-        self.disconnect_btn.setEnabled(True)
-        
-        # 과거 데이터 로드
-        QTimer.singleShot(3000, self.load_historical_data)  # 3초 후 과거 데이터 로드
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        self.start_action.setEnabled(False)
+        self.stop_action.setEnabled(True)
     
-    def stop_real_data_connection(self):
-        """실제 데이터 연결 중지"""
-        if self.real_data_thread and self.real_data_thread.isRunning():
-            self.add_log("🔌 데이터 연결 중지 중...")
+    def stop_simulation(self):
+        """시뮬레이션 중지"""
+        if self.data_thread and self.data_thread.isRunning():
+            self.add_log("🔌 시뮬레이션 중지 중...")
             
-            self.real_data_thread.stop()
-            self.real_data_thread.wait(5000)
+            self.data_thread.stop()
+            self.data_thread.wait(5000)
             
-            self.add_log("✅ 데이터 연결 중지 완료")
+            self.add_log("✅ 시뮬레이션 중지 완료")
         
         # UI 상태 업데이트
-        self.connect_btn.setEnabled(True)
-        self.disconnect_btn.setEnabled(False)
-        self.api_status_label.setText("🔴 연결 끊어짐")
-        self.api_status_label.setStyleSheet("color: #F44336; font-weight: bold; padding: 8px;")
+        self.start_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+        self.start_action.setEnabled(True)
+        self.stop_action.setEnabled(False)
+        self.status_label.setText("🔴 중지됨")
+        self.status_label.setStyleSheet("color: #F44336; font-weight: bold; padding: 8px;")
     
     def on_price_update(self, symbol: str, price: float, full_data: dict):
         """가격 업데이트 처리"""
         # 차트 업데이트
-        self.real_chart_tab.update_real_price(symbol, price, full_data)
+        self.chart_tab.update_price(symbol, price, full_data)
         
         # 데이터 카운트 업데이트
         current_text = self.data_count_label.text()
@@ -1005,98 +814,30 @@ class ImprovedTradingMainWindow(QMainWindow):
     
     def on_account_update(self, balances: dict):
         """계좌 정보 업데이트 처리"""
-        self.real_account_tab.update_account_data(balances)
+        self.account_tab.update_account_data(balances)
         self.add_log(f"💰 계좌 정보 업데이트 완료")
-        
-        # 계좌 설정 및 수수료 정보도 업데이트
-        if hasattr(self.real_data_thread, 'account_manager') and self.real_data_thread.account_manager:
-            try:
-                config = self.real_data_thread.account_manager.get_account_config()
-                fees = self.real_data_thread.account_manager.get_trading_fee_rate()
-                
-                self.real_account_tab.update_account_config(config)
-                self.real_account_tab.update_fee_info(fees)
-            except Exception as e:
-                print(f"계좌 설정/수수료 정보 업데이트 오류: {e}")
     
     def on_position_update(self, positions: list):
         """포지션 정보 업데이트 처리"""
-        self.real_position_tab.update_positions(positions)
+        self.position_tab.update_positions(positions)
         self.add_log(f"📊 포지션 정보 업데이트: {len(positions)}개")
     
     def on_connection_status_changed(self, is_connected: bool):
         """연결 상태 변경 처리"""
         if is_connected:
-            self.api_status_label.setText("🟢 연결됨")
-            self.api_status_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 8px;")
-            self.connection_status_label.setText("실제 데이터 연결됨")
-            self.add_log("✅ OKX API 연결 성공")
+            self.status_label.setText("🟢 시뮬레이션 실행중")
+            self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 8px;")
+            self.connection_status_label.setText("시뮬레이션 연결됨")
+            self.add_log("✅ 시뮬레이션 연결 성공")
         else:
-            self.api_status_label.setText("🔴 연결 끊어짐")
-            self.api_status_label.setStyleSheet("color: #F44336; font-weight: bold; padding: 8px;")
+            self.status_label.setText("🔴 중지됨")
+            self.status_label.setStyleSheet("color: #F44336; font-weight: bold; padding: 8px;")
             self.connection_status_label.setText("연결 끊어짐")
-            self.add_log("❌ OKX API 연결 실패")
+            self.add_log("❌ 시뮬레이션 연결 실패")
     
     def on_error_occurred(self, error_message: str):
         """오류 발생 처리"""
         self.add_log(f"❌ 오류: {error_message}")
-        
-        # 심각한 오류인 경우 연결 중지
-        if "초기화 오류" in error_message or "API 연결 실패" in error_message:
-            QTimer.singleShot(1000, self.stop_real_data_connection)
-    
-    def refresh_all_data(self):
-        """모든 데이터 새로고침"""
-        self.add_log("🔄 모든 데이터 새로고침 중...")
-        
-        if self.real_data_thread and self.real_data_thread.isRunning():
-            # 강제로 계좌 및 포지션 정보 업데이트
-            self.real_data_thread.update_account_info()
-            self.real_data_thread.update_position_info()
-        else:
-            self.add_log("⚠️ 데이터 연결이 활성화되지 않음")
-    
-    def refresh_account_data(self):
-        """계좌 데이터만 새로고침"""
-        if self.real_data_thread and self.real_data_thread.isRunning():
-            self.real_data_thread.update_account_info()
-            self.add_log("💰 계좌 데이터 새로고침 요청")
-    
-    def refresh_position_data(self):
-        """포지션 데이터만 새로고침"""
-        if self.real_data_thread and self.real_data_thread.isRunning():
-            self.real_data_thread.update_position_info()
-            self.add_log("📊 포지션 데이터 새로고침 요청")
-    
-    def test_api_connection(self):
-        """API 연결 테스트"""
-        self.add_log("🧪 API 연결 테스트 시작...")
-        
-        try:
-            test_account = AccountManager()
-            balances = test_account.get_account_balance()
-            
-            if balances:
-                self.add_log("✅ API 연결 테스트 성공")
-                QMessageBox.information(self, "API 테스트", "✅ API 연결이 정상적으로 작동합니다!")
-            else:
-                self.add_log("❌ API 연결 테스트 실패")
-                QMessageBox.warning(self, "API 테스트", "❌ API 연결에 실패했습니다.\nconfig.py의 API 설정을 확인해주세요.")
-                
-        except Exception as e:
-            error_msg = f"API 테스트 오류: {str(e)}"
-            self.add_log(f"❌ {error_msg}")
-            QMessageBox.critical(self, "API 테스트", f"❌ {error_msg}")
-    
-    def load_historical_data(self):
-        """과거 데이터 로드"""
-        self.add_log("📊 과거 데이터 로딩 중...")
-        
-        symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
-        for symbol in symbols:
-            self.real_chart_tab.load_historical_data(symbol)
-        
-        self.add_log("✅ 과거 데이터 로딩 완료")
     
     def add_log(self, message: str):
         """로그 메시지 추가"""
@@ -1104,11 +845,6 @@ class ImprovedTradingMainWindow(QMainWindow):
         formatted_message = f"[{timestamp}] {message}"
         
         self.log_display.append(formatted_message)
-        
-        # API 관련 로그는 별도 표시
-        if any(keyword in message for keyword in ['API', '연결', '계좌', '포지션']):
-            self.api_log_display.append(formatted_message)
-        
         print(formatted_message)  # 콘솔에도 출력
     
     def update_time_display(self):
@@ -1117,13 +853,13 @@ class ImprovedTradingMainWindow(QMainWindow):
     
     def closeEvent(self, event):
         """창 종료 이벤트"""
-        if self.real_data_thread and self.real_data_thread.isRunning():
+        if self.data_thread and self.data_thread.isRunning():
             reply = QMessageBox.question(self, "종료 확인", 
-                                       "실제 데이터 연결이 활성화되어 있습니다. 종료하시겠습니까?",
+                                       "시뮬레이션이 실행 중입니다. 종료하시겠습니까?",
                                        QMessageBox.Yes | QMessageBox.No)
             
             if reply == QMessageBox.Yes:
-                self.stop_real_data_connection()
+                self.stop_simulation()
                 event.accept()
             else:
                 event.ignore()
@@ -1133,17 +869,17 @@ class ImprovedTradingMainWindow(QMainWindow):
 def main():
     """메인 함수"""
     app = QApplication(sys.argv)
-    app.setApplicationName("OKX 자동매매 시스템 v2.0")
+    app.setApplicationName("OKX 자동매매 시스템 - 시뮬레이션")
     app.setStyle('Fusion')
     
     # 메인 윈도우 생성 및 표시
-    window = ImprovedTradingMainWindow()
+    window = TradingMainWindow()
     window.show()
     
     # 시작 메시지
-    print("🚀 OKX 자동매매 시스템 v2.0 - 실제 데이터 연동")
-    print("📊 실제 OKX 시장 데이터 및 계좌 정보를 표시합니다")
-    print("⚠️  config.py에 올바른 API 키가 설정되어 있는지 확인하세요")
+    print("🚀 OKX 자동매매 시스템 - 시뮬레이션 모드")
+    print("📊 가상 데이터로 GUI 기능을 테스트합니다")
+    print("⚠️  실제 거래는 발생하지 않습니다")
     
     # 이벤트 루프 실행
     sys.exit(app.exec_())
