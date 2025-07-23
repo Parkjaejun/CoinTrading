@@ -8,3 +8,7 @@
 2025-07-23 02:11:39 | ERROR | ❌ BTC-USDT-SWAP 캔들 데이터 로딩 실패
 2025-07-23 02:11:40 | ERROR | 초기 데이터 로딩 실패
 2025-07-23 02:11:40 | ERROR | 시스템 초기화 실패: 초기 데이터를 로드할 수 없습니다
+2025-07-23 22:28:01 | ERROR | EMA 계산 불가 - 데이터 부족: trend_fast (필요: 150, 보유: 50)
+2025-07-23 22:28:02 | ERROR | ❌ Private WebSocket 오류: 60024 - Wrong passphrase
+2025-07-23 22:28:02 | ERROR | ❌ Public WebSocket 오류: 60018 - Wrong URL or channel:candle30m,instId:BTC-USDT-SWAP doesn't exist. Please use the correct URL, channel and parameters referring to API document.
+2025-07-23 22:40:26 | ERROR | EMA 계산 후 데이터가 충분하지 않음

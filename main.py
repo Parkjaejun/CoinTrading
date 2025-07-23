@@ -1,7 +1,7 @@
-# main_updated.py
+# main_fixed.py
 """
-완전히 업데이트된 OKX 듀얼 자산 트레이딩 봇
-모든 새로운 기능이 통합된 메인 시스템
+실제 OKX 데이터 연동을 위해 수정된 메인 시스템
+WebSocket 연결 및 데이터 플로우 개선
 """
 
 import sys
@@ -38,19 +38,26 @@ class TradingSystem:
         self.error_count = 0
         self.max_errors = 10
         
+        # 실시간 데이터 수신 상태
+        self.last_price_update = datetime.now()
+        self.received_data_count = 0
+        self.websocket_connected = False
+        
         # 성능 모니터링
         self.performance_stats = {
             'signals_processed': 0,
             'trades_executed': 0,
             'uptime': 0,
-            'errors': 0
+            'errors': 0,
+            'api_calls': 0,
+            'websocket_messages': 0
         }
     
     def initialize_system(self, environment: str = "production"):
-        """시스템 전체 초기화"""
+        """시스템 전체 초기화 - 실제 OKX 연동 강화"""
         try:
             print("\n" + "="*70)
-            print("🚀 OKX 듀얼 자산 트레이딩 봇 초기화")
+            print("🚀 OKX 실제 데이터 연동 시스템 초기화")
             print("="*70)
             
             # 환경별 설정 로드
@@ -71,21 +78,21 @@ class TradingSystem:
             log_system("알림 시스템 초기화...")
             initialize_notifications(NOTIFICATION_CONFIG)
             
-            # 연결 관리자 초기화 및 시작
-            log_system("연결 상태 확인...")
-            if not connection_manager.test_connection():
-                raise ConnectionError("초기 API 연결 실패")
+            # API 연결 상태 확인 및 시작
+            log_system("API 연결 상태 확인...")
+            if not self._test_api_connection():
+                raise ConnectionError("초기 API 연결 실패 - API 키를 확인하세요")
             
             connection_manager.start_monitoring()
             
-            # 초기 데이터 로딩
-            log_system("초기 데이터 로딩...")
+            # 초기 데이터 로딩 (필수)
+            log_system("초기 시장 데이터 로딩...")
             symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
             initial_data = load_initial_data(symbols)
             
             if not initial_data:
                 log_error("초기 데이터 로딩 실패")
-                raise ValueError("초기 데이터를 로드할 수 없습니다")
+                raise ValueError("초기 시장 데이터를 로드할 수 없습니다")
             
             log_system(f"초기 데이터 로딩 완료: {len(initial_data)}개 심볼")
             
@@ -101,16 +108,19 @@ class TradingSystem:
                 if len(df) > 0:
                     log_system(f"{symbol} 전략 데이터 준비 완료: {len(df)}개 캔들")
             
-            # WebSocket 핸들러 초기화
-            log_system("WebSocket 핸들러 초기화...")
+            # WebSocket 핸들러 초기화 (실제 연결)
+            log_system("실시간 데이터 WebSocket 초기화...")
             self.ws_handler = WebSocketHandler(strategy_manager=self.strategy_manager)
             
+            # 실시간 데이터 콜백 설정
+            self._setup_websocket_callbacks()
+            
             # 연결 이벤트 콜백 등록
-            connection_manager.add_reconnect_callback(self._on_reconnect)
-            connection_manager.add_disconnect_callback(self._on_disconnect)
+            connection_manager.add_reconnect_callback(self._on_api_reconnect)
+            connection_manager.add_disconnect_callback(self._on_api_disconnect)
             
             log_system("✅ 시스템 초기화 완료")
-            send_system_alert("시스템 초기화 완료", f"환경: {environment}", "info")
+            send_system_alert("시스템 초기화 완료", f"환경: {environment}\n심볼: {symbols}", "info")
             
             return True
             
@@ -119,8 +129,110 @@ class TradingSystem:
             send_system_alert("시스템 초기화 실패", str(e), "error")
             return False
     
+    def _test_api_connection(self) -> bool:
+        """API 연결 테스트 강화"""
+        try:
+            log_system("OKX API 연결 테스트 중...")
+            
+            # 기본 연결 테스트
+            if not connection_manager.test_connection():
+                log_error("기본 API 연결 실패")
+                return False
+            
+            # 계좌 정보 확인
+            from okx.account_manager import AccountManager
+            account = AccountManager()
+            
+            balances = account.get_account_balance()
+            if not balances:
+                log_error("계좌 정보 조회 실패")
+                return False
+            
+            log_system("✅ API 연결 성공")
+            
+            # USDT 잔고 확인
+            usdt_balance = balances.get('USDT', {}).get('available', 0)
+            log_system(f"USDT 잔고: ${usdt_balance:,.2f}")
+            
+            if usdt_balance < 10:
+                log_error("USDT 잔고 부족 - 거래에 필요한 최소 잔고가 부족합니다")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            log_error("API 연결 테스트 실패", e)
+            return False
+    
+    def _setup_websocket_callbacks(self):
+        """WebSocket 콜백 설정"""
+        # 가격 데이터 수신 콜백
+        def on_price_data(symbol, price_data):
+            try:
+                self.received_data_count += 1
+                self.last_price_update = datetime.now()
+                self.performance_stats['websocket_messages'] += 1
+                
+                # 전략 매니저에 실시간 데이터 전달
+                if self.strategy_manager and 'last' in price_data:
+                    # 가격 데이터를 전략용 형식으로 변환
+                    strategy_data = {
+                        'symbol': symbol,
+                        'close': price_data['last'],
+                        'timestamp': datetime.now(),
+                        'volume': price_data.get('vol24h', 0),
+                        'high': price_data.get('high_24h', 0),
+                        'low': price_data.get('low_24h', 0)
+                    }
+                    
+                    # 전략 처리
+                    signal_generated = self.strategy_manager.process_signal(symbol, strategy_data)
+                    if signal_generated:
+                        self.performance_stats['signals_processed'] += 1
+                
+                # 주기적 로그 (100개마다)
+                if self.received_data_count % 100 == 0:
+                    log_info(f"📊 실시간 데이터 수신: {self.received_data_count}건 ({symbol}: ${price_data.get('last', 0):.2f})")
+                
+            except Exception as e:
+                log_error(f"가격 데이터 처리 오류 ({symbol})", e)
+        
+        # 계좌 데이터 수신 콜백
+        def on_account_data(account_data):
+            try:
+                log_info("💳 계좌 정보 업데이트 수신")
+                # 필요시 계좌 변화에 따른 추가 처리
+            except Exception as e:
+                log_error("계좌 데이터 처리 오류", e)
+        
+        # 포지션 데이터 수신 콜백
+        def on_position_data(position_data):
+            try:
+                log_info(f"📊 포지션 정보 업데이트: {len(position_data)}개")
+                # 포지션 변화 모니터링
+            except Exception as e:
+                log_error("포지션 데이터 처리 오류", e)
+        
+        # WebSocket 연결 상태 콜백
+        def on_connection_status(is_connected):
+            self.websocket_connected = is_connected
+            if is_connected:
+                log_system("✅ WebSocket 연결 성공")
+                send_system_alert("실시간 데이터 연결", "WebSocket 연결이 설정되었습니다", "info")
+            else:
+                log_error("❌ WebSocket 연결 끊어짐")
+                send_system_alert("실시간 데이터 연결 끊어짐", "WebSocket 재연결을 시도합니다", "warning")
+        
+        # 콜백 등록 (WebSocket 핸들러에 메서드가 있다면)
+        if hasattr(self.ws_handler, 'set_price_callback'):
+            self.ws_handler.set_price_callback(on_price_data)
+        if hasattr(self.ws_handler, 'set_account_callback'):
+            self.ws_handler.set_account_callback(on_account_data)
+        if hasattr(self.ws_handler, 'set_position_callback'):
+            self.ws_handler.set_position_callback(on_position_data)
+    
     def start_trading(self):
-        """트레이딩 시작"""
+        """실제 트레이딩 시작 - WebSocket 연결 포함"""
         if self.is_running:
             log_system("시스템이 이미 실행 중입니다")
             return
@@ -130,21 +242,39 @@ class TradingSystem:
             self.is_running = True
             self.start_time = datetime.now()
             
-            # WebSocket 시작
+            # WebSocket 실제 시작
             symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
+            
+            log_system(f"📡 실시간 데이터 WebSocket 시작: {symbols}")
             public_thread, private_thread = self.ws_handler.start_ws(symbols)
             
+            # WebSocket 연결 대기 및 확인
+            connection_timeout = 30  # 30초 대기
+            start_wait = time.time()
+            
+            while time.time() - start_wait < connection_timeout:
+                if self.websocket_connected:
+                    break
+                time.sleep(1)
+                log_system("📡 WebSocket 연결 대기 중...")
+            
+            if not self.websocket_connected:
+                log_error("WebSocket 연결 타임아웃")
+                raise ConnectionError("WebSocket 연결에 실패했습니다")
+            
             # 시작 알림
+            trading_mode = "Paper Trading" if TRADING_CONFIG.get('paper_trading', False) else "Live Trading"
             send_system_alert(
-                "트레이딩 시작", 
-                f"대상: {', '.join(symbols)}\n모드: {'Paper Trading' if TRADING_CONFIG.get('paper_trading', False) else 'Live Trading'}", 
+                "실시간 트레이딩 시작", 
+                f"대상: {', '.join(symbols)}\n모드: {trading_mode}\n시작 시간: {self.start_time.strftime('%H:%M:%S')}", 
                 "info"
             )
             
             print(f"\n🚀 실시간 트레이딩 시작")
             print(f"📊 대상 심볼: {', '.join(symbols)}")
             print(f"💰 초기 자본: ${TRADING_CONFIG.get('initial_capital', 10000):,}")
-            print(f"📝 모드: {'Paper Trading' if TRADING_CONFIG.get('paper_trading', False) else 'Live Trading'}")
+            print(f"📝 모드: {trading_mode}")
+            print(f"📡 WebSocket: {'✅ 연결됨' if self.websocket_connected else '❌ 끊어짐'}")
             print(f"🔔 알림 채널: {len([c for c in NOTIFICATION_CONFIG.keys() if isinstance(NOTIFICATION_CONFIG[c], dict) and NOTIFICATION_CONFIG[c].get('enabled', False)])}개 활성화")
             print("📴 중지하려면 Ctrl+C를 누르세요")
             print("="*70)
@@ -157,28 +287,38 @@ class TradingSystem:
         except Exception as e:
             log_error("트레이딩 실행 중 오류", e)
             self.error_count += 1
+            send_system_alert("트레이딩 오류", str(e), "error")
         finally:
             self.stop_trading()
     
     def _main_loop(self):
-        """메인 실행 루프"""
+        """메인 실행 루프 - 실시간 모니터링 강화"""
         last_status_time = 0
         last_heartbeat_time = 0
-        heartbeat_interval = 300  # 5분마다 heartbeat
+        last_connection_check = 0
+        
+        status_interval = 300  # 5분마다 상태 출력
+        heartbeat_interval = 60  # 1분마다 heartbeat
+        connection_check_interval = 30  # 30초마다 연결 상태 확인
         
         while self.is_running and not self.shutdown_event.is_set():
             try:
                 current_time = time.time()
                 
                 # 5분마다 상태 출력
-                if current_time - last_status_time >= 300:
+                if current_time - last_status_time >= status_interval:
                     self._print_system_status()
                     last_status_time = current_time
                 
-                # Heartbeat (시스템 생존 확인)
+                # 1분마다 heartbeat
                 if current_time - last_heartbeat_time >= heartbeat_interval:
                     self._heartbeat_check()
                     last_heartbeat_time = current_time
+                
+                # 30초마다 연결 상태 확인
+                if current_time - last_connection_check >= connection_check_interval:
+                    self._check_connections()
+                    last_connection_check = current_time
                 
                 # 오류 임계값 확인
                 if self.error_count >= self.max_errors:
@@ -194,33 +334,84 @@ class TradingSystem:
                 self.error_count += 1
                 time.sleep(5)
     
+    def _check_connections(self):
+        """연결 상태 종합 확인"""
+        issues = []
+        
+        # API 연결 확인
+        if not connection_manager.is_connected:
+            issues.append("API 연결 끊어짐")
+        
+        # WebSocket 연결 확인
+        if not self.websocket_connected or not self.ws_handler.is_running:
+            issues.append("WebSocket 연결 끊어짐")
+        
+        # 실시간 데이터 수신 확인 (5분 이상 수신 안됨)
+        if (datetime.now() - self.last_price_update).total_seconds() > 300:
+            issues.append("실시간 데이터 수신 중단")
+        
+        if issues:
+            log_error(f"연결 문제 감지: {', '.join(issues)}")
+            self._attempt_reconnection()
+        else:
+            # 모든 연결이 정상일 때만 간헐적 로그
+            if self.received_data_count % 1000 == 0:  # 1000개마다
+                log_info("🔗 모든 연결 정상")
+    
+    def _attempt_reconnection(self):
+        """재연결 시도"""
+        log_system("🔄 연결 복구 시도 중...")
+        
+        try:
+            # API 연결 복구
+            if not connection_manager.is_connected:
+                connection_manager.test_connection()
+            
+            # WebSocket 재연결
+            if not self.websocket_connected:
+                symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
+                self.ws_handler.stop_ws()
+                time.sleep(2)
+                self.ws_handler.start_ws(symbols)
+                
+                # 재연결 확인 (10초 대기)
+                for _ in range(10):
+                    if self.websocket_connected:
+                        log_system("✅ WebSocket 재연결 성공")
+                        break
+                    time.sleep(1)
+            
+        except Exception as e:
+            log_error("재연결 시도 실패", e)
+    
     def _heartbeat_check(self):
-        """시스템 생존 확인"""
+        """시스템 생존 확인 - 상세 체크"""
         try:
             self.last_heartbeat = datetime.now()
             
-            # 연결 상태 확인
-            if not connection_manager.is_connected:
-                log_error("API 연결 끊어짐 감지")
-                return
+            # 기본 상태 확인
+            api_status = "✅" if connection_manager.is_connected else "❌"
+            ws_status = "✅" if self.websocket_connected else "❌"
             
-            # WebSocket 상태 확인
-            if not self.ws_handler.is_running:
-                log_error("WebSocket 연결 끊어짐 감지")
-                return
+            # 데이터 수신 상태
+            time_since_last_data = (datetime.now() - self.last_price_update).total_seconds()
+            data_status = "✅" if time_since_last_data < 60 else "⚠️" if time_since_last_data < 300 else "❌"
             
-            # 전략 관리자 상태 확인
-            if not self.strategy_manager.is_healthy():
-                log_error("전략 관리자 이상 상태")
-                return
+            # 전략 상태
+            strategy_status = "✅" if self.strategy_manager and self.strategy_manager.is_healthy() else "❌"
             
-            log_info("💓 시스템 정상 작동 중")
+            log_info(f"💓 시스템 상태: API {api_status} | WS {ws_status} | 데이터 {data_status} | 전략 {strategy_status}")
+            log_info(f"📊 수신 데이터: {self.received_data_count}건 | 처리 신호: {self.performance_stats['signals_processed']}개")
+            
+            # 문제 상황 알림
+            if time_since_last_data > 300:  # 5분 이상 데이터 없음
+                send_system_alert("데이터 수신 중단", f"마지막 데이터: {time_since_last_data:.0f}초 전", "warning")
             
         except Exception as e:
             log_error("Heartbeat 체크 오류", e)
     
     def _print_system_status(self):
-        """시스템 상태 출력"""
+        """시스템 상태 출력 - 실시간 데이터 포함"""
         if not self.strategy_manager:
             return
         
@@ -228,14 +419,22 @@ class TradingSystem:
         uptime = datetime.now() - self.start_time if self.start_time else None
         
         print(f"\n{'='*70}")
-        print(f"📊 시스템 상태 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"📊 실시간 트레이딩 시스템 상태 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"{'='*70}")
         
         if uptime:
             print(f"⏱️  운영 시간: {uptime}")
         
-        print(f"🔗 연결 상태: {'✅ 정상' if connection_manager.is_connected else '❌ 끊어짐'}")
-        print(f"📡 WebSocket: {'✅ 정상' if self.ws_handler.is_running else '❌ 끊어짐'}")
+        # 연결 상태
+        print(f"🔗 API 연결: {'✅ 정상' if connection_manager.is_connected else '❌ 끊어짐'}")
+        print(f"📡 WebSocket: {'✅ 정상' if self.websocket_connected else '❌ 끊어짐'}")
+        
+        # 데이터 수신 상태
+        time_since_data = (datetime.now() - self.last_price_update).total_seconds()
+        print(f"📊 실시간 데이터: {self.received_data_count}건 (마지막: {time_since_data:.0f}초 전)")
+        
+        # 성능 통계
+        print(f"⚡ 처리된 신호: {self.performance_stats['signals_processed']}개")
         print(f"⚠️  오류 횟수: {self.error_count}/{self.max_errors}")
         
         # 전략 상태 출력
@@ -243,43 +442,35 @@ class TradingSystem:
         
         print(f"{'='*70}")
     
-    def _on_reconnect(self):
-        """연결 복구 시 콜백"""
+    def _on_api_reconnect(self):
+        """API 연결 복구 시 콜백"""
         log_system("🔄 API 연결 복구됨")
-        send_system_alert("연결 복구", "API 연결이 복구되었습니다", "info")
-        
-        # WebSocket 재시작 (필요시)
-        if self.ws_handler and not self.ws_handler.is_running:
-            symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
-            try:
-                self.ws_handler.start_ws(symbols)
-                log_system("WebSocket 재연결 성공")
-            except Exception as e:
-                log_error("WebSocket 재연결 실패", e)
+        send_system_alert("API 연결 복구", "API 연결이 복구되었습니다", "info")
     
-    def _on_disconnect(self):
-        """연결 끊김 시 콜백"""
+    def _on_api_disconnect(self):
+        """API 연결 끊김 시 콜백"""
         log_error("🚨 API 연결 끊어짐")
-        send_system_alert("연결 끊어짐", "API 연결이 끊어졌습니다. 재연결 시도 중...", "warning")
+        send_system_alert("API 연결 끊어짐", "API 연결이 끊어졌습니다. 재연결 시도 중...", "warning")
     
     def stop_trading(self):
         """트레이딩 중지"""
         if not self.is_running:
             return
         
-        log_system("🛑 트레이딩 시스템 종료 시작...")
+        log_system("🛑 실시간 트레이딩 시스템 종료 시작...")
         self.is_running = False
         self.shutdown_event.set()
         
         try:
             # WebSocket 중지
             if self.ws_handler:
+                log_system("📡 WebSocket 연결 종료 중...")
                 self.ws_handler.stop_ws()
-                log_system("WebSocket 연결 종료")
+                self.websocket_connected = False
             
             # 모든 포지션 청산
             if self.strategy_manager:
-                log_system("모든 포지션 청산 중...")
+                log_system("📤 모든 포지션 청산 중...")
                 self.strategy_manager.close_all_positions()
                 
                 # 최종 요약 출력
@@ -287,20 +478,21 @@ class TradingSystem:
             
             # 연결 모니터링 중지
             connection_manager.stop_connection_monitoring()
-            log_system("연결 모니터링 중지")
             
             # 종료 알림
             uptime = datetime.now() - self.start_time if self.start_time else None
             send_system_alert(
                 "시스템 종료", 
-                f"운영 시간: {uptime}\n오류 횟수: {self.error_count}회",
+                f"운영 시간: {uptime}\n수신 데이터: {self.received_data_count}건\n처리 신호: {self.performance_stats['signals_processed']}개\n오류 횟수: {self.error_count}회",
                 "info"
             )
             
             print("\n" + "="*70)
-            print("✅ 트레이딩 봇 종료 완료")
+            print("✅ 실시간 트레이딩 봇 종료 완료")
             if uptime:
                 print(f"총 운영 시간: {uptime}")
+            print(f"수신된 실시간 데이터: {self.received_data_count:,}건")
+            print(f"처리된 신호: {self.performance_stats['signals_processed']}개")
             print(f"총 오류 횟수: {self.error_count}회")
             print("="*70)
             
@@ -345,13 +537,14 @@ def main():
     # 명령행 인수 처리
     import argparse
     
-    parser = argparse.ArgumentParser(description='OKX 듀얼 자산 트레이딩 봇')
+    parser = argparse.ArgumentParser(description='OKX 실시간 데이터 연동 트레이딩 봇')
     parser.add_argument('--env', choices=['development', 'testing', 'production'], 
                        default='production', help='실행 환경')
     parser.add_argument('--backtest', help='백테스트 모드 (long 또는 short)')
     parser.add_argument('--start-date', default='2024-01-01', help='백테스트 시작 날짜')
     parser.add_argument('--end-date', default='2024-12-31', help='백테스트 종료 날짜')
     parser.add_argument('--config-test', action='store_true', help='설정 테스트만 실행')
+    parser.add_argument('--connection-test', action='store_true', help='연결 테스트만 실행')
     
     args = parser.parse_args()
     
@@ -367,6 +560,23 @@ def main():
                 sys.exit(0)
             else:
                 print("❌ 설정 테스트 실패")
+                sys.exit(1)
+        
+        # 연결 테스트만 실행
+        if args.connection_test:
+            print("🔗 연결 테스트 모드")
+            if trading_system._test_api_connection():
+                print("✅ 연결 테스트 통과")
+                # WebSocket 연결도 테스트
+                symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
+                ws_handler = WebSocketHandler()
+                public_thread, private_thread = ws_handler.start_ws(symbols)
+                time.sleep(10)  # 10초 대기
+                ws_handler.stop_ws()
+                print("✅ WebSocket 테스트 완료")
+                sys.exit(0)
+            else:
+                print("❌ 연결 테스트 실패")
                 sys.exit(1)
         
         # 시스템 초기화
