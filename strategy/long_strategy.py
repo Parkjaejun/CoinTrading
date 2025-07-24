@@ -7,6 +7,7 @@
 from datetime import datetime
 from typing import Optional, Dict, Any
 from config import LONG_STRATEGY_CONFIG
+from typing import Dict, Any, Tuple  # 추가
 
 class LongStrategy:
     def __init__(self, symbol: str, initial_capital: float):
@@ -62,7 +63,7 @@ class LongStrategy:
         # 골든크로스: 이전 <= 현재 >
         return prev_20 <= prev_50 and curr_20 > curr_50
     
-    def check_exit_condition(self, data: Dict[str, Any]) -> tuple[bool, str]:
+    def check_exit_condition(self, data: Dict[str, Any]) -> Tuple[bool, str]:
         """청산 조건 확인"""
         if not self.is_position_open:
             return False, ""
@@ -100,7 +101,7 @@ class LongStrategy:
         
         return self.check_trend_condition(data) and self.check_entry_condition(data)
     
-    def should_exit(self, data: Dict[str, Any]) -> tuple[bool, str]:
+    def should_exit(self, data: Dict[str, Any]) -> Tuple[bool, str]:
         """청산해야 하는가?"""
         return self.check_exit_condition(data)
     
