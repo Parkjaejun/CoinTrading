@@ -1,6 +1,6 @@
 # gui/widgets.py
 """
-GUI 위젯 컴포넌트들
+GUI 위젯 컴포넌트들 - 완전한 버전
 차트, 테이블, 제어 패널 등
 """
 
@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QGroupBox, QGridLayout,
     QProgressBar, QSlider, QSpinBox, QDoubleSpinBox, QTextEdit,
-    QHeaderView, QFrame, QFormLayout
+    QHeaderView, QFrame, QFormLayout, QComboBox, QCheckBox
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QColor
@@ -74,41 +74,35 @@ class PriceChartWidget(QWidget):
             
             layout.addWidget(self.chart)
         else:
+            # pyqtgraph가 없는 경우 간단한 텍스트
             no_chart_label = QLabel("차트를 보려면 pyqtgraph를 설치하세요:\npip install pyqtgraph")
             no_chart_label.setAlignment(Qt.AlignCenter)
-            no_chart_label.setStyleSheet("color: #ffaa00; font-size: 14px;")
+            no_chart_label.setMinimumHeight(300)
+            no_chart_label.setStyleSheet("border: 1px solid #555; background-color: #2b2b2b; color: #999;")
             layout.addWidget(no_chart_label)
         
         self.setLayout(layout)
     
-    def update_price(self, symbol: str, price: float, price_info: Dict[str, Any]):
+    def update_price(self, symbol: str, price: float, price_info: Dict = None):
         """가격 업데이트"""
         self.symbol_label.setText(symbol)
         self.price_label.setText(f"${price:,.2f}")
         
-        # 변화율 계산 및 표시
-        change_24h = price_info.get('change_24h', 0)
-        if change_24h > 0:
-            self.change_label.setText(f"+{change_24h:.2f}%")
-            self.change_label.setStyleSheet("color: #00ff00")
-            self.price_label.setStyleSheet("color: #00ff00")
-        elif change_24h < 0:
-            self.change_label.setText(f"{change_24h:.2f}%")
-            self.change_label.setStyleSheet("color: #ff4444")
-            self.price_label.setStyleSheet("color: #ff4444")
-        else:
-            self.change_label.setText("0.00%")
-            self.change_label.setStyleSheet("color: #ffffff")
-            self.price_label.setStyleSheet("color: #ffffff")
+        # 변화율 표시
+        if price_info and 'change_percent' in price_info:
+            change_pct = price_info['change_percent']
+            self.change_label.setText(f"{change_pct:+.2f}%")
+            color = "#00ff00" if change_pct >= 0 else "#ff0000"
+            self.change_label.setStyleSheet(f"color: {color}")
         
-        # 차트 업데이트
+        # 차트 데이터 업데이트
         if PYQTGRAPH_AVAILABLE and hasattr(self, 'chart'):
             current_time = time.time()
             
             self.time_data.append(current_time)
             self.price_data.append(price)
             
-            # 최대 포인트 수 제한
+            # 최근 100개 데이터만 유지
             if len(self.price_data) > self.max_points:
                 self.time_data = self.time_data[-self.max_points:]
                 self.price_data = self.price_data[-self.max_points:]
@@ -120,7 +114,166 @@ class PriceChartWidget(QWidget):
 class PositionTableWidget(QWidget):
     """포지션 테이블 위젯"""
     
-    position_close_requested = pyqtSignal(str)  # 포지션 ID
+    def __init__(self):
+        super().__init__()
+        self.setup_ui()
+        
+    def setup_ui(self):
+        layout = QVBoxLayout()
+        
+        # 헤더
+        header_label = QLabel("📊 현재 포지션")
+        header_label.setFont(QFont("Arial", 12, QFont.Bold))
+        layout.addWidget(header_label)
+        
+        # 테이블
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels([
+            "심볼", "방향", "크기", "진입가", "현재가", "손익"
+        ])
+        
+        # 테이블 설정
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(True)
+        self.table.setAlternatingRowColors(True)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        
+        layout.addWidget(self.table)
+        self.setLayout(layout)
+    
+    def update_positions(self, positions: List[Dict]):
+        """포지션 업데이트"""
+        self.table.setRowCount(len(positions))
+        
+        for row, position in enumerate(positions):
+            self.table.setItem(row, 0, QTableWidgetItem(position.get('symbol', '')))
+            self.table.setItem(row, 1, QTableWidgetItem(position.get('side', '').upper()))
+            self.table.setItem(row, 2, QTableWidgetItem(f"{position.get('size', 0):.6f}"))
+            self.table.setItem(row, 3, QTableWidgetItem(f"${position.get('entry_price', 0):.2f}"))
+            self.table.setItem(row, 4, QTableWidgetItem(f"${position.get('current_price', 0):.2f}"))
+            
+            # 손익 색상 설정
+            pnl = position.get('unrealized_pnl', 0)
+            pnl_item = QTableWidgetItem(f"${pnl:+.2f}")
+            if pnl > 0:
+                pnl_item.setForeground(QColor("#4CAF50"))
+            elif pnl < 0:
+                pnl_item.setForeground(QColor("#F44336"))
+            self.table.setItem(row, 5, pnl_item)
+
+class TradingControlWidget(QWidget):
+    """거래 제어 위젯"""
+    
+    # 시그널
+    start_trading_requested = pyqtSignal()
+    stop_trading_requested = pyqtSignal()
+    emergency_stop_requested = pyqtSignal()
+    
+    def __init__(self):
+        super().__init__()
+        self.is_trading = False
+        self.setup_ui()
+        
+    def setup_ui(self):
+        layout = QVBoxLayout()
+        
+        # 제어 그룹
+        control_group = QGroupBox("🎮 거래 제어")
+        control_layout = QGridLayout()
+        
+        # 시작/중지 버튼
+        self.start_btn = QPushButton("▶️ 자동매매 시작")
+        self.start_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 10px;")
+        self.start_btn.clicked.connect(self.on_start_clicked)
+        
+        self.stop_btn = QPushButton("⏹️ 자동매매 중지")
+        self.stop_btn.setStyleSheet("background-color: #F44336; color: white; font-weight: bold; padding: 10px;")
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.clicked.connect(self.on_stop_clicked)
+        
+        # 긴급 중지 버튼
+        self.emergency_btn = QPushButton("🚨 긴급 중지")
+        self.emergency_btn.setStyleSheet("background-color: #FF5722; color: white; font-weight: bold; padding: 10px;")
+        self.emergency_btn.clicked.connect(self.on_emergency_clicked)
+        
+        control_layout.addWidget(self.start_btn, 0, 0)
+        control_layout.addWidget(self.stop_btn, 0, 1)
+        control_layout.addWidget(self.emergency_btn, 1, 0, 1, 2)
+        
+        control_group.setLayout(control_layout)
+        layout.addWidget(control_group)
+        
+        # 상태 표시
+        status_group = QGroupBox("📊 상태")
+        status_layout = QFormLayout()
+        
+        self.status_label = QLabel("대기 중")
+        self.status_label.setStyleSheet("color: #FFA500; font-weight: bold;")
+        
+        self.uptime_label = QLabel("00:00:00")
+        self.trades_label = QLabel("0")
+        self.pnl_label = QLabel("$0.00")
+        
+        status_layout.addRow("상태:", self.status_label)
+        status_layout.addRow("실행 시간:", self.uptime_label)
+        status_layout.addRow("총 거래:", self.trades_label)
+        status_layout.addRow("손익:", self.pnl_label)
+        
+        status_group.setLayout(status_layout)
+        layout.addWidget(status_group)
+        
+        self.setLayout(layout)
+    
+    def on_start_clicked(self):
+        """시작 버튼 클릭"""
+        self.is_trading = True
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        self.status_label.setText("실행 중")
+        self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+        self.start_trading_requested.emit()
+    
+    def on_stop_clicked(self):
+        """중지 버튼 클릭"""
+        self.is_trading = False
+        self.start_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+        self.status_label.setText("대기 중")
+        self.status_label.setStyleSheet("color: #FFA500; font-weight: bold;")
+        self.stop_trading_requested.emit()
+    
+    def on_emergency_clicked(self):
+        """긴급 중지 버튼 클릭"""
+        self.is_trading = False
+        self.start_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+        self.status_label.setText("긴급 중지됨")
+        self.status_label.setStyleSheet("color: #F44336; font-weight: bold;")
+        self.emergency_stop_requested.emit()
+    
+    def update_status(self, strategy_data: Dict):
+        """상태 업데이트"""
+        is_running = strategy_data.get('is_running', False)
+        uptime = strategy_data.get('uptime', 0)
+        total_trades = strategy_data.get('total_trades', 0)
+        total_pnl = strategy_data.get('total_pnl', 0)
+        
+        # 실행 시간 포맷팅
+        hours = int(uptime // 3600)
+        minutes = int((uptime % 3600) // 60)
+        seconds = int(uptime % 60)
+        
+        self.uptime_label.setText(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
+        self.trades_label.setText(str(total_trades))
+        
+        # 손익 색상 설정
+        pnl_color = "#4CAF50" if total_pnl >= 0 else "#F44336"
+        self.pnl_label.setText(f"${total_pnl:+.2f}")
+        self.pnl_label.setStyleSheet(f"color: {pnl_color}; font-weight: bold;")
+
+class LogDisplayWidget(QWidget):
+    """로그 표시 위젯"""
     
     def __init__(self):
         super().__init__()
@@ -131,181 +284,127 @@ class PositionTableWidget(QWidget):
         
         # 헤더
         header_layout = QHBoxLayout()
-        title_label = QLabel("💼 활성 포지션")
-        title_label.setFont(QFont("Arial", 14, QFont.Bold))
+        header_label = QLabel("📝 거래 로그")
+        header_label.setFont(QFont("Arial", 12, QFont.Bold))
         
-        # 전체 청산 버튼
-        self.close_all_btn = QPushButton("🚨 전체 청산")
-        self.close_all_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #ff4444;
-                color: white;
-                font-weight: bold;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff6666;
-            }
-        """)
+        # 클리어 버튼
+        clear_btn = QPushButton("🗑️ 지우기")
+        clear_btn.setMaximumWidth(80)
+        clear_btn.clicked.connect(self.clear_logs)
         
-        header_layout.addWidget(title_label)
+        header_layout.addWidget(header_label)
         header_layout.addStretch()
-        header_layout.addWidget(self.close_all_btn)
+        header_layout.addWidget(clear_btn)
         
         layout.addLayout(header_layout)
         
-        # 테이블
-        self.table = QTableWidget()
-        self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels([
-            "심볼", "방향", "수량", "진입가", "현재가", "PnL", "액션"
-        ])
+        # 로그 텍스트
+        self.log_text = QTextEdit()
+        self.log_text.setMaximumHeight(200)
+        self.log_text.setReadOnly(True)
+        self.log_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 11px;
+                border: 1px solid #555;
+            }
+        """)
         
-        # 헤더 스타일
-        header = self.table.horizontalHeader()
-        header.setStretchLastSection(True)
-        header.setSectionResizeMode(QHeaderView.ResizeToContents)
-        
-        self.table.setAlternatingRowColors(True)
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        
-        layout.addWidget(self.table)
+        layout.addWidget(self.log_text)
         self.setLayout(layout)
     
-    def update_positions(self, positions: List[Dict[str, Any]]):
-        """포지션 데이터 업데이트"""
-        self.table.setRowCount(len(positions))
+    def add_log(self, message: str, level: str = "INFO"):
+        """로그 추가"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
         
-        for row, position in enumerate(positions):
-            # 기본 정보
-            self.table.setItem(row, 0, QTableWidgetItem(position.get('symbol', '')))
-            self.table.setItem(row, 1, QTableWidgetItem(position.get('side', '').upper()))
-            self.table.setItem(row, 2, QTableWidgetItem(f"{position.get('size', 0):.6f}"))
-            self.table.setItem(row, 3, QTableWidgetItem(f"${position.get('entry_price', 0):.2f}"))
-            self.table.setItem(row, 4, QTableWidgetItem(f"${position.get('current_price', 0):.2f}"))
-            
-            # PnL 색상 설정
-            pnl = position.get('pnl', 0)
-            pnl_item = QTableWidgetItem(f"${pnl:+.2f}")
-            if pnl > 0:
-                pnl_item.setForeground(QColor("#00ff00"))
-            elif pnl < 0:
-                pnl_item.setForeground(QColor("#ff4444"))
-            self.table.setItem(row, 5, pnl_item)
-            
-            # 청산 버튼
-            close_btn = QPushButton("청산")
-            close_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #ff6600;
-                    color: white;
-                    font-weight: bold;
-                    padding: 4px 8px;
-                    border-radius: 3px;
-                }
-                QPushButton:hover {
-                    background-color: #ff8833;
-                }
-            """)
-            
-            position_id = position.get('id', '')
-            close_btn.clicked.connect(lambda checked, pid=position_id: self.position_close_requested.emit(pid))
-            
-            self.table.setCellWidget(row, 6, close_btn)
-
-class TradingControlWidget(QWidget):
-    """거래 제어 위젯"""
+        # 레벨별 색상
+        colors = {
+            "INFO": "#FFFFFF",
+            "SUCCESS": "#4CAF50", 
+            "WARNING": "#FFA500",
+            "ERROR": "#F44336",
+            "DEBUG": "#9E9E9E"
+        }
+        
+        color = colors.get(level, "#FFFFFF")
+        formatted_msg = f'<span style="color: {color}">[{timestamp}] {message}</span>'
+        
+        self.log_text.append(formatted_msg)
+        
+        # 스크롤을 맨 아래로
+        cursor = self.log_text.textCursor()
+        cursor.movePosition(cursor.End)
+        self.log_text.setTextCursor(cursor)
     
-    start_trading_requested = pyqtSignal()
-    stop_trading_requested = pyqtSignal()
-    emergency_stop_requested = pyqtSignal()
+    def clear_logs(self):
+        """로그 지우기"""
+        self.log_text.clear()
+
+class SystemMonitorWidget(QWidget):
+    """시스템 모니터링 위젯"""
     
     def __init__(self):
         super().__init__()
-        self.trading_active = False
         self.setup_ui()
+        
+        # 업데이트 타이머
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_stats)
+        self.update_timer.start(5000)  # 5초마다 업데이트
         
     def setup_ui(self):
         layout = QVBoxLayout()
         
-        # 제어 그룹
-        control_group = QGroupBox("🎯 거래 시스템 제어")
-        control_layout = QGridLayout()
+        # 헤더
+        header_label = QLabel("🖥️ 시스템 모니터")
+        header_label.setFont(QFont("Arial", 12, QFont.Bold))
+        layout.addWidget(header_label)
         
-        # 시작/중지 버튼
-        self.start_btn = QPushButton("▶️ 거래 시작")
-        self.start_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-                padding: 12px;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #5CBF60;
-            }
-            QPushButton:disabled {
-                background-color: #666666;
-            }
-        """)
+        # 시스템 정보
+        info_layout = QFormLayout()
         
-        self.stop_btn = QPushButton("⏹️ 거래 중지")
-        self.stop_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #ff9800;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-                padding: 12px;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #ffad33;
-            }
-            QPushButton:disabled {
-                background-color: #666666;
-            }
-        """)
-        self.stop_btn.setEnabled(False)
+        self.cpu_label = QLabel("0%")
+        self.memory_label = QLabel("0%")
+        self.network_label = QLabel("0 KB/s")
         
-        # 긴급 정지 버튼
-        self.emergency_btn = QPushButton("🚨 긴급 정지")
-        self.emergency_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f44336;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-                padding: 12px;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #f66356;
-            }
-        """)
+        # CPU 진행바
+        self.cpu_bar = QProgressBar()
+        self.cpu_bar.setMaximum(100)
         
-        control_layout.addWidget(self.start_btn, 0, 0)
-        control_layout.addWidget(self.stop_btn, 0, 1)
-        control_layout.addWidget(self.emergency_btn, 1, 0, 1, 2)
+        # 메모리 진행바
+        self.memory_bar = QProgressBar()
+        self.memory_bar.setMaximum(100)
         
-        control_group.setLayout(control_layout)
-        layout.addWidget(control_group)
+        info_layout.addRow("CPU:", self.cpu_bar)
+        info_layout.addRow("", self.cpu_label)
+        info_layout.addRow("메모리:", self.memory_bar)
+        info_layout.addRow("", self.memory_label)
+        info_layout.addRow("네트워크:", self.network_label)
         
-        # 상태 그룹
-        status_group = QGroupBox("📊 시스템 상태")
-        status_layout = QFormLayout()
-        
-        self.status_label = QLabel("중지됨")
-        self.status_label.setStyleSheet("color: #ff4444; font-weight: bold;")
-        
-        self.uptime_label = QLabel("00:00:00")
-        self.active_strategies_label = QLabel("0")
-        self.connection_status_label = QLabel("연결 중...")
-        
-        status_layout.addRow("거래 상태:", self.status_label)
-        status_layout.addRow("가동 시간:", self.uptime_label)
-        status_layout.addRow("활성 전략:", self.active_strategies_label)
-        status_layout
+        layout.addLayout(info_layout)
+        self.setLayout(layout)
+    
+    def update_stats(self):
+        """시스템 통계 업데이트"""
+        if PSUTIL_AVAILABLE:
+            try:
+                # CPU 사용률
+                cpu_percent = psutil.cpu_percent()
+                self.cpu_bar.setValue(int(cpu_percent))
+                self.cpu_label.setText(f"{cpu_percent:.1f}%")
+                
+                # 메모리 사용률
+                memory = psutil.virtual_memory()
+                self.memory_bar.setValue(int(memory.percent))
+                self.memory_label.setText(f"{memory.percent:.1f}%")
+                
+                # 네트워크 (간단한 표시)
+                self.network_label.setText("N/A")
+                
+            except Exception as e:
+                print(f"시스템 모니터링 오류: {e}")
+        else:
+            self.cpu_label.setText("psutil 필요")
+            self.memory_label.setText("psutil 필요")
