@@ -1,3 +1,4 @@
+# gui/balance_manager.py
 """
 GUI 전용 잔액 관리 유틸리티
 main.py와 동일한 방식으로 잔액 정보 처리
@@ -21,7 +22,7 @@ class GUIBalanceManager:
             # OKX API 표준 응답 구조 처리
             if 'details' in balance_data:
                 for detail in balance_data.get('details', []):
-                    ccy = detail.get('ccy')  # 통화 코드
+                    ccy = detail.get('ccy')
                     if not ccy:
                         continue
                     
@@ -35,10 +36,10 @@ class GUIBalanceManager:
                     avail_bal = GUIBalanceManager._safe_float(avail_bal)
                     frozen_bal = GUIBalanceManager._safe_float(frozen_bal)
                     
-                    # 실제 동결 금액 계산 (cash_bal - avail_bal이 더 정확)
+                    # 실제 동결 금액 계산
                     actual_frozen = max(0, cash_bal - avail_bal)
                     
-                    # 잔고가 있는 통화만 저장 (매우 작은 값 제외)
+                    # 잔고가 있는 통화만 저장
                     if cash_bal > 0.000001:
                         parsed_balances[ccy] = {
                             'total': cash_bal,
@@ -56,14 +57,13 @@ class GUIBalanceManager:
                 }
                 
             else:
-                # 이미 파싱된 형태이거나 다른 구조
+                # 이미 파싱된 형태
                 parsed_balances = balance_data
             
             return parsed_balances
             
         except Exception as e:
             print(f"❌ 잔액 파싱 오류: {e}")
-            print(f"원본 데이터: {balance_data}")
             traceback.print_exc()
             return GUIBalanceManager._get_empty_balance()
     
@@ -114,7 +114,6 @@ class GUIBalanceManager:
         try:
             summary_lines = []
             
-            # 메타데이터 확인
             metadata = parsed_balances.get('_metadata', {})
             total_equity = metadata.get('total_equity', 0)
             
@@ -124,7 +123,7 @@ class GUIBalanceManager:
             
             # 각 통화별 정보
             for currency, info in parsed_balances.items():
-                if currency.startswith('_'):  # 메타데이터 건너뛰기
+                if currency.startswith('_'):
                     continue
                 
                 if isinstance(info, dict):
@@ -132,7 +131,6 @@ class GUIBalanceManager:
                     available = info.get('available', 0)
                     frozen = info.get('frozen', 0)
                     
-                    # 잔고가 있는 통화만 표시
                     if total > 0.000001:
                         summary_lines.append(f"{currency}:")
                         summary_lines.append(f"  💵 총 잔고: {total:.6f}")
