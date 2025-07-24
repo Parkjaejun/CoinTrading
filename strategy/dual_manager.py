@@ -38,13 +38,37 @@ class RealTimeDataBuffer:
         log_info(f"📊 실시간 데이터 버퍼 초기화: {symbol}")
     
     def add_price_data(self, price_data: Dict[str, Any]):
-        """실시간 가격 데이터 추가"""
+        """실시간 가격 데이터 추가 - 안전한 타입 변환"""
         try:
             timestamp = datetime.now()
-            price = price_data.get('close', price_data.get('last', 0))
             
-            if price <= 0:
+            # 🔧 안전한 가격 추출 및 변환
+            price_raw = price_data.get('close', price_data.get('last', 0))
+            
+            # 문자열인 경우 float으로 변환
+            try:
+                if isinstance(price_raw, str):
+                    price = float(price_raw) if price_raw.strip() else 0.0
+                else:
+                    price = float(price_raw)
+            except (ValueError, TypeError):
+                log_error(f"가격 변환 실패 ({self.symbol}): {price_raw}")
                 return
+            
+            # 유효하지 않은 가격 체크
+            if price <= 0:
+                log_error(f"유효하지 않은 가격 ({self.symbol}): {price}")
+                return
+            
+            # 🔧 안전한 볼륨 추출 및 변환
+            volume_raw = price_data.get('volume', price_data.get('vol24h', 0))
+            try:
+                if isinstance(volume_raw, str):
+                    volume = float(volume_raw) if volume_raw.strip() else 0.0
+                else:
+                    volume = float(volume_raw)
+            except (ValueError, TypeError):
+                volume = 0.0
             
             # 30분 캔들 생성/업데이트
             candle_time = self._get_candle_time(timestamp)
@@ -63,7 +87,7 @@ class RealTimeDataBuffer:
                     'high': price,
                     'low': price,
                     'close': price,
-                    'volume': price_data.get('volume', 0)
+                    'volume': volume
                 }
                 self.last_candle_time = candle_time
             else:
@@ -72,12 +96,12 @@ class RealTimeDataBuffer:
                     self.current_candle['high'] = max(self.current_candle['high'], price)
                     self.current_candle['low'] = min(self.current_candle['low'], price)
                     self.current_candle['close'] = price
-                    # 볼륨은 누적하지 않고 최신 값 사용
-                    self.current_candle['volume'] = price_data.get('volume', self.current_candle['volume'])
+                    # 볼륨은 최신 값 사용 (또는 누적 가능)
+                    self.current_candle['volume'] = volume
             
         except Exception as e:
             log_error(f"가격 데이터 추가 오류 ({self.symbol})", e)
-    
+
     def _get_candle_time(self, timestamp: datetime) -> datetime:
         """30분 캔들 시간 계산"""
         # 30분 단위로 반올림
@@ -221,7 +245,7 @@ class ImprovedDualStrategyManager:
             return False
     
     def _process_ticker_data(self, symbol: str, ticker_data: Dict[str, Any]):
-        """실시간 Ticker 데이터 처리"""
+        """실시간 Ticker 데이터 처리 - 안전한 타입 변환"""
         try:
             self.performance_stats['ticker_updates'] += 1
             
@@ -229,8 +253,19 @@ class ImprovedDualStrategyManager:
             if symbol in self.data_buffers:
                 self.data_buffers[symbol].add_price_data(ticker_data)
             
+            # 🔧 안전한 가격 추출 및 변환
+            price_raw = ticker_data.get('close', ticker_data.get('last', 0))
+            
+            try:
+                if isinstance(price_raw, str):
+                    current_price = float(price_raw) if price_raw.strip() else 0.0
+                else:
+                    current_price = float(price_raw)
+            except (ValueError, TypeError):
+                log_error(f"Ticker 가격 변환 실패 ({symbol}): {price_raw}")
+                return
+            
             # 포지션 가격 업데이트
-            current_price = ticker_data.get('close', ticker_data.get('last', 0))
             if current_price > 0:
                 self.position_manager.update_position_prices({symbol: current_price})
             
@@ -240,7 +275,8 @@ class ImprovedDualStrategyManager:
             
         except Exception as e:
             log_error(f"Ticker 데이터 처리 오류 ({symbol})", e)
-    
+
+
     def _process_strategy_data(self, symbol: str, strategy_data: Dict[str, Any]) -> bool:
         """EMA 계산된 전략 데이터 처리"""
         try:
@@ -538,6 +574,7 @@ class ImprovedDualStrategyManager:
             
         except Exception:
             return False
+
 
 # 기존 코드와의 호환성을 위한 래퍼
 class DualStrategyManager(ImprovedDualStrategyManager):

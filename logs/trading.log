@@ -179,3 +179,472 @@
 2025-07-24 21:32:33,068 - errors - ERROR - 시스템 초기화 실패: can't multiply sequence by non-int of type 'float'
 2025-07-24 21:32:33 | ERROR | 시스템 초기화 실패: can't multiply sequence by non-int of type 'float'
 2025-07-24 21:32:33,071 - trading - ERROR - 시스템 초기화 실패: can't multiply sequence by non-int of type 'float'
+2025-07-24 21:38:57 | INFO | SYSTEM: 설정 검증 중...
+2025-07-24 21:38:57,976 - trading - INFO - SYSTEM: 설정 검증 중...
+2025-07-24 21:38:57 | INFO | SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 21:38:57,982 - trading - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 21:38:57 | INFO | SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 21:38:57,986 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 21:38:58 | INFO | SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 21:38:58,183 - trading - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 21:38:58 | INFO | SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 21:38:58,197 - trading - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 21:38:58 | INFO | SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 21:38:58,198 - trading - INFO - SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 21:38:58 | INFO | SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 21:38:58,411 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 21:38:58 | INFO | SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 21:38:58,417 - trading - INFO - SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 21:38:58 | INFO | SYSTEM: 전략 매니저 초기화...
+2025-07-24 21:38:58,420 - trading - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-24 21:38:58 | INFO | 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 21:38:58,433 - trading - INFO - 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 21:38:58 | INFO | SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 21:38:58,440 - trading - INFO - SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 21:38:58 | INFO | SYSTEM: 총 자본: $10,000 | 전략별: $5,000
+2025-07-24 21:38:58,445 - trading - INFO - SYSTEM: 총 자본: $10,000 | 전략별: $5,000
+2025-07-24 21:38:58 | INFO | SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 21:38:58,449 - trading - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 21:38:58 | INFO | SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 21:38:58,451 - trading - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 21:38:58 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 21:38:58,452 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 21:38:58 | INFO | SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 21:38:58,454 - trading - INFO - SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 21:38:58,456 - errors - ERROR - 거래 시작 실패: 'WebSocketHandler' object has no attribute 'start_ws'
+2025-07-24 21:38:58 | ERROR | 거래 시작 실패: 'WebSocketHandler' object has no attribute 'start_ws'
+2025-07-24 21:38:58,456 - trading - ERROR - 거래 시작 실패: 'WebSocketHandler' object has no attribute 'start_ws'
+2025-07-24 21:50:32 | INFO | SYSTEM: 설정 검증 중...
+2025-07-24 21:50:32,629 - trading - INFO - SYSTEM: 설정 검증 중...
+2025-07-24 21:50:32 | INFO | SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 21:50:32,631 - trading - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 21:50:32 | INFO | SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 21:50:32,633 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 21:50:32 | INFO | SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 21:50:32,878 - trading - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 21:50:32 | INFO | SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 21:50:32,892 - trading - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 21:50:32 | INFO | SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 21:50:32,895 - trading - INFO - SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 21:50:33 | INFO | SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 21:50:33,113 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 21:50:33 | INFO | SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 21:50:33,117 - trading - INFO - SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 21:50:33 | INFO | SYSTEM: 전략 매니저 초기화...
+2025-07-24 21:50:33,124 - trading - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-24 21:50:33 | INFO | 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 21:50:33,139 - trading - INFO - 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 21:50:33 | INFO | SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 21:50:33,150 - trading - INFO - SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 21:50:33 | INFO | SYSTEM: 총 자본: $10,000 | 전략별: $5,000
+2025-07-24 21:50:33,154 - trading - INFO - SYSTEM: 총 자본: $10,000 | 전략별: $5,000
+2025-07-24 21:50:33 | INFO | SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 21:50:33,158 - trading - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 21:50:33 | INFO | SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 21:50:33,167 - trading - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 21:50:33 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 21:50:33,168 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 21:50:33 | INFO | SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 21:50:33,169 - trading - INFO - SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 21:50:33 | INFO | SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 21:50:33,170 - trading - INFO - SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 21:50:33 | INFO | SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 21:50:33,173 - trading - INFO - SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 21:50:33 | INFO | SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 21:50:33,174 - trading - INFO - SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 21:50:33 | INFO | SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 21:50:33,182 - trading - INFO - SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 21:50:33,183 - errors - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 21:50:33 | ERROR | WebSocket 연결 끊어짐 감지
+2025-07-24 21:50:33,184 - trading - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 21:50:34,037 - websocket - INFO - Websocket connected
+2025-07-24 21:50:34 | INFO | SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 21:50:34,037 - trading - INFO - SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 21:50:34 | INFO | SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 21:50:34,042 - trading - INFO - SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 21:50:34 | INFO | SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 21:50:34,047 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 21:50:34 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 21:50:34,147 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 21:50:34,151 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,153 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,159 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,160 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,162 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,163 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,243 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,244 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,250 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,254 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,261 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,264 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,369 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,370 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,376 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,378 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,382 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,386 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,493 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,494 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,500 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,501 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,506 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,507 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,722 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,724 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,729 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,731 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,734 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,735 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,875 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,875 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,880 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,882 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,884 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,886 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,986 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,987 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,990 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,992 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:34,995 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:34,996 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,096 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,097 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,101 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,103 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,107 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,108 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,213 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,214 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,219 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,220 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,222 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,223 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,330 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,331 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,336 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,340 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,345 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,348 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,467 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,468 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,475 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,478 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,486 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,489 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,705 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,706 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,713 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,715 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,722 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,724 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,814 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,815 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,821 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,824 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,830 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,834 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,974 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,975 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,986 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,990 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:35,994 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:35,994 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,111 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,113 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,123 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,128 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,137 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,138 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,217 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,220 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,229 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,231 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,239 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,244 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,329 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,331 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,339 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,341 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,356 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,357 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,480 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,483 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,489 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,492 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,497 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,503 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,594 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,596 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,603 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,606 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,618 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,621 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,700 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,703 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,710 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,713 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,724 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,728 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,819 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,820 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,836 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,839 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,842 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,847 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,923 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,925 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,938 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,943 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:36,949 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:36,951 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:37,071 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,072 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,080 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,082 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,090 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:37 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:37,092 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:37,169 - errors - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37 | ERROR | 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,170 - trading - ERROR - 가격 데이터 추가 오류 (BTC-USDT-SWAP): '<=' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,175 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,177 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): '>' not supported between instances of 'str' and 'int'
+2025-07-24 21:50:37,181 - errors - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:37 | ERROR | Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:37,183 - trading - ERROR - Ticker 데이터 처리 오류 (BTC-USDT-SWAP): 'DualStrategyManager' object has no attribute 'process_price_update'
+2025-07-24 21:50:37 | INFO | SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 21:50:37,208 - trading - INFO - SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 21:50:37,212 - errors - ERROR - 시스템 종료 중 오류: 'WebSocketHandler' object has no attribute 'stop_ws'
+2025-07-24 21:50:37 | ERROR | 시스템 종료 중 오류: 'WebSocketHandler' object has no attribute 'stop_ws'
+2025-07-24 21:50:37,216 - trading - ERROR - 시스템 종료 중 오류: 'WebSocketHandler' object has no attribute 'stop_ws'
+2025-07-24 21:57:45 | INFO | SYSTEM: 설정 검증 중...
+2025-07-24 21:57:45,183 - trading - INFO - SYSTEM: 설정 검증 중...
+2025-07-24 21:57:45 | INFO | SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 21:57:45,191 - trading - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 21:57:45 | INFO | SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 21:57:45,192 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 21:57:45 | INFO | SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 21:57:45,429 - trading - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 21:57:45 | INFO | SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 21:57:45,442 - trading - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 21:57:45 | INFO | SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 21:57:45,443 - trading - INFO - SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 21:57:45 | INFO | SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 21:57:45,651 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 21:57:45 | INFO | SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 21:57:45,654 - trading - INFO - SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 21:57:45 | INFO | SYSTEM: 전략 매니저 초기화...
+2025-07-24 21:57:45,659 - trading - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-24 21:57:45 | INFO | 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 21:57:45,675 - trading - INFO - 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 21:57:45 | INFO | SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 21:57:45,687 - trading - INFO - SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 21:57:45 | INFO | SYSTEM: 총 자본: $10,000 | 전략별: $5,000
+2025-07-24 21:57:45,691 - trading - INFO - SYSTEM: 총 자본: $10,000 | 전략별: $5,000
+2025-07-24 21:57:45 | INFO | SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 21:57:45,693 - trading - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 21:57:45 | INFO | SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 21:57:45,695 - trading - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 21:57:45 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 21:57:45,696 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 21:57:45 | INFO | SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 21:57:45,702 - trading - INFO - SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 21:57:45 | INFO | SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 21:57:45,705 - trading - INFO - SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 21:57:45 | INFO | SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 21:57:45,710 - trading - INFO - SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 21:57:45 | INFO | SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 21:57:45,711 - trading - INFO - SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 21:57:45 | INFO | SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 21:57:45,721 - trading - INFO - SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 21:57:45,726 - errors - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 21:57:45 | ERROR | WebSocket 연결 끊어짐 감지
+2025-07-24 21:57:45,726 - trading - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 21:57:46,589 - websocket - INFO - Websocket connected
+2025-07-24 21:57:46 | INFO | SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 21:57:46,590 - trading - INFO - SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 21:57:46 | INFO | SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 21:57:46,595 - trading - INFO - SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 21:57:46 | INFO | SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 21:57:46,600 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 21:57:46 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 21:57:46,702 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 21:58:11 | INFO | SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 21:58:11,873 - trading - INFO - SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 21:58:11,876 - errors - ERROR - 시스템 종료 중 오류: 'WebSocketHandler' object has no attribute 'stop_ws'
+2025-07-24 21:58:11 | ERROR | 시스템 종료 중 오류: 'WebSocketHandler' object has no attribute 'stop_ws'
+2025-07-24 21:58:11,876 - trading - ERROR - 시스템 종료 중 오류: 'WebSocketHandler' object has no attribute 'stop_ws'
+2025-07-24 22:05:11,984 - errors - ERROR - 메인 함수 실행 오류: 'TradingSystem' object has no attribute 'initialize_system'
+2025-07-24 22:05:11 | ERROR | 메인 함수 실행 오류: 'TradingSystem' object has no attribute 'initialize_system'
+2025-07-24 22:05:11,984 - trading - ERROR - 메인 함수 실행 오류: 'TradingSystem' object has no attribute 'initialize_system'
+2025-07-24 22:09:00 | INFO | SYSTEM: 설정 검증 중...
+2025-07-24 22:09:00,941 - trading - INFO - SYSTEM: 설정 검증 중...
+2025-07-24 22:09:00 | INFO | SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-24 22:09:00,944 - trading - INFO - SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-24 22:09:00 | INFO | SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-24 22:09:00,946 - trading - INFO - SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-24 22:09:01 | INFO | SYSTEM: 🛑 거래 시스템 종료 시작...
+2025-07-24 22:09:01,291 - trading - INFO - SYSTEM: 🛑 거래 시스템 종료 시작...
+2025-07-24 22:09:01 | INFO | SYSTEM: ✅ 거래 시스템 종료 완료
+2025-07-24 22:09:01,296 - trading - INFO - SYSTEM: ✅ 거래 시스템 종료 완료
+2025-07-24 22:09:57 | INFO | SYSTEM: 설정 검증 중...
+2025-07-24 22:09:57,807 - trading - INFO - SYSTEM: 설정 검증 중...
+2025-07-24 22:09:57 | INFO | SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-24 22:09:57,810 - trading - INFO - SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-24 22:09:57 | INFO | SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-24 22:09:57,811 - trading - INFO - SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-24 22:09:57 | INFO | SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 22:09:57,989 - trading - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 22:09:57 | INFO | SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 22:09:57,998 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 22:09:58 | INFO | SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 22:09:58,216 - trading - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 22:09:58 | INFO | SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 22:09:58,225 - trading - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 22:09:58 | INFO | SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 22:09:58,227 - trading - INFO - SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 22:09:58 | INFO | SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 22:09:58,433 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 22:09:58 | INFO | SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 22:09:58,436 - trading - INFO - SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 22:09:58 | INFO | SYSTEM: 전략 매니저 초기화...
+2025-07-24 22:09:58,438 - trading - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-24 22:09:58 | INFO | 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 22:09:58,441 - trading - INFO - 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 22:09:58 | INFO | SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 22:09:58,443 - trading - INFO - SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 22:09:58 | INFO | SYSTEM: 총 자본: $78 | 전략별: $39
+2025-07-24 22:09:58,445 - trading - INFO - SYSTEM: 총 자본: $78 | 전략별: $39
+2025-07-24 22:09:58 | INFO | SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 22:09:58,447 - trading - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 22:09:58 | INFO | SYSTEM: 💰 실제 자본으로 거래 시작: $77.70 (원본: $81.79)
+2025-07-24 22:09:58,448 - trading - INFO - SYSTEM: 💰 실제 자본으로 거래 시작: $77.70 (원본: $81.79)
+2025-07-24 22:09:58 | INFO | SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 22:09:58,459 - trading - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 22:09:58 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 22:09:58,462 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 22:09:58 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 22:09:58,464 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 22:09:58 | INFO | SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 22:09:58,466 - trading - INFO - SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 22:09:58 | INFO | SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 22:09:58,468 - trading - INFO - SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 22:09:58 | INFO | SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 22:09:58,471 - trading - INFO - SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 22:09:58 | INFO | SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 22:09:58,472 - trading - INFO - SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 22:09:58 | INFO | SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 22:09:58,473 - trading - INFO - SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 22:09:58,474 - errors - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 22:09:58 | ERROR | WebSocket 연결 끊어짐 감지
+2025-07-24 22:09:58,475 - trading - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 22:09:59,327 - websocket - INFO - Websocket connected
+2025-07-24 22:09:59 | INFO | SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 22:09:59,328 - trading - INFO - SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 22:09:59 | INFO | SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 22:09:59,335 - trading - INFO - SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 22:09:59 | INFO | SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 22:09:59,342 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 22:09:59 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 22:09:59,438 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 22:10:14 | INFO | SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 22:10:14,583 - trading - INFO - SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 22:10:14 | INFO | SYSTEM: ✅ WebSocket 연결 종료
+2025-07-24 22:10:14,588 - trading - INFO - SYSTEM: ✅ WebSocket 연결 종료
+2025-07-24 22:10:14 | INFO | 📊 최종 성능 통계:
+2025-07-24 22:10:14,593 - trading - INFO - 📊 최종 성능 통계:
+2025-07-24 22:10:14 | INFO |   signals_processed: 0
+2025-07-24 22:10:14,599 - trading - INFO -   signals_processed: 0
+2025-07-24 22:10:14 | INFO |   trades_executed: 0
+2025-07-24 22:10:14,613 - trading - INFO -   trades_executed: 0
+2025-07-24 22:10:14 | INFO |   uptime: 16
+2025-07-24 22:10:14,618 - trading - INFO -   uptime: 16
+2025-07-24 22:10:14 | INFO |   errors: 1
+2025-07-24 22:10:14,623 - trading - INFO -   errors: 1
+2025-07-24 22:10:14 | INFO |   api_calls: 0
+2025-07-24 22:10:14,626 - trading - INFO -   api_calls: 0
+2025-07-24 22:10:14 | INFO |   websocket_messages: 0
+2025-07-24 22:10:14,629 - trading - INFO -   websocket_messages: 0
+2025-07-24 22:10:14 | INFO | SYSTEM: ✅ 시스템 종료 완료
+2025-07-24 22:10:14,634 - trading - INFO - SYSTEM: ✅ 시스템 종료 완료
+2025-07-24 22:10:14 | INFO | SYSTEM: 🛑 거래 시스템 종료 시작...
+2025-07-24 22:10:14,638 - trading - INFO - SYSTEM: 🛑 거래 시스템 종료 시작...
+2025-07-24 22:10:14 | INFO | SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 22:10:14,698 - trading - INFO - SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 22:10:14,701 - errors - ERROR - 🔌 WebSocket 연결 끊어짐
+2025-07-24 22:10:14 | ERROR | 🔌 WebSocket 연결 끊어짐
+2025-07-24 22:10:14,705 - trading - ERROR - 🔌 WebSocket 연결 끊어짐
+2025-07-24 22:10:14 | INFO | SYSTEM: 💼 전략 매니저 종료...
+2025-07-24 22:10:14,751 - trading - INFO - SYSTEM: 💼 전략 매니저 종료...
+2025-07-24 22:10:14 | INFO | SYSTEM: ✅ 거래 시스템 종료 완료
+2025-07-24 22:10:14,756 - trading - INFO - SYSTEM: ✅ 거래 시스템 종료 완료

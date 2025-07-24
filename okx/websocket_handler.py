@@ -236,39 +236,188 @@ class WebSocketHandler:
         except Exception as e:
             log_error("채널 구독 실패", e)
     
-    def _handle_public_message(self, message: str):
-        """Public 메시지 처리"""
+# okx/websocket_handler.py - 완전한 메시지 처리 개선
+
+    def _handle_public_message(self, message):
+        """Public WebSocket 메시지 처리 - 완전히 개선된 버전"""
         try:
-            data = json.loads(message)
             self.received_messages += 1
-            self.last_heartbeat = datetime.now()
+            
+            # JSON 파싱
+            try:
+                data = json.loads(message)
+            except json.JSONDecodeError as e:
+                log_error(f"JSON 파싱 실패: {message[:100]}...", e)
+                return
             
             # 이벤트 메시지 처리
             if 'event' in data:
-                event = data['event']
-                if event == 'subscribe':
-                    log_system(f"✅ 구독 성공: {data.get('arg', {})}")
-                elif event == 'error':
-                    log_error(f"구독 오류: {data.get('msg', 'Unknown error')}")
+                self._handle_event_message(data)
+                return
+            
+            # 오류 메시지 처리
+            if 'code' in data and data['code'] != '0':
+                error_msg = data.get('msg', 'Unknown error')
+                log_error(f"WebSocket API 오류: {data['code']} - {error_msg}")
                 return
             
             # 실제 데이터 처리
-            if 'data' in data and 'arg' in data:
-                channel = data['arg']['channel']
-                inst_id = data['arg']['instId']
+            if 'data' in data and data['data']:
+                self._process_market_data(data['data'])
                 
-                if channel == 'tickers':
-                    self._process_ticker_data(inst_id, data['data'][0])
-                elif channel == 'candle30m':
-                    self._process_candle_data(inst_id, data['data'][0])
-                elif channel == 'books5':
-                    self._process_orderbook_data(inst_id, data['data'][0])
-                
-        except json.JSONDecodeError:
-            log_error("Public 메시지 JSON 파싱 오류")
+            # 하트비트 업데이트
+            self.last_heartbeat = datetime.now()
+            
         except Exception as e:
-            log_error("Public 메시지 처리 오류", e)
-    
+            log_error(f"WebSocket 메시지 처리 중 예상치 못한 오류", e)
+
+    def _handle_event_message(self, data: dict):
+        """이벤트 메시지 처리"""
+        event = data.get('event')
+        
+        if event == 'subscribe':
+            arg = data.get('arg', {})
+            log_system(f"✅ 구독 성공: {arg}")
+            
+        elif event == 'unsubscribe':
+            arg = data.get('arg', {})
+            log_system(f"🔄 구독 해제: {arg}")
+            
+        elif event == 'error':
+            error_msg = data.get('msg', 'Unknown error')
+            log_error(f"WebSocket 이벤트 오류: {error_msg}")
+        
+        else:
+            log_info(f"알 수 없는 이벤트: {event}")
+
+    def _process_market_data(self, data_list: list):
+        """시장 데이터 처리"""
+        for item in data_list:
+            try:
+                # 필수 필드 체크
+                if 'instId' not in item:
+                    log_error(f"instId 필드 누락: {item}")
+                    continue
+                
+                symbol = item['instId']
+                
+                # 데이터 타입 변환
+                processed_item = self._convert_websocket_data_types(item)
+                
+                # 데이터 검증
+                if not self._validate_market_data(processed_item):
+                    continue
+                
+                # 콜백 호출
+                self._call_data_callbacks(symbol, processed_item)
+                
+            except Exception as e:
+                log_error(f"개별 시장 데이터 처리 오류", e)
+                continue
+
+    def _convert_websocket_data_types(self, data: dict) -> dict:
+        """WebSocket 데이터 타입 변환 - 강화된 버전"""
+        try:
+            converted_data = data.copy()
+            
+            # 변환 규칙 정의
+            conversion_rules = {
+                # 가격 필드들
+                'last': float, 'close': float, 'open': float, 
+                'high': float, 'low': float, 'bid': float, 'ask': float,
+                
+                # 거래량 필드들
+                'vol24h': float, 'volCcy24h': float, 'volume': float,
+                'bidSz': float, 'askSz': float,
+                
+                # 시간 필드들
+                'ts': int, 'timestamp': int,
+                
+                # 변화율 필드들
+                'change24h': float, 'changePct24h': float
+            }
+            
+            # 타입 변환 실행
+            for field, target_type in conversion_rules.items():
+                if field in converted_data and converted_data[field] is not None:
+                    try:
+                        value = converted_data[field]
+                        
+                        if isinstance(value, str):
+                            # 빈 문자열 체크
+                            if not value.strip():
+                                converted_data[field] = 0.0 if target_type == float else 0
+                                continue
+                            
+                            # 타입 변환
+                            converted_data[field] = target_type(value)
+                        
+                        elif not isinstance(value, target_type):
+                            # 이미 다른 숫자 타입인 경우 변환
+                            converted_data[field] = target_type(value)
+                    
+                    except (ValueError, TypeError) as e:
+                        # 변환 실패 시 기본값 설정
+                        default_value = 0.0 if target_type == float else 0
+                        converted_data[field] = default_value
+                        log_error(f"필드 변환 실패: {field} = '{value}' -> {default_value}")
+            
+            return converted_data
+            
+        except Exception as e:
+            log_error(f"데이터 타입 변환 중 오류", e)
+            return data
+
+    def _validate_market_data(self, data: dict) -> bool:
+        """시장 데이터 유효성 검증"""
+        try:
+            # 필수 필드 체크
+            required_fields = ['instId']
+            for field in required_fields:
+                if field not in data:
+                    log_error(f"필수 필드 누락: {field}")
+                    return False
+            
+            # 가격 데이터 유효성 체크
+            price_fields = ['last', 'close', 'open', 'high', 'low']
+            has_valid_price = False
+            
+            for field in price_fields:
+                if field in data and isinstance(data[field], (int, float)) and data[field] > 0:
+                    has_valid_price = True
+                    break
+            
+            if not has_valid_price:
+                log_error(f"유효한 가격 데이터 없음: {data.get('instId')}")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            log_error(f"데이터 검증 중 오류", e)
+            return False
+
+    def _call_data_callbacks(self, symbol: str, data: dict):
+        """데이터 콜백 호출"""
+        try:
+            # 가격 추출
+            price = data.get('last', data.get('close', 0))
+            
+            # 가격 콜백 호출
+            if self.on_price_callback and price > 0:
+                self.on_price_callback(symbol, price, data)
+            
+            # 전략 매니저에 데이터 전달
+            if self.strategy_manager:
+                success = self.strategy_manager.process_signal(symbol, data)
+                if not success:
+                    # 신호 처리 실패는 오류가 아님 (정상적인 경우도 있음)
+                    pass
+            
+        except Exception as e:
+            log_error(f"콜백 호출 중 오류 ({symbol})", e)
+
+
     def _handle_private_message(self, message: str):
         """Private 메시지 처리"""
         try:
@@ -684,6 +833,8 @@ def test_full_websocket():
     else:
         print("\n⚠️ 일부 WebSocket 테스트 실패")
         return False
+    
+
 
 # 직접 실행시 테스트 수행
 if __name__ == "__main__":
