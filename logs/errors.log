@@ -12,3 +12,11 @@
 2025-07-23 22:28:02 | ERROR | ❌ Private WebSocket 오류: 60024 - Wrong passphrase
 2025-07-23 22:28:02 | ERROR | ❌ Public WebSocket 오류: 60018 - Wrong URL or channel:candle30m,instId:BTC-USDT-SWAP doesn't exist. Please use the correct URL, channel and parameters referring to API document.
 2025-07-23 22:40:26 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-23 22:49:00 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-23 22:52:53 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-23 23:03:34 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-23 23:06:33 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-23 23:08:04 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-23 23:28:50 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-24 17:56:33 | ERROR | EMA 계산 후 데이터가 충분하지 않음
+2025-07-24 18:25:46 | ERROR | EMA 계산 후 데이터가 충분하지 않음

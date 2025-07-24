@@ -1,6 +1,7 @@
-# connection_test_fixed.py
+# connection_test.py
 """
 수정된 OKX API 및 WebSocket 연결 테스트 스크립트
+- ISO Z 형식 타임스탬프 사용
 - API 인증 문제 해결
 - WebSocket 채널 오류 수정
 - 데이터 부족 문제 해결
@@ -13,7 +14,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 # 프로젝트 모듈 임포트
-from config import API_KEY, API_SECRET, PASSPHRASE, TRADING_CONFIG
+from config import API_KEY, API_SECRET, PASSPHRASE, TRADING_CONFIG, get_timestamp
 from okx.account_manager import AccountManager
 from okx.websocket_handler import WebSocketHandler
 from utils.logger import log_system, log_error
@@ -170,7 +171,7 @@ class OKXConnectionTesterFixed:
                 return base64.b64encode(signature).decode()
             
             # 간단한 인증 테스트 (계좌 정보 대신 거래 설정 조회)
-            timestamp = str(int(time.time()))
+            timestamp = get_timestamp()  # ISO Z 형식 사용
             method = 'GET'
             request_path = '/api/v5/account/config'
             
@@ -201,7 +202,7 @@ class OKXConnectionTesterFixed:
                     
                     # 잔고 조회 시도
                     print("\n💰 잔고 조회 시도...")
-                    balance_timestamp = str(int(time.time()))
+                    balance_timestamp = get_timestamp()  # ISO Z 형식 사용
                     balance_path = '/api/v5/account/balance'
                     balance_signature = create_signature(balance_timestamp, 'GET', balance_path)
                     
@@ -272,52 +273,78 @@ class OKXConnectionTesterFixed:
         print("-" * 40)
         
         try:
-            from utils.data_loader import HistoricalDataLoader
-            
-            loader = HistoricalDataLoader()
-            symbol = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])[0]
-            
-            # 최신 가격 조회
-            print(f"💰 {symbol} 최신 가격 조회 중...")
-            latest_price = loader.get_latest_price(symbol)
-            
-            if latest_price:
-                print(f"✅ 최신 가격: ${latest_price:,.2f}")
-            else:
-                print("❌ 최신 가격 조회 실패")
-            
-            # 충분한 과거 캔들 데이터 조회 (200개 이상)
-            print(f"📈 {symbol} 과거 캔들 데이터 조회 중 (충분한 양)...")
-            df = loader.get_historical_candles(symbol, "30m", 200)  # 50 -> 200으로 증가
-            
-            if df is not None and len(df) > 0:
-                print(f"✅ 캔들 데이터 조회 성공: {len(df)}개")
-                print(f"  📅 시작: {df.iloc[0]['timestamp']}")
-                print(f"  📅 종료: {df.iloc[-1]['timestamp']}")
-                print(f"  💰 최근 가격: ${df.iloc[-1]['close']:.2f}")
+            # utils.data_loader가 없으면 직접 API 호출
+            try:
+                from utils.data_loader import HistoricalDataLoader
+                loader = HistoricalDataLoader()
+                symbol = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])[0]
                 
-                # EMA 계산 테스트 (충분한 데이터로)
-                print("🧮 EMA 계산 테스트...")
-                strategy_df = loader.prepare_strategy_data(df)
-                if strategy_df is not None:
-                    print(f"✅ 전략 데이터 준비 성공: {len(strategy_df)}개 (EMA 포함)")
-                    
-                    # EMA 값 확인
-                    latest_row = strategy_df.iloc[-1]
-                    print("📊 최신 EMA 값:")
-                    print(f"  - EMA20: ${latest_row.get('ema_20', 0):.2f}")
-                    print(f"  - EMA50: ${latest_row.get('ema_50', 0):.2f}")
-                    print(f"  - EMA100: ${latest_row.get('ema_100', 0):.2f}")
-                    print(f"  - EMA150: ${latest_row.get('ema_150', 0):.2f}")
-                    print(f"  - EMA200: ${latest_row.get('ema_200', 0):.2f}")
-                    
-                    self.test_results['market_data'] = True
+                # 최신 가격 조회
+                print(f"💰 {symbol} 최신 가격 조회 중...")
+                latest_price = loader.get_latest_price(symbol)
+                
+                if latest_price:
+                    print(f"✅ 최신 가격: ${latest_price:,.2f}")
                 else:
-                    print("❌ 전략 데이터 준비 실패")
+                    print("❌ 최신 가격 조회 실패")
+                
+                # 충분한 과거 캔들 데이터 조회 (500개로 증가)
+                print(f"📈 {symbol} 과거 캔들 데이터 조회 중 (충분한 양)...")
+                df = loader.get_historical_candles(symbol, "30m", 500)  # 200 -> 500으로 증가
+                
+                if df is not None and len(df) > 0:
+                    log_system(f"캔들 데이터 로딩 완료: {symbol} {len(df)}개")
+                    print(f"✅ 캔들 데이터 조회 성공: {len(df)}개")
+                    print(f"  📅 시작: {df.iloc[0]['timestamp']}")
+                    print(f"  📅 종료: {df.iloc[-1]['timestamp']}")
+                    print(f"  💰 최근 가격: ${df.iloc[-1]['close']:.2f}")
+                    
+                    # EMA 계산 테스트 (충분한 데이터로)
+                    print("🧮 EMA 계산 테스트...")
+                    strategy_df = loader.prepare_strategy_data(df)
+                    if strategy_df is not None:
+                        print(f"✅ 전략 데이터 준비 성공: {len(strategy_df)}개 (EMA 포함)")
+                        
+                        # EMA 값 확인
+                        latest_row = strategy_df.iloc[-1]
+                        print("📊 최신 EMA 값:")
+                        ema_keys = [k for k in latest_row.index if k.startswith('ema_')]
+                        for key in ema_keys[:5]:  # 처음 5개만 출력
+                            print(f"  - {key}: ${latest_row[key]:.2f}")
+                        
+                        self.test_results['market_data'] = True
+                    else:
+                        log_error("EMA 계산 후 데이터가 충분하지 않음")
+                        print("❌ 전략 데이터 준비 실패")
+                        self.test_results['market_data'] = False
+                else:
+                    print("❌ 캔들 데이터 조회 실패")
                     self.test_results['market_data'] = False
-            else:
-                print("❌ 캔들 데이터 조회 실패")
-                self.test_results['market_data'] = False
+                    
+            except ImportError:
+                # data_loader가 없으면 직접 API 호출
+                print("⚠️ data_loader 모듈을 찾을 수 없어 직접 API 호출")
+                import requests
+                
+                # 최신 가격 조회
+                print("💰 BTC-USDT-SWAP 최신 가격 조회 중...")
+                response = requests.get(
+                    "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT-SWAP",
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data['code'] == '0':
+                        price = float(data['data'][0]['last'])
+                        print(f"✅ 최신 가격: ${price:,.2f}")
+                        self.test_results['market_data'] = True
+                    else:
+                        print(f"❌ 가격 조회 실패: {data['msg']}")
+                        self.test_results['market_data'] = False
+                else:
+                    print(f"❌ API 요청 실패: HTTP {response.status_code}")
+                    self.test_results['market_data'] = False
                 
         except Exception as e:
             print(f"❌ 시장 데이터 테스트 실패: {e}")
@@ -368,7 +395,7 @@ class OKXConnectionTesterFixed:
                     if self.websocket_data_received:
                         break
                     
-                    if i % 5 == 0:
+                    if i % 5 == 0 and i > 0:
                         print(f"  ⏳ 대기 중... ({i}/20초)")
                 
                 # 결과 확인
@@ -440,7 +467,7 @@ class OKXConnectionTesterFixed:
         print("\n📝 다음 단계:")
         print("  1. config.py 파일의 API 설정 재확인")
         print("  2. OKX 거래소 웹사이트에서 API 설정 재점검")
-        print("  3. python connection_test_fixed.py 재실행")
+        print("  3. python connection_test.py 재실행")
 
 
 class WebSocketHandlerFixed:
@@ -492,7 +519,8 @@ class WebSocketHandlerFixed:
                     ws.send(json.dumps(subscribe_msg))
             
             def on_error(ws, error):
-                pass
+                if self.on_connection_callback:
+                    self.on_connection_callback(False)
             
             def on_close(ws, close_status_code, close_msg):
                 if self.on_connection_callback:
