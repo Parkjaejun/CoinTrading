@@ -648,3 +648,901 @@
 2025-07-24 22:10:14,751 - trading - INFO - SYSTEM: 💼 전략 매니저 종료...
 2025-07-24 22:10:14 | INFO | SYSTEM: ✅ 거래 시스템 종료 완료
 2025-07-24 22:10:14,756 - trading - INFO - SYSTEM: ✅ 거래 시스템 종료 완료
+2025-07-24 22:57:19 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 22:57:19,948 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 22:57:20 | INFO | SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 22:57:20,158 - trading - INFO - SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 22:57:20 | INFO | SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 22:57:20,173 - trading - INFO - SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 22:57:20,860 - websocket - INFO - Websocket connected
+2025-07-24 22:57:20 | INFO | SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 22:57:20,861 - trading - INFO - SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 22:57:20 | INFO | SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 22:57:20,870 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 22:57:20 | INFO | SYSTEM: 📡 구독 요청: tickers - ETH-USDT-SWAP
+2025-07-24 22:57:20,873 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - ETH-USDT-SWAP
+2025-07-24 22:57:20 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 22:57:20,969 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 22:57:20,974 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20,978 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'ETH-USDT-SWAP'}
+2025-07-24 22:57:20,986 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'ETH-USDT-SWAP'}
+2025-07-24 22:57:20,991 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20,992 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20,993 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:20,993 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,008 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,009 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,127 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,128 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,198 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,200 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,219 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,220 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,309 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,311 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,327 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,328 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,449 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,451 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,460 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,461 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,529 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,533 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,549 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,551 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,629 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,631 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,745 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,747 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,757 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,763 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,844 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,845 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,877 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,880 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,996 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:21,997 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,002 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,003 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,098 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,099 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,191 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,192 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,236 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,237 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,247 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,251 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,322 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,324 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,338 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,341 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,421 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,423 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,444 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,449 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,552 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,552 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,588 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,588 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,632 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,632 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,725 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,727 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,739 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,739 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,821 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,823 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,856 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,857 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,919 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,920 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,985 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:22,986 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,027 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,027 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,108 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,108 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,137 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,138 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,224 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,226 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,287 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,289 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,343 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,345 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,356 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,358 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,427 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,430 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,442 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,443 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,529 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,530 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,655 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,658 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,673 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,674 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,811 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,814 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,911 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,913 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,927 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:23,929 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,039 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,042 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,055 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,059 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,137 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,139 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,152 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,153 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,224 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,226 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,237 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,240 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,328 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,330 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,426 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,429 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,442 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,444 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,528 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,529 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,546 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,551 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,642 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,643 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,652 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,655 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,757 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,758 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,776 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,776 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,849 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,850 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,985 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:24,985 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,014 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,014 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,127 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,127 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,132 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,133 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,252 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,254 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,265 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,267 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,326 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,328 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,356 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,360 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,419 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,421 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,494 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,495 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,530 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,531 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,615 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,615 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,649 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,649 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,710 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,711 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,725 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,726 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,859 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,860 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,880 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,882 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,921 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,922 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,965 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:25,965 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,037 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,038 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,089 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,091 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,226 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,227 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,281 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,283 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,310 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,311 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,409 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,411 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,425 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,428 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,517 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,519 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,529 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,543 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,620 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,621 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,628 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,639 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,720 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,721 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,774 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,774 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,834 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,836 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,855 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,856 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,966 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,967 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,997 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:26,997 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,062 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,063 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,137 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,139 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,244 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,245 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,331 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,331 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,393 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,394 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,442 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,443 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,520 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,521 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,535 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,549 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,643 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,644 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,699 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,700 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,804 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,806 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,817 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,822 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,840 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,843 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,889 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,890 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,950 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,951 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,987 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:27,989 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,093 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,095 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,109 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,117 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,220 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,220 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,225 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,226 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,315 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,318 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,379 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,380 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,432 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,432 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,488 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,489 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,544 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,545 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,614 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,614 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,647 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28,648 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 22:57:28 | INFO | SYSTEM: 🛑 WebSocket 연결 중지 중...
+2025-07-24 22:57:28,680 - trading - INFO - SYSTEM: 🛑 WebSocket 연결 중지 중...
+2025-07-24 22:57:28 | INFO | SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 22:57:28,730 - trading - INFO - SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 22:57:28 | INFO | SYSTEM: ✅ WebSocket 연결 중지 완료
+2025-07-24 22:57:28,802 - trading - INFO - SYSTEM: ✅ WebSocket 연결 중지 완료
+2025-07-24 23:00:18 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:00:18,937 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:00:18 | INFO | SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 23:00:18,986 - trading - INFO - SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 23:00:18 | INFO | SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 23:00:18,994 - trading - INFO - SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 23:00:19,694 - websocket - INFO - Websocket connected
+2025-07-24 23:00:19 | INFO | SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 23:00:19,694 - trading - INFO - SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 23:00:19 | INFO | SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 23:00:19,703 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 23:00:19 | INFO | SYSTEM: 📡 구독 요청: tickers - ETH-USDT-SWAP
+2025-07-24 23:00:19,709 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - ETH-USDT-SWAP
+2025-07-24 23:00:19 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 23:00:19,863 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 23:00:19 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'ETH-USDT-SWAP'}
+2025-07-24 23:00:19,871 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'ETH-USDT-SWAP'}
+2025-07-24 23:00:19,875 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,877 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,881 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,882 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,884 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,885 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,919 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,920 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,983 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:19,984 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,030 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,032 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,162 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,162 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,169 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,171 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,224 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,224 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,268 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,269 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,336 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,337 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,377 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,378 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,480 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,481 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,546 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,548 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,593 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,594 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,692 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,693 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,710 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,711 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,819 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,820 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,830 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,831 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,938 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,939 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,948 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:20,952 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,023 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,023 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,040 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,040 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,132 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,134 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,146 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,147 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,268 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,270 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,278 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,279 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,383 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,385 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,400 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,400 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,533 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,536 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,547 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,550 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,633 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,635 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,684 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,684 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,730 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,732 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,839 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,840 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,940 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,941 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,950 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:21,955 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,046 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,047 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,054 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,055 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,173 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,173 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,196 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,197 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,291 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,292 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,320 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,320 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,417 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,418 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,519 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,520 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,534 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,538 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,632 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,633 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,641 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,648 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,734 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,735 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,742 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,744 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,849 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,850 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,921 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,921 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,974 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:22,976 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,005 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,006 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,046 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,046 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,114 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,114 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,141 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,142 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,218 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,218 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,284 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,285 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,329 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,330 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,392 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,394 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,485 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,485 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,521 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,522 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,546 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,547 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,621 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,621 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,634 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,635 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,723 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,724 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,741 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,742 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,840 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,842 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,859 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,860 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,932 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:23,934 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,004 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,005 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,049 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,050 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,131 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,132 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,219 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,222 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,259 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,260 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,289 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,290 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,399 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,401 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,410 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,411 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,500 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,500 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,615 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,617 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,629 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,629 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,713 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,714 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,727 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,728 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,825 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,825 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,840 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,841 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,968 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,969 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,976 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:24,976 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,031 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,031 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,067 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,068 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,141 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,143 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,218 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,219 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,306 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,307 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,329 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,330 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,428 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,428 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,465 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,468 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,529 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,530 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,569 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,570 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,674 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,675 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,692 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,693 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,745 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,746 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,802 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,803 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,856 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,858 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,929 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,931 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,959 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:25,961 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,041 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,042 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,182 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,183 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,196 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,196 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,227 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,228 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,323 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,324 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,336 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,337 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,473 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,474 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,484 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,486 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,541 - errors - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,543 - trading - ERROR - 콜백 호출 중 오류 (ETH-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,557 - errors - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26,557 - trading - ERROR - 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
+2025-07-24 23:00:26 | INFO | SYSTEM: 🛑 WebSocket 연결 중지 중...
+2025-07-24 23:00:26,623 - trading - INFO - SYSTEM: 🛑 WebSocket 연결 중지 중...
+2025-07-24 23:00:26 | INFO | SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 23:00:26,647 - trading - INFO - SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 23:00:26 | INFO | SYSTEM: ✅ WebSocket 연결 중지 완료
+2025-07-24 23:00:26,794 - trading - INFO - SYSTEM: ✅ WebSocket 연결 중지 완료
+2025-07-24 23:02:28 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:02:28,883 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:02:28 | INFO | SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 23:02:28,897 - trading - INFO - SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 23:02:28 | INFO | SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 23:02:28,907 - trading - INFO - SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 23:02:29,565 - websocket - INFO - Websocket connected
+2025-07-24 23:02:29 | INFO | SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 23:02:29,565 - trading - INFO - SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 23:02:29 | INFO | SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 23:02:29,573 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 23:02:29 | INFO | SYSTEM: 📡 구독 요청: tickers - ETH-USDT-SWAP
+2025-07-24 23:02:29,574 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - ETH-USDT-SWAP
+2025-07-24 23:02:29 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 23:02:29,682 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 23:02:29 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'ETH-USDT-SWAP'}
+2025-07-24 23:02:29,692 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'ETH-USDT-SWAP'}
+2025-07-24 23:03:52 | INFO | SYSTEM: 🛑 WebSocket 연결 중지 중...
+2025-07-24 23:03:52,489 - trading - INFO - SYSTEM: 🛑 WebSocket 연결 중지 중...
+2025-07-24 23:03:52 | INFO | SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 23:03:52,584 - trading - INFO - SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 23:03:52 | INFO | SYSTEM: ✅ WebSocket 연결 중지 완료
+2025-07-24 23:03:52,597 - trading - INFO - SYSTEM: ✅ WebSocket 연결 중지 완료
+2025-07-24 23:04:06 | INFO | SYSTEM: 설정 검증 중...
+2025-07-24 23:04:06,513 - trading - INFO - SYSTEM: 설정 검증 중...
+2025-07-24 23:04:06 | INFO | SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-24 23:04:06,521 - trading - INFO - SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-24 23:04:06 | INFO | SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-24 23:04:06,522 - trading - INFO - SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-24 23:04:06 | INFO | SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 23:04:06,696 - trading - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-24 23:04:06 | INFO | SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 23:04:06,703 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-24 23:04:06 | INFO | SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 23:04:06,919 - trading - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-24 23:04:06 | INFO | SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 23:04:06,926 - trading - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-24 23:04:06 | INFO | SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 23:04:06,929 - trading - INFO - SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-24 23:04:07 | INFO | SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 23:04:07,144 - trading - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-24 23:04:07 | INFO | SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 23:04:07,148 - trading - INFO - SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-24 23:04:07 | INFO | SYSTEM: 전략 매니저 초기화...
+2025-07-24 23:04:07,154 - trading - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-24 23:04:07 | INFO | 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 23:04:07,167 - trading - INFO - 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-24 23:04:07 | INFO | SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 23:04:07,174 - trading - INFO - SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-24 23:04:07 | INFO | SYSTEM: 총 자본: $78 | 전략별: $39
+2025-07-24 23:04:07,176 - trading - INFO - SYSTEM: 총 자본: $78 | 전략별: $39
+2025-07-24 23:04:07 | INFO | SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 23:04:07,184 - trading - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-24 23:04:07 | INFO | SYSTEM: 💰 실제 자본으로 거래 시작: $77.70 (원본: $81.79)
+2025-07-24 23:04:07,186 - trading - INFO - SYSTEM: 💰 실제 자본으로 거래 시작: $77.70 (원본: $81.79)
+2025-07-24 23:04:07 | INFO | SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 23:04:07,188 - trading - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-24 23:04:07 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:04:07,189 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:04:07 | INFO | SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:04:07,190 - trading - INFO - SYSTEM: 🔗 WebSocket 핸들러 초기화 완료
+2025-07-24 23:04:07 | INFO | SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 23:04:07,192 - trading - INFO - SYSTEM: 🚀 실시간 거래 시작
+2025-07-24 23:04:07 | INFO | SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 23:04:07,198 - trading - INFO - SYSTEM: 🚀 WebSocket 시작: ['BTC-USDT-SWAP'] (채널: ['tickers'])
+2025-07-24 23:04:07 | INFO | SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 23:04:07,201 - trading - INFO - SYSTEM: 📡 Public WebSocket 스레드 시작
+2025-07-24 23:04:07 | INFO | SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 23:04:07,202 - trading - INFO - SYSTEM: 📊 거래 대상: BTC-USDT-SWAP
+2025-07-24 23:04:07 | INFO | SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 23:04:07,203 - trading - INFO - SYSTEM: ⏰ 시스템 운영 중... (Ctrl+C로 종료)
+2025-07-24 23:04:07,204 - errors - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 23:04:07 | ERROR | WebSocket 연결 끊어짐 감지
+2025-07-24 23:04:07,204 - trading - ERROR - WebSocket 연결 끊어짐 감지
+2025-07-24 23:04:07,828 - websocket - INFO - Websocket connected
+2025-07-24 23:04:07 | INFO | SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 23:04:07,829 - trading - INFO - SYSTEM: ✅ Public WebSocket 연결 성공
+2025-07-24 23:04:07 | INFO | SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 23:04:07,839 - trading - INFO - SYSTEM: 🔌 WebSocket 연결 성공
+2025-07-24 23:04:07 | INFO | SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 23:04:07,846 - trading - INFO - SYSTEM: 📡 구독 요청: tickers - BTC-USDT-SWAP
+2025-07-24 23:04:07 | INFO | SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 23:04:07,942 - trading - INFO - SYSTEM: ✅ 구독 성공: {'channel': 'tickers', 'instId': 'BTC-USDT-SWAP'}
+2025-07-24 23:04:12 | INFO | SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 23:04:12,250 - trading - INFO - SYSTEM: 🛑 시스템 종료 중...
+2025-07-24 23:04:12 | INFO | SYSTEM: ✅ WebSocket 연결 종료
+2025-07-24 23:04:12,256 - trading - INFO - SYSTEM: ✅ WebSocket 연결 종료
+2025-07-24 23:04:12 | INFO | 📊 최종 성능 통계:
+2025-07-24 23:04:12,260 - trading - INFO - 📊 최종 성능 통계:
+2025-07-24 23:04:12 | INFO |   signals_processed: 0
+2025-07-24 23:04:12,265 - trading - INFO -   signals_processed: 0
+2025-07-24 23:04:12 | INFO |   trades_executed: 0
+2025-07-24 23:04:12,277 - trading - INFO -   trades_executed: 0
+2025-07-24 23:04:12 | INFO |   uptime: 5
+2025-07-24 23:04:12,280 - trading - INFO -   uptime: 5
+2025-07-24 23:04:12 | INFO |   errors: 1
+2025-07-24 23:04:12,285 - trading - INFO -   errors: 1
+2025-07-24 23:04:12 | INFO |   api_calls: 0
+2025-07-24 23:04:12,289 - trading - INFO -   api_calls: 0
+2025-07-24 23:04:12 | INFO |   websocket_messages: 0
+2025-07-24 23:04:12,289 - trading - INFO -   websocket_messages: 0
+2025-07-24 23:04:12 | INFO | SYSTEM: ✅ 시스템 종료 완료
+2025-07-24 23:04:12,290 - trading - INFO - SYSTEM: ✅ 시스템 종료 완료
+2025-07-24 23:04:12 | INFO | SYSTEM: 🛑 거래 시스템 종료 시작...
+2025-07-24 23:04:12,291 - trading - INFO - SYSTEM: 🛑 거래 시스템 종료 시작...
+2025-07-24 23:04:12 | INFO | SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 23:04:12,330 - trading - INFO - SYSTEM: Public WebSocket 연결 종료: None
+2025-07-24 23:04:12,334 - errors - ERROR - 🔌 WebSocket 연결 끊어짐
+2025-07-24 23:04:12 | ERROR | 🔌 WebSocket 연결 끊어짐
+2025-07-24 23:04:12,339 - trading - ERROR - 🔌 WebSocket 연결 끊어짐
+2025-07-24 23:04:12 | INFO | SYSTEM: 💼 전략 매니저 종료...
+2025-07-24 23:04:12,427 - trading - INFO - SYSTEM: 💼 전략 매니저 종료...
+2025-07-24 23:04:12 | INFO | SYSTEM: ✅ 거래 시스템 종료 완료
+2025-07-24 23:04:12,431 - trading - INFO - SYSTEM: ✅ 거래 시스템 종료 완료
