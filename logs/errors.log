@@ -355,3 +355,6 @@
 2025-07-24 23:00:26 | ERROR | 콜백 호출 중 오류 (BTC-USDT-SWAP): _on_price_update() takes 2 positional arguments but 4 were given
 2025-07-24 23:04:07 | ERROR | WebSocket 연결 끊어짐 감지
 2025-07-24 23:04:12 | ERROR | 🔌 WebSocket 연결 끊어짐
+2025-07-25 10:43:20 - trading_bot - ERROR - ERROR: �ý��� �ʱ�ȭ ���� | Context: __init__() got an unexpected keyword argument 'strategy_manager'
+2025-07-25 10:51:14 - trading_bot - ERROR - ERROR: 거래 시작 실패 | Context: start_websocket() takes from 1 to 2 positional arguments but 3 were given
+2025-07-25 10:52:05 - trading_bot - ERROR - ERROR: 거래 시작 실패 | Context: start_websocket() takes from 1 to 2 positional arguments but 3 were given

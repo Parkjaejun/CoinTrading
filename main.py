@@ -210,8 +210,17 @@ class TradingSystem:
             # WebSocket 연결 시작 - 🔧 수정된 부분
             symbols = TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
             
-            # WebSocketHandler의 실제 메서드 사용
-            success = self.ws_handler.start_websocket(symbols, ["tickers"])
+            # 올바른 메서드명 사용
+            if hasattr(self.ws_handler, 'start_ws'):
+                # start_ws 메서드가 있는 경우
+                public_thread, private_thread = self.ws_handler.start_ws(symbols)
+                success = public_thread is not None and private_thread is not None
+            elif hasattr(self.ws_handler, 'start_websocket'):
+                # start_websocket 메서드가 있는 경우 (수정된 버전)
+                success = self.ws_handler.start_websocket(symbols)
+            else:
+                log_error("WebSocketHandler에 적절한 시작 메서드가 없습니다")
+                return False
             
             if not success:
                 log_error("WebSocket 연결 실패")
@@ -230,29 +239,21 @@ class TradingSystem:
                     log_error("🔌 WebSocket 연결 끊어짐")
                     send_system_alert("⚠️ 거래 시스템 연결 불안정", "WebSocket 연결에 문제가 발생했습니다.")
             
-            # 가격 데이터 처리 콜백 설정
-            def on_price_update(symbol, price, data):
-                self.received_data_count += 1
-                self.last_price_update = datetime.now()
-                
-                # 전략 매니저에 데이터 전달
-                if self.strategy_manager:
-                    self.strategy_manager.process_signal(symbol, data)
-            
             # 콜백 설정
-            self.ws_handler.set_callbacks(
-                price_callback=on_price_update,
-                connection_callback=on_connection_status
-            )
+            if hasattr(self.ws_handler, 'on_connection_callback'):
+                self.ws_handler.on_connection_callback = on_connection_status
             
-            # 메인 루프 실행
-            self._main_loop()
+            # 가격 업데이트 콜백 설정
+            if hasattr(self.ws_handler, 'on_price_callback'):
+                self.ws_handler.on_price_callback = self._on_price_update
             
             return True
             
         except Exception as e:
             log_error("거래 시작 실패", e)
+            self.is_running = False
             return False
+
 
     def stop_trading(self):
         """거래 중지"""

@@ -1,0 +1,2 @@
+2025-07-25 10:51:14 - trading_bot - ERROR - ERROR: 거래 시작 실패 | Context: start_websocket() takes from 1 to 2 positional arguments but 3 were given
+2025-07-25 10:52:05 - trading_bot - ERROR - ERROR: 거래 시작 실패 | Context: start_websocket() takes from 1 to 2 positional arguments but 3 were given

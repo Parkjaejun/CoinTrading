@@ -1546,3 +1546,152 @@
 2025-07-24 23:04:12,427 - trading - INFO - SYSTEM: 💼 전략 매니저 종료...
 2025-07-24 23:04:12 | INFO | SYSTEM: ✅ 거래 시스템 종료 완료
 2025-07-24 23:04:12,431 - trading - INFO - SYSTEM: ✅ 거래 시스템 종료 완료
+2025-07-25 10:43:19,407 - trading_bot - INFO - SYSTEM: 설정 검증 중...
+2025-07-25 10:43:19,409 - trading_bot - INFO - SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-25 10:43:19,409 - trading_bot - INFO - SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-25 10:43:19,568 - trading_bot - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-25 10:43:19,572 - trading_bot - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-25 10:43:19,797 - trading_bot - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-25 10:43:19,802 - trading_bot - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-25 10:43:19,803 - trading_bot - INFO - SYSTEM: ✅ BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-25 10:43:20,016 - trading_bot - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-25 10:43:20,021 - trading_bot - INFO - SYSTEM: ✅ 초기 데이터 로딩 완료: 1개 심볼
+2025-07-25 10:43:20,026 - trading_bot - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-25 10:43:20,029 - trading_bot - INFO - INFO: 📊 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-25 10:43:20,039 - trading_bot - INFO - SYSTEM: 🚀 실시간 듀얼 전략 관리자 초기화
+2025-07-25 10:43:20,044 - trading_bot - INFO - SYSTEM: 총 자본: $78 | 전략별: $39
+2025-07-25 10:43:20,044 - trading_bot - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-25 10:43:20,045 - trading_bot - INFO - SYSTEM: 💰 실제 자본으로 거래 시작: $77.70 (원본: $81.79)
+2025-07-25 10:43:20,054 - trading_bot - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-25 10:43:20,055 - trading_bot - ERROR - ERROR: 시스템 초기화 실패 | Context: __init__() got an unexpected keyword argument 'strategy_manager'
+2025-07-25 10:43:20,056 - trading_bot - INFO - SYSTEM: 🛑 거래 시스템 종료 시작...
+2025-07-25 10:43:20,060 - trading_bot - INFO - SYSTEM: 💼 전략 매니저 종료...
+2025-07-25 10:43:20,069 - trading_bot - INFO - SYSTEM: ✅ 거래 시스템 종료 완료
+2025-07-25 10:51:13,652 - trading_bot - INFO - SYSTEM: 설정 검증 중...
+2025-07-25 10:51:13,655 - trading_bot - INFO - SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-25 10:51:13,657 - trading_bot - INFO - SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-25 10:51:13,798 - trading_bot - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-25 10:51:13,802 - trading_bot - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-25 10:51:13,955 - trading_bot - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-25 10:51:13,960 - trading_bot - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-25 10:51:13,961 - trading_bot - INFO - SYSTEM: [OK] BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-25 10:51:14,170 - trading_bot - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-25 10:51:14,173 - trading_bot - INFO - SYSTEM: [OK] 초기 데이터 로딩 완료: 1개 심볼
+2025-07-25 10:51:14,176 - trading_bot - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-25 10:51:14,177 - trading_bot - INFO - INFO: [CHART] 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-25 10:51:14,179 - trading_bot - INFO - SYSTEM: [ROCKET] 실시간 듀얼 전략 관리자 초기화
+2025-07-25 10:51:14,180 - trading_bot - INFO - SYSTEM: 총 자본: $78 | 전략별: $39
+2025-07-25 10:51:14,181 - trading_bot - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-25 10:51:14,182 - trading_bot - INFO - SYSTEM: [MONEY] 실제 자본으로 거래 시작: $77.70 (원본: $81.79)
+2025-07-25 10:51:14,183 - trading_bot - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-25 10:51:14,184 - trading_bot - INFO - SYSTEM: WebSocket 핸들러 초기화 완료
+2025-07-25 10:51:14,185 - trading_bot - INFO - SYSTEM: [LINK] WebSocket 핸들러 초기화 완료
+2025-07-25 10:51:14,187 - trading_bot - INFO - SYSTEM: [ROCKET] 실시간 거래 시작
+2025-07-25 10:51:14,189 - trading_bot - ERROR - ERROR: 거래 시작 실패 | Context: start_websocket() takes from 1 to 2 positional arguments but 3 were given
+2025-07-25 10:51:14,191 - trading_bot - INFO - SYSTEM: [STOP] 거래 시스템 종료 시작...
+2025-07-25 10:51:14,192 - trading_bot - INFO - SYSTEM: [BRIEFCASE] 전략 매니저 종료...
+2025-07-25 10:51:14,193 - trading_bot - INFO - SYSTEM: [OK] 거래 시스템 종료 완료
+2025-07-25 10:52:05,166 - trading_bot - INFO - SYSTEM: 설정 검증 중...
+2025-07-25 10:52:05,169 - trading_bot - INFO - SYSTEM: 실제 계좌 잔액 확인 중...
+2025-07-25 10:52:05,172 - trading_bot - INFO - SYSTEM: 거래 계정 잔액 직접 조회...
+2025-07-25 10:52:05,320 - trading_bot - INFO - SYSTEM: 초기 시장 데이터 로딩...
+2025-07-25 10:52:05,323 - trading_bot - INFO - SYSTEM: 다중 심볼 데이터 로딩 시작: ['BTC-USDT-SWAP']
+2025-07-25 10:52:05,497 - trading_bot - INFO - SYSTEM: 캔들 데이터 로딩 완료: BTC-USDT-SWAP 300개
+2025-07-25 10:52:05,502 - trading_bot - INFO - SYSTEM: 전략 데이터 준비 완료: 100개 캔들
+2025-07-25 10:52:05,503 - trading_bot - INFO - SYSTEM: [OK] BTC-USDT-SWAP 데이터 로딩 성공
+2025-07-25 10:52:05,708 - trading_bot - INFO - SYSTEM: 다중 심볼 데이터 로딩 완료: 1/1개 성공
+2025-07-25 10:52:05,710 - trading_bot - INFO - SYSTEM: [OK] 초기 데이터 로딩 완료: 1개 심볼
+2025-07-25 10:52:05,713 - trading_bot - INFO - SYSTEM: 전략 매니저 초기화...
+2025-07-25 10:52:05,714 - trading_bot - INFO - INFO: [CHART] 실시간 데이터 버퍼 초기화: BTC-USDT-SWAP
+2025-07-25 10:52:05,716 - trading_bot - INFO - SYSTEM: [ROCKET] 실시간 듀얼 전략 관리자 초기화
+2025-07-25 10:52:05,717 - trading_bot - INFO - SYSTEM: 총 자본: $78 | 전략별: $39
+2025-07-25 10:52:05,718 - trading_bot - INFO - SYSTEM: 대상 심볼: BTC-USDT-SWAP | 활성 전략: 2개
+2025-07-25 10:52:05,719 - trading_bot - INFO - SYSTEM: [MONEY] 실제 자본으로 거래 시작: $77.70 (원본: $81.79)
+2025-07-25 10:52:05,720 - trading_bot - INFO - SYSTEM: WebSocket 핸들러 초기화...
+2025-07-25 10:52:05,720 - trading_bot - INFO - SYSTEM: WebSocket 핸들러 초기화 완료
+2025-07-25 10:52:05,722 - trading_bot - INFO - SYSTEM: [LINK] WebSocket 핸들러 초기화 완료
+2025-07-25 10:52:05,723 - trading_bot - INFO - SYSTEM: [ROCKET] 실시간 거래 시작
+2025-07-25 10:52:05,725 - trading_bot - ERROR - ERROR: 거래 시작 실패 | Context: start_websocket() takes from 1 to 2 positional arguments but 3 were given
+2025-07-25 10:52:05,727 - trading_bot - INFO - SYSTEM: [STOP] 거래 시스템 종료 시작...
+2025-07-25 10:52:05,727 - trading_bot - INFO - SYSTEM: [BRIEFCASE] 전략 매니저 종료...
+2025-07-25 10:52:05,728 - trading_bot - INFO - SYSTEM: [OK] 거래 시스템 종료 완료
+2025-07-25 10:55:07,424 - trading_bot - INFO - SYSTEM:   ...
+2025-07-25 10:55:07,425 - trading_bot - INFO - SYSTEM:     ...
+2025-07-25 10:55:07,425 - trading_bot - INFO - SYSTEM:     ...
+2025-07-25 10:55:07,562 - trading_bot - INFO - SYSTEM:    ...
+2025-07-25 10:55:07,562 - trading_bot - INFO - SYSTEM:     : ['BTC-USDT-SWAP']
+2025-07-25 10:55:07,774 - trading_bot - INFO - SYSTEM:    : BTC-USDT-SWAP 300
+2025-07-25 10:55:07,775 - trading_bot - INFO - SYSTEM:    : 100 
+2025-07-25 10:55:07,776 - trading_bot - INFO - SYSTEM: [OK] BTC-USDT-SWAP   
+2025-07-25 10:55:07,985 - trading_bot - INFO - SYSTEM:     : 1/1 
+2025-07-25 10:55:07,986 - trading_bot - INFO - SYSTEM: [OK]    : 1 
+2025-07-25 10:55:07,988 - trading_bot - INFO - SYSTEM:   ...
+2025-07-25 10:55:07,989 - trading_bot - INFO - INFO: [CHART]    : BTC-USDT-SWAP
+2025-07-25 10:55:07,990 - trading_bot - INFO - SYSTEM: [ROCKET]     
+2025-07-25 10:55:07,991 - trading_bot - INFO - SYSTEM:  : $78 | : $39
+2025-07-25 10:55:07,991 - trading_bot - INFO - SYSTEM:  : BTC-USDT-SWAP |  : 2
+2025-07-25 10:55:07,992 - trading_bot - INFO - SYSTEM: [MONEY]    : $77.70 (: $81.79)
+2025-07-25 10:55:07,993 - trading_bot - INFO - SYSTEM: WebSocket  ...
+2025-07-25 10:55:07,993 - trading_bot - INFO - SYSTEM: WebSocket   
+2025-07-25 10:55:07,994 - trading_bot - INFO - SYSTEM: [LINK] WebSocket   
+2025-07-25 10:55:07,995 - trading_bot - INFO - SYSTEM: [ROCKET]   
+2025-07-25 10:55:07,995 - trading_bot - INFO - SYSTEM: WebSocket  : ['BTC-USDT-SWAP'] | : ['tickers', 'candle30m']
+2025-07-25 10:55:08,923 - websocket - INFO - Websocket connected
+2025-07-25 10:55:08,923 - trading_bot - INFO - SYSTEM: Public WebSocket  
+2025-07-25 10:55:08,951 - websocket - INFO - Websocket connected
+2025-07-25 10:55:08,952 - trading_bot - INFO - SYSTEM: Private WebSocket  
+2025-07-25 10:55:08,954 - trading_bot - INFO - SYSTEM: Private WebSocket   
+2025-07-25 10:55:09,055 - trading_bot - INFO - SYSTEM: Private WebSocket  
+2025-07-25 10:55:10,001 - trading_bot - INFO - SYSTEM: Public  : BTC-USDT-SWAP
+2025-07-25 10:55:10,002 - trading_bot - INFO - SYSTEM: Private   
+2025-07-25 10:55:10,004 - trading_bot - INFO - SYSTEM: [CHART]  : BTC-USDT-SWAP
+2025-07-25 10:55:10,005 - trading_bot - INFO - SYSTEM:    ... (Ctrl+C )
+2025-07-25 10:55:10,005 - trading_bot - INFO - SYSTEM: [STOP]    ...
+2025-07-25 10:55:10,101 - trading_bot - INFO - SYSTEM: WebSocket  : None
+2025-07-25 10:55:10,146 - trading_bot - INFO - SYSTEM: WebSocket  : None
+2025-07-25 10:55:10,200 - trading_bot - INFO - SYSTEM: [BRIEFCASE]   ...
+2025-07-25 10:55:10,202 - trading_bot - INFO - SYSTEM: [OK]    
+2025-07-25 10:56:45,534 - trading_bot - INFO - SYSTEM:   ...
+2025-07-25 10:56:45,535 - trading_bot - INFO - SYSTEM:     ...
+2025-07-25 10:56:45,536 - trading_bot - INFO - SYSTEM:     ...
+2025-07-25 10:56:45,695 - trading_bot - INFO - SYSTEM:    ...
+2025-07-25 10:56:45,699 - trading_bot - INFO - SYSTEM:     : ['BTC-USDT-SWAP']
+2025-07-25 10:56:45,839 - trading_bot - INFO - SYSTEM:    : BTC-USDT-SWAP 300
+2025-07-25 10:56:45,843 - trading_bot - INFO - SYSTEM:    : 100 
+2025-07-25 10:56:45,843 - trading_bot - INFO - SYSTEM: [OK] BTC-USDT-SWAP   
+2025-07-25 10:56:46,051 - trading_bot - INFO - SYSTEM:     : 1/1 
+2025-07-25 10:56:46,052 - trading_bot - INFO - SYSTEM: [OK]    : 1 
+2025-07-25 10:56:46,053 - trading_bot - INFO - SYSTEM:   ...
+2025-07-25 10:56:46,055 - trading_bot - INFO - INFO: [CHART]    : BTC-USDT-SWAP
+2025-07-25 10:56:46,056 - trading_bot - INFO - SYSTEM: [ROCKET]     
+2025-07-25 10:56:46,056 - trading_bot - INFO - SYSTEM:  : $78 | : $39
+2025-07-25 10:56:46,057 - trading_bot - INFO - SYSTEM:  : BTC-USDT-SWAP |  : 2
+2025-07-25 10:56:46,057 - trading_bot - INFO - SYSTEM: [MONEY]    : $77.70 (: $81.79)
+2025-07-25 10:56:46,058 - trading_bot - INFO - SYSTEM: WebSocket  ...
+2025-07-25 10:56:46,060 - trading_bot - INFO - SYSTEM: WebSocket   
+2025-07-25 10:56:46,060 - trading_bot - INFO - SYSTEM: [LINK] WebSocket   
+2025-07-25 10:56:46,061 - trading_bot - INFO - SYSTEM: [ROCKET]   
+2025-07-25 10:56:46,062 - trading_bot - INFO - SYSTEM: WebSocket  : ['BTC-USDT-SWAP'] | : ['tickers', 'candle30m']
+2025-07-25 10:56:46,967 - websocket - INFO - Websocket connected
+2025-07-25 10:56:46,968 - trading_bot - INFO - SYSTEM: Public WebSocket  
+2025-07-25 10:56:46,976 - websocket - INFO - Websocket connected
+2025-07-25 10:56:46,977 - trading_bot - INFO - SYSTEM: Private WebSocket  
+2025-07-25 10:56:46,978 - trading_bot - INFO - SYSTEM: Private WebSocket   
+2025-07-25 10:56:47,123 - trading_bot - INFO - SYSTEM: Private WebSocket  
+2025-07-25 10:56:48,226 - trading_bot - INFO - SYSTEM:   : tickers
+2025-07-25 10:56:48,229 - trading_bot - INFO - INFO:   : BTC-USDT-SWAP = $117,395.30 (+119170.40%)
+2025-07-25 10:56:48,232 - trading_bot - INFO - INFO: [UP]   : BTC-USDT-SWAP
+2025-07-25 10:56:48,234 - trading_bot - INFO - INFO:   : BTC-USDT-SWAP = $117,395.30 (+119170.40%)
+2025-07-25 10:56:48,234 - trading_bot - INFO - INFO: [UP]   : BTC-USDT-SWAP
+2025-07-25 10:56:48,293 - trading_bot - INFO - SYSTEM:  Public    : BTC-USDT-SWAP
+2025-07-25 10:56:48,309 - trading_bot - INFO - INFO:   : BTC-USDT-SWAP = $117,395.30 (+119170.40%)
+2025-07-25 10:56:48,311 - trading_bot - INFO - INFO: [UP]   : BTC-USDT-SWAP
+2025-07-25 10:56:48,400 - trading_bot - INFO - SYSTEM:  Private   
+2025-07-25 10:56:48,404 - trading_bot - INFO - SYSTEM: [CHART]  : BTC-USDT-SWAP
+2025-07-25 10:56:48,405 - trading_bot - INFO - SYSTEM:    ... (Ctrl+C )
+2025-07-25 10:56:48,405 - trading_bot - INFO - SYSTEM: [STOP]    ...
+2025-07-25 10:56:48,425 - trading_bot - INFO - SYSTEM: WebSocket  : None
+2025-07-25 10:56:48,448 - trading_bot - INFO - INFO: USDT  : $81.79
+2025-07-25 10:56:48,594 - trading_bot - INFO - SYSTEM: WebSocket  : None
+2025-07-25 10:56:48,609 - trading_bot - INFO - SYSTEM: [BRIEFCASE]   ...
+2025-07-25 10:56:48,610 - trading_bot - INFO - SYSTEM: [OK]    

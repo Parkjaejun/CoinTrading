@@ -1,25 +1,22 @@
 # utils/logger.py
 """
-로깅 시스템 - 완전한 버전
+로깅 시스템 - 완전 수정 버전 (Windows 호환)
 """
 
 import logging
 import os
+import sys
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-import colorlog
+
+# Windows 인코딩 문제 완전 해결
+if sys.platform.startswith('win'):
+    # stdout/stderr 재지정 없이 기본 설정만 변경
+    pass
 
 def setup_logger(name="trading_bot", level=logging.INFO, log_dir="logs"):
     """
-    로거 설정
-    
-    Args:
-        name: 로거 이름
-        level: 로그 레벨
-        log_dir: 로그 디렉토리
-    
-    Returns:
-        logging.Logger: 설정된 로거
+    로거 설정 - 안전한 버전
     """
     # 로그 디렉토리 생성
     os.makedirs(log_dir, exist_ok=True)
@@ -32,56 +29,58 @@ def setup_logger(name="trading_bot", level=logging.INFO, log_dir="logs"):
     if logger.handlers:
         logger.handlers.clear()
     
-    # 포맷터 설정
+    # 기본 포맷터 (이모지 없음)
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
-    # 콘솔 핸들러 (컬러 로그)
-    console_handler = colorlog.StreamHandler()
-    console_formatter = colorlog.ColoredFormatter(
-        '%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%H:%M:%S',
-        log_colors={
-            'DEBUG': 'cyan',
-            'INFO': 'green',
-            'WARNING': 'yellow',
-            'ERROR': 'red',
-            'CRITICAL': 'red,bg_white',
-        }
-    )
-    console_handler.setFormatter(console_formatter)
+    # 콘솔 핸들러 (기본 설정)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(level)
     logger.addHandler(console_handler)
     
-    # 파일 핸들러 (일반 로그)
-    file_handler = RotatingFileHandler(
-        os.path.join(log_dir, f"{name}.log"),
-        maxBytes=10*1024*1024,  # 10MB
-        backupCount=5
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    # 파일 핸들러 (UTF-8 인코딩)
+    try:
+        file_handler = RotatingFileHandler(
+            os.path.join(log_dir, f"{name}.log"),
+            maxBytes=10*1024*1024,  # 10MB
+            backupCount=5,
+            encoding='utf-8'
+        )
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    except Exception as e:
+        print(f"⚠️ 파일 핸들러 생성 실패: {e}")
     
     # 거래 전용 파일 핸들러
-    trade_handler = RotatingFileHandler(
-        os.path.join(log_dir, "trades.log"),
-        maxBytes=5*1024*1024,  # 5MB
-        backupCount=10
-    )
-    trade_handler.setFormatter(formatter)
-    trade_handler.addFilter(TradeFilter())
-    logger.addHandler(trade_handler)
+    try:
+        trade_handler = RotatingFileHandler(
+            os.path.join(log_dir, "trades.log"),
+            maxBytes=5*1024*1024,  # 5MB
+            backupCount=10,
+            encoding='utf-8'
+        )
+        trade_handler.setFormatter(formatter)
+        trade_handler.addFilter(TradeFilter())
+        logger.addHandler(trade_handler)
+    except Exception as e:
+        print(f"⚠️ 거래 핸들러 생성 실패: {e}")
     
     # 에러 전용 파일 핸들러
-    error_handler = RotatingFileHandler(
-        os.path.join(log_dir, "errors.log"),
-        maxBytes=5*1024*1024,  # 5MB
-        backupCount=5
-    )
-    error_handler.setFormatter(formatter)
-    error_handler.setLevel(logging.ERROR)
-    logger.addHandler(error_handler)
+    try:
+        error_handler = RotatingFileHandler(
+            os.path.join(log_dir, "errors.log"),
+            maxBytes=5*1024*1024,  # 5MB
+            backupCount=5,
+            encoding='utf-8'
+        )
+        error_handler.setFormatter(formatter)
+        error_handler.setLevel(logging.ERROR)
+        logger.addHandler(error_handler)
+    except Exception as e:
+        print(f"⚠️ 에러 핸들러 생성 실패: {e}")
     
     return logger
 
@@ -106,7 +105,7 @@ class GUILogHandler(logging.Handler):
                 level = record.levelname
                 self.log_widget.add_log(msg, level)
             except Exception:
-                pass  # GUI 로그 실패해도 프로그램은 계속 실행
+                pass
 
 def get_logger(name="trading_bot"):
     """기본 로거 반환"""
@@ -121,39 +120,152 @@ def init_logging(name="trading_bot", level=logging.INFO, log_dir="logs"):
     default_logger = setup_logger(name, level, log_dir)
     return default_logger
 
+def _safe_log_message(message):
+    """안전한 로그 메시지 생성 (이모지 제거)"""
+    # 이모지 및 특수 문자를 안전한 텍스트로 변환
+    emoji_map = {
+        '✅': '[OK]',
+        '❌': '[ERROR]',
+        '🚀': '[ROCKET]',
+        '💰': '[MONEY]',
+        '📊': '[CHART]',
+        '🎯': '[TARGET]',
+        '💼': '[BRIEFCASE]',
+        '🛑': '[STOP]',
+        '📈': '[UP]',
+        '📉': '[DOWN]',
+        '🔗': '[LINK]',
+        '💡': '[IDEA]',
+        '⚠️': '[WARNING]',
+        '🎮': '[GAME]',
+        '📱': '[PHONE]',
+        '🔧': '[TOOL]',
+        '📖': '[BOOK]',
+        '💳': '[CARD]',
+        '🌟': '[STAR]',
+        '🔥': '[FIRE]',
+        '⭐': '[STAR]',
+        '💻': '[COMPUTER]',
+        '🎵': '[MUSIC]'
+    }
+    
+    # 이모지 변환
+    for emoji, replacement in emoji_map.items():
+        message = message.replace(emoji, replacement)
+    
+    # Windows cp949 인코딩 문제 해결
+    try:
+        # ASCII로 안전하게 변환 시도
+        message.encode('ascii')
+        return message
+    except UnicodeEncodeError:
+        # 인코딩 불가능한 문자들을 제거
+        safe_message = message.encode('ascii', 'ignore').decode('ascii')
+        return safe_message
+
+# 로깅 함수들 - 안전한 메시지 처리
 def log_trade(action, symbol, amount, price, **kwargs):
     """거래 로그 기록"""
-    logger = get_logger()
-    extra_info = " | ".join([f"{k}={v}" for k, v in kwargs.items()])
-    message = f"TRADE: {action} {amount} {symbol} @ {price}"
-    if extra_info:
-        message += f" | {extra_info}"
-    logger.info(message)
+    try:
+        logger = get_logger()
+        extra_info = " | ".join([f"{k}={v}" for k, v in kwargs.items()])
+        message = f"TRADE: {action} {amount} {symbol} @ {price}"
+        if extra_info:
+            message += f" | {extra_info}"
+        logger.info(_safe_log_message(message))
+    except Exception as e:
+        print(f"로그 기록 실패: {e}")
 
 def log_error(error, context=""):
     """에러 로그 기록"""
-    logger = get_logger()
-    message = f"ERROR: {error}"
-    if context:
-        message += f" | Context: {context}"
-    logger.error(message)
+    try:
+        logger = get_logger()
+        message = f"ERROR: {error}"
+        if context:
+            message += f" | Context: {context}"
+        logger.error(_safe_log_message(message))
+    except Exception as e:
+        print(f"에러 로그 기록 실패: {e}")
 
 def log_performance(metrics):
     """성능 지표 로그"""
-    logger = get_logger()
-    logger.info(f"PERFORMANCE: {metrics}")
+    try:
+        logger = get_logger()
+        logger.info(_safe_log_message(f"PERFORMANCE: {metrics}"))
+    except Exception as e:
+        print(f"성능 로그 기록 실패: {e}")
+
+def log_system(message, context=""):
+    """시스템 로그 기록"""
+    try:
+        logger = get_logger()
+        full_message = f"SYSTEM: {message}"
+        if context:
+            full_message += f" | Context: {context}"
+        logger.info(_safe_log_message(full_message))
+    except Exception as e:
+        print(f"시스템 로그 기록 실패: {e}")
+
+def log_info(message, context=""):
+    """일반 정보 로그 기록"""
+    try:
+        logger = get_logger()
+        full_message = f"INFO: {message}"
+        if context:
+            full_message += f" | Context: {context}"
+        logger.info(_safe_log_message(full_message))
+    except Exception as e:
+        print(f"정보 로그 기록 실패: {e}")
+
+def log_warning(message, context=""):
+    """경고 로그 기록"""
+    try:
+        logger = get_logger()
+        full_message = f"WARNING: {message}"
+        if context:
+            full_message += f" | Context: {context}"
+        logger.warning(_safe_log_message(full_message))
+    except Exception as e:
+        print(f"경고 로그 기록 실패: {e}")
+
+def log_debug(message, context=""):
+    """디버그 로그 기록"""
+    try:
+        logger = get_logger()
+        full_message = f"DEBUG: {message}"
+        if context:
+            full_message += f" | Context: {context}"
+        logger.debug(_safe_log_message(full_message))
+    except Exception as e:
+        print(f"디버그 로그 기록 실패: {e}")
 
 # 데코레이터
 def log_function_call(func):
     """함수 호출 로깅 데코레이터"""
     def wrapper(*args, **kwargs):
-        logger = get_logger()
-        logger.debug(f"Calling {func.__name__} with args={args}, kwargs={kwargs}")
         try:
+            logger = get_logger()
+            logger.debug(_safe_log_message(f"Calling {func.__name__}"))
             result = func(*args, **kwargs)
-            logger.debug(f"{func.__name__} completed successfully")
+            logger.debug(_safe_log_message(f"{func.__name__} completed successfully"))
             return result
         except Exception as e:
-            logger.error(f"{func.__name__} failed: {e}")
+            logger.error(_safe_log_message(f"{func.__name__} failed: {e}"))
             raise
     return wrapper
+
+# 로깅 시스템 자동 초기화
+try:
+    default_logger = setup_logger()
+    print("[OK] 로깅 시스템 초기화 완료")
+except Exception as e:
+    print(f"[WARNING] 로깅 시스템 초기화 실패: {e}")
+    # 기본 로깅으로 폴백
+    logging.basicConfig(
+        level=logging.INFO, 
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler('trading.log', encoding='utf-8')
+        ]
+    )
