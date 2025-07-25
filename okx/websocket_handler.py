@@ -1,845 +1,344 @@
-# okx/websocket_handler.py
+# utils/websocket_handler.py
 """
-수정된 OKX WebSocket 핸들러
-- 통일된 타임스탬프 및 서명 사용
-- config.py의 공통 유틸리티 함수 활용
-- 안정적인 연결 관리
+WebSocket 연결 관리자
+실시간 데이터 스트리밍을 위한 WebSocket 핸들러
 """
 
-import websocket
 import json
-import threading
 import time
-from datetime import datetime
-from typing import Optional, Callable, Dict, Any, List
-from config import (
-    API_KEY, API_SECRET, PASSPHRASE, EMA_PERIODS,
-    get_websocket_auth_data, get_timestamp, generate_signature
-)
+import threading
+import websocket
+from typing import Callable, Dict, Any, Optional
+import logging
 
-try:
-    from utils.logger import log_system, log_error, log_info
-except ImportError:
-    # 로거가 없는 경우 기본 print 사용
-    def log_system(msg): print(f"[SYSTEM] {msg}")
-    def log_error(msg, e=None): print(f"[ERROR] {msg}: {e}" if e else f"[ERROR] {msg}")
-    def log_info(msg): print(f"[INFO] {msg}")
+logger = logging.getLogger(__name__)
 
 class WebSocketHandler:
-    def __init__(self, strategy_manager=None):
-        # WebSocket URLs
-        self.public_ws_url = "wss://ws.okx.com:8443/ws/v5/public"
-        self.private_ws_url = "wss://ws.okx.com:8443/ws/v5/private"
-        
-        # WebSocket 연결
-        self.public_ws = None
-        self.private_ws = None
-        self.strategy_manager = strategy_manager
-        
-        # 상태 관리
-        self.is_running = False
-        self.is_public_connected = False
-        self.is_private_connected = False
-        self.is_authenticated = False
-        
-        # 콜백 함수들
-        self.on_price_callback: Optional[Callable] = None
-        self.on_account_callback: Optional[Callable] = None
-        self.on_position_callback: Optional[Callable] = None
-        self.on_connection_callback: Optional[Callable] = None
-        
-        # 데이터 수신 통계
-        self.received_messages = 0
-        self.last_heartbeat = datetime.now()
-        self.connection_start_time = None
-        
-        # 구독 대상
-        self.target_symbols = []
-        self.subscribed_channels = []
-        
-        # 재연결 설정
-        self.max_reconnect_attempts = 3
-        self.reconnect_delay = 5
-        self.current_reconnect_attempts = 0
-        
-        log_system("🔗 WebSocket 핸들러 초기화 완료")
+    """OKX WebSocket 연결 관리"""
     
-    def set_callbacks(self, price_callback=None, account_callback=None, 
-                     position_callback=None, connection_callback=None):
-        """콜백 함수 설정"""
-        if price_callback:
-            self.on_price_callback = price_callback
-        if account_callback:
-            self.on_account_callback = account_callback
-        if position_callback:
-            self.on_position_callback = position_callback
-        if connection_callback:
-            self.on_connection_callback = connection_callback
-    
-    def start_websocket(self, symbols: List[str], channels: List[str] = None):
+    def __init__(self, url: str = "wss://ws.okx.com:8443/ws/v5/public"):
+        self.url = url
+        self.ws = None
+        self.callbacks = {}
+        self.is_connected = False
+        self.reconnect_interval = 5
+        self.ping_interval = 20
+        self.ping_timer = None
+        self.thread = None
+        
+    def connect(self):
         """WebSocket 연결 시작"""
         try:
-            self.target_symbols = symbols
-            self.is_running = True
-            
-            if channels is None:
-                channels = ["tickers"]  # 기본적으로 ticker만 구독
-            
-            log_system(f"🚀 WebSocket 시작: {symbols} (채널: {channels})")
-            
-            # Public WebSocket 시작
-            self._start_public_websocket(channels)
-            
-            # Private WebSocket 시작 (필요시)
-            if "account" in channels or "positions" in channels:
-                self._start_private_websocket()
-            
-            return True
-            
-        except Exception as e:
-            log_error("WebSocket 시작 실패", e)
-            return False
-    
-    def _start_public_websocket(self, channels: List[str]):
-        """Public WebSocket 시작"""
-        def on_message(ws, message):
-            self._handle_public_message(message)
-        
-        def on_open(ws):
-            log_system("✅ Public WebSocket 연결 성공")
-            self.is_public_connected = True
-            self.connection_start_time = datetime.now()
-            self.current_reconnect_attempts = 0
-            
-            # 연결 상태 콜백
-            if self.on_connection_callback:
-                self.on_connection_callback(True)
-            
-            # 채널 구독
-            self._subscribe_channels(channels)
-        
-        def on_error(ws, error):
-            log_error("Public WebSocket 오류", error)
-            self.is_public_connected = False
-            if self.on_connection_callback:
-                self.on_connection_callback(False)
-        
-        def on_close(ws, close_status_code, close_msg):
-            log_system(f"Public WebSocket 연결 종료: {close_status_code}")
-            self.is_public_connected = False
-            if self.on_connection_callback:
-                self.on_connection_callback(False)
-            
-            # 재연결 시도
-            if self.is_running and self.current_reconnect_attempts < self.max_reconnect_attempts:
-                self._reconnect_public()
-        
-        # WebSocket 생성 및 시작
-        self.public_ws = websocket.WebSocketApp(
-            self.public_ws_url,
-            on_message=on_message,
-            on_open=on_open,
-            on_error=on_error,
-            on_close=on_close
-        )
-        
-        # 백그라운드 스레드에서 실행
-        public_thread = threading.Thread(
-            target=self.public_ws.run_forever,
-            daemon=True
-        )
-        public_thread.start()
-        log_system("📡 Public WebSocket 스레드 시작")
-    
-    def _start_private_websocket(self):
-        """Private WebSocket 시작"""
-        def on_message(ws, message):
-            self._handle_private_message(message)
-        
-        def on_open(ws):
-            log_system("✅ Private WebSocket 연결 성공")
-            self.is_private_connected = True
-            
-            # 인증 실행
-            self._authenticate_private_websocket()
-        
-        def on_error(ws, error):
-            log_error("Private WebSocket 오류", error)
-            self.is_private_connected = False
-            self.is_authenticated = False
-        
-        def on_close(ws, close_status_code, close_msg):
-            log_system(f"Private WebSocket 연결 종료: {close_status_code}")
-            self.is_private_connected = False
-            self.is_authenticated = False
-        
-        # WebSocket 생성 및 시작
-        self.private_ws = websocket.WebSocketApp(
-            self.private_ws_url,
-            on_message=on_message,
-            on_open=on_open,
-            on_error=on_error,
-            on_close=on_close
-        )
-        
-        # 백그라운드 스레드에서 실행
-        private_thread = threading.Thread(
-            target=self.private_ws.run_forever,
-            daemon=True
-        )
-        private_thread.start()
-        log_system("🔐 Private WebSocket 스레드 시작")
-    
-    def _authenticate_private_websocket(self):
-        """Private WebSocket 인증"""
-        try:
-            # config의 공통 함수 사용
-            auth_data = get_websocket_auth_data()
-            
-            if self.private_ws:
-                self.private_ws.send(json.dumps(auth_data))
-                log_system("🔐 Private WebSocket 인증 요청 전송")
-            
-        except Exception as e:
-            log_error("Private WebSocket 인증 실패", e)
-    
-    def _subscribe_channels(self, channels: List[str]):
-        """채널 구독"""
-        try:
-            for channel in channels:
-                for symbol in self.target_symbols:
-                    if channel == "tickers":
-                        # Ticker 구독
-                        subscribe_msg = {
-                            "op": "subscribe",
-                            "args": [{"channel": "tickers", "instId": symbol}]
-                        }
-                    elif channel == "candles":
-                        # 캔들 구독 (30분봉)
-                        subscribe_msg = {
-                            "op": "subscribe", 
-                            "args": [{"channel": "candle30m", "instId": symbol}]
-                        }
-                    elif channel == "books":
-                        # 호가 구독
-                        subscribe_msg = {
-                            "op": "subscribe",
-                            "args": [{"channel": "books5", "instId": symbol}]
-                        }
-                    else:
-                        continue
-                    
-                    if self.public_ws:
-                        self.public_ws.send(json.dumps(subscribe_msg))
-                        log_system(f"📡 구독 요청: {channel} - {symbol}")
-            
-        except Exception as e:
-            log_error("채널 구독 실패", e)
-    
-# okx/websocket_handler.py - 완전한 메시지 처리 개선
-
-    def _handle_public_message(self, message):
-        """Public WebSocket 메시지 처리 - 완전히 개선된 버전"""
-        try:
-            self.received_messages += 1
-            
-            # JSON 파싱
-            try:
-                data = json.loads(message)
-            except json.JSONDecodeError as e:
-                log_error(f"JSON 파싱 실패: {message[:100]}...", e)
+            if self.thread and self.thread.is_alive():
+                logger.warning("WebSocket이 이미 실행 중입니다.")
                 return
-            
-            # 이벤트 메시지 처리
-            if 'event' in data:
-                self._handle_event_message(data)
-                return
-            
-            # 오류 메시지 처리
-            if 'code' in data and data['code'] != '0':
-                error_msg = data.get('msg', 'Unknown error')
-                log_error(f"WebSocket API 오류: {data['code']} - {error_msg}")
-                return
-            
-            # 실제 데이터 처리
-            if 'data' in data and data['data']:
-                self._process_market_data(data['data'])
                 
-            # 하트비트 업데이트
-            self.last_heartbeat = datetime.now()
+            self.thread = threading.Thread(target=self._connect, daemon=True)
+            self.thread.start()
+            logger.info("WebSocket 연결 시작")
             
         except Exception as e:
-            log_error(f"WebSocket 메시지 처리 중 예상치 못한 오류", e)
-
-    def _handle_event_message(self, data: dict):
-        """이벤트 메시지 처리"""
-        event = data.get('event')
+            logger.error(f"WebSocket 연결 시작 실패: {e}")
+    
+    def _connect(self):
+        """실제 연결 수행"""
+        try:
+            self.ws = websocket.WebSocketApp(
+                self.url,
+                on_open=self._on_open,
+                on_message=self._on_message,
+                on_error=self._on_error,
+                on_close=self._on_close
+            )
+            
+            self.ws.run_forever()
+            
+        except Exception as e:
+            logger.error(f"WebSocket 연결 실패: {e}")
+            self._schedule_reconnect()
+    
+    def _on_open(self, ws):
+        """연결 성공 시 호출"""
+        self.is_connected = True
+        logger.info("WebSocket 연결 성공")
         
-        if event == 'subscribe':
-            arg = data.get('arg', {})
-            log_system(f"✅ 구독 성공: {arg}")
-            
-        elif event == 'unsubscribe':
-            arg = data.get('arg', {})
-            log_system(f"🔄 구독 해제: {arg}")
-            
-        elif event == 'error':
-            error_msg = data.get('msg', 'Unknown error')
-            log_error(f"WebSocket 이벤트 오류: {error_msg}")
+        # 핑 타이머 시작
+        self._start_ping_timer()
         
-        else:
-            log_info(f"알 수 없는 이벤트: {event}")
-
-    def _process_market_data(self, data_list: list):
-        """시장 데이터 처리"""
-        for item in data_list:
-            try:
-                # 필수 필드 체크
-                if 'instId' not in item:
-                    log_error(f"instId 필드 누락: {item}")
-                    continue
-                
-                symbol = item['instId']
-                
-                # 데이터 타입 변환
-                processed_item = self._convert_websocket_data_types(item)
-                
-                # 데이터 검증
-                if not self._validate_market_data(processed_item):
-                    continue
-                
-                # 콜백 호출
-                self._call_data_callbacks(symbol, processed_item)
-                
-            except Exception as e:
-                log_error(f"개별 시장 데이터 처리 오류", e)
-                continue
-
-    def _convert_websocket_data_types(self, data: dict) -> dict:
-        """WebSocket 데이터 타입 변환 - 강화된 버전"""
-        try:
-            converted_data = data.copy()
-            
-            # 변환 규칙 정의
-            conversion_rules = {
-                # 가격 필드들
-                'last': float, 'close': float, 'open': float, 
-                'high': float, 'low': float, 'bid': float, 'ask': float,
-                
-                # 거래량 필드들
-                'vol24h': float, 'volCcy24h': float, 'volume': float,
-                'bidSz': float, 'askSz': float,
-                
-                # 시간 필드들
-                'ts': int, 'timestamp': int,
-                
-                # 변화율 필드들
-                'change24h': float, 'changePct24h': float
-            }
-            
-            # 타입 변환 실행
-            for field, target_type in conversion_rules.items():
-                if field in converted_data and converted_data[field] is not None:
-                    try:
-                        value = converted_data[field]
-                        
-                        if isinstance(value, str):
-                            # 빈 문자열 체크
-                            if not value.strip():
-                                converted_data[field] = 0.0 if target_type == float else 0
-                                continue
-                            
-                            # 타입 변환
-                            converted_data[field] = target_type(value)
-                        
-                        elif not isinstance(value, target_type):
-                            # 이미 다른 숫자 타입인 경우 변환
-                            converted_data[field] = target_type(value)
-                    
-                    except (ValueError, TypeError) as e:
-                        # 변환 실패 시 기본값 설정
-                        default_value = 0.0 if target_type == float else 0
-                        converted_data[field] = default_value
-                        log_error(f"필드 변환 실패: {field} = '{value}' -> {default_value}")
-            
-            return converted_data
-            
-        except Exception as e:
-            log_error(f"데이터 타입 변환 중 오류", e)
-            return data
-
-    def _validate_market_data(self, data: dict) -> bool:
-        """시장 데이터 유효성 검증"""
-        try:
-            # 필수 필드 체크
-            required_fields = ['instId']
-            for field in required_fields:
-                if field not in data:
-                    log_error(f"필수 필드 누락: {field}")
-                    return False
-            
-            # 가격 데이터 유효성 체크
-            price_fields = ['last', 'close', 'open', 'high', 'low']
-            has_valid_price = False
-            
-            for field in price_fields:
-                if field in data and isinstance(data[field], (int, float)) and data[field] > 0:
-                    has_valid_price = True
-                    break
-            
-            if not has_valid_price:
-                log_error(f"유효한 가격 데이터 없음: {data.get('instId')}")
-                return False
-            
-            return True
-            
-        except Exception as e:
-            log_error(f"데이터 검증 중 오류", e)
-            return False
-
-    def _call_data_callbacks(self, symbol: str, data: dict):
-        """데이터 콜백 호출"""
-        try:
-            # 가격 추출
-            price = data.get('last', data.get('close', 0))
-            
-            # 가격 콜백 호출
-            if self.on_price_callback and price > 0:
-                self.on_price_callback(symbol, price, data)
-            
-            # 전략 매니저에 데이터 전달
-            if self.strategy_manager:
-                success = self.strategy_manager.process_signal(symbol, data)
-                if not success:
-                    # 신호 처리 실패는 오류가 아님 (정상적인 경우도 있음)
-                    pass
-            
-        except Exception as e:
-            log_error(f"콜백 호출 중 오류 ({symbol})", e)
-
-
-    def _handle_private_message(self, message: str):
-        """Private 메시지 처리"""
+        # 연결 콜백 호출
+        if 'connect' in self.callbacks:
+            self.callbacks['connect']()
+    
+    def _on_message(self, ws, message):
+        """메시지 수신 시 호출"""
         try:
             data = json.loads(message)
-            self.received_messages += 1
             
-            # 인증 응답 처리
-            if 'event' in data:
-                event = data['event']
-                if event == 'login':
-                    if data.get('code') == '0':
-                        self.is_authenticated = True
-                        log_system("✅ Private WebSocket 인증 성공")
-                        self._subscribe_private_channels()
-                    else:
-                        log_error(f"Private WebSocket 인증 실패: {data.get('msg', 'Unknown')}")
+            # Pong 메시지 처리
+            if data.get('event') == 'pong':
+                logger.debug("Pong 수신")
                 return
             
-            # 실제 데이터 처리
-            if 'data' in data and 'arg' in data:
-                channel = data['arg']['channel']
+            # 데이터 메시지 처리
+            if 'data' in data:
+                self._handle_data_message(data)
+            
+            # 기타 이벤트 처리
+            if 'event' in data:
+                self._handle_event_message(data)
                 
-                if channel == 'account':
-                    self._process_account_data(data['data'])
-                elif channel == 'positions':
-                    self._process_position_data(data['data'])
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON 파싱 실패: {e}")
+        except Exception as e:
+            logger.error(f"메시지 처리 실패: {e}")
+    
+    def _on_error(self, ws, error):
+        """에러 발생 시 호출"""
+        logger.error(f"WebSocket 에러: {error}")
+        
+        if 'error' in self.callbacks:
+            self.callbacks['error'](error)
+    
+    def _on_close(self, ws, close_status_code, close_msg):
+        """연결 종료 시 호출"""
+        self.is_connected = False
+        logger.warning(f"WebSocket 연결 종료: {close_status_code} - {close_msg}")
+        
+        # 핑 타이머 중지
+        self._stop_ping_timer()
+        
+        # 종료 콜백 호출
+        if 'close' in self.callbacks:
+            self.callbacks['close'](close_status_code, close_msg)
+        
+        # 재연결 시도
+        self._schedule_reconnect()
+    
+    def _handle_data_message(self, data):
+        """데이터 메시지 처리"""
+        try:
+            arg = data.get('arg', {})
+            channel = arg.get('channel')
+            inst_id = arg.get('instId')
+            
+            if channel and channel in self.callbacks:
+                self.callbacks[channel](data['data'], inst_id)
+            
+            # 전체 데이터 콜백
+            if 'data' in self.callbacks:
+                self.callbacks['data'](data)
                 
         except Exception as e:
-            log_error("Private 메시지 처리 오류", e)
+            logger.error(f"데이터 메시지 처리 실패: {e}")
     
-    def _process_ticker_data(self, symbol: str, ticker_data: Dict[str, Any]):
-        """Ticker 데이터 처리"""
+    def _handle_event_message(self, data):
+        """이벤트 메시지 처리"""
         try:
-            price = float(ticker_data.get('last', 0))
+            event = data.get('event')
             
-            # 주기적 로깅 (100개마다)
-            if self.received_messages % 100 == 0:
-                log_info(f"📊 {symbol} 현재가: ${price:,.2f}")
-            
-            # 콜백 호출
-            if self.on_price_callback:
-                self.on_price_callback(symbol, price, ticker_data)
-            
-            # 전략 매니저에 데이터 전달
-            if self.strategy_manager:
-                self.strategy_manager.process_price_update(symbol, ticker_data)
+            if event == 'subscribe':
+                logger.info(f"구독 성공: {data}")
+            elif event == 'unsubscribe':
+                logger.info(f"구독 해제: {data}")
+            elif event == 'error':
+                logger.error(f"WebSocket 에러 이벤트: {data}")
+                
+            # 이벤트 콜백 호출
+            if event in self.callbacks:
+                self.callbacks[event](data)
                 
         except Exception as e:
-            log_error(f"Ticker 데이터 처리 오류 ({symbol})", e)
+            logger.error(f"이벤트 메시지 처리 실패: {e}")
     
-    def _process_candle_data(self, symbol: str, candle_data: List):
-        """캔들 데이터 처리"""
+    def subscribe(self, channel: str, inst_id: str = None):
+        """채널 구독"""
+        if not self.is_connected:
+            logger.warning("WebSocket이 연결되지 않음")
+            return False
+        
         try:
-            # 캔들 데이터: [timestamp, open, high, low, close, volume, volume_currency]
-            timestamp = int(candle_data[0])
-            open_price = float(candle_data[1])
-            high_price = float(candle_data[2])
-            low_price = float(candle_data[3])
-            close_price = float(candle_data[4])
-            volume = float(candle_data[5])
-            
-            candle_info = {
-                'timestamp': datetime.fromtimestamp(timestamp / 1000),
-                'open': open_price,
-                'high': high_price,
-                'low': low_price,
-                'close': close_price,
-                'volume': volume
-            }
-            
-            log_info(f"🕯️ {symbol} 새 캔들: ${close_price:,.2f} (볼륨: {volume:,.0f})")
-            
-            # 전략 매니저에 캔들 데이터 전달
-            if self.strategy_manager:
-                self.strategy_manager.process_candle_update(symbol, candle_info)
-                
-        except Exception as e:
-            log_error(f"캔들 데이터 처리 오류 ({symbol})", e)
-    
-    def _process_orderbook_data(self, symbol: str, orderbook_data: Dict[str, Any]):
-        """호가 데이터 처리"""
-        try:
-            bids = orderbook_data.get('bids', [])
-            asks = orderbook_data.get('asks', [])
-            
-            if bids and asks:
-                best_bid = float(bids[0][0])
-                best_ask = float(asks[0][0])
-                spread = best_ask - best_bid
-                
-                # 스프레드 정보 로깅 (1000개마다)
-                if self.received_messages % 1000 == 0:
-                    log_info(f"📈 {symbol} 호가: ${best_bid:,.2f} / ${best_ask:,.2f} (스프레드: ${spread:.2f})")
-                
-        except Exception as e:
-            log_error(f"호가 데이터 처리 오류 ({symbol})", e)
-    
-    def _process_account_data(self, account_data: List[Dict[str, Any]]):
-        """계좌 데이터 처리"""
-        try:
-            for account in account_data:
-                log_info(f"💰 계좌 업데이트: 총자산 ${float(account.get('totalEq', 0)):,.2f}")
-                
-                # 콜백 호출
-                if self.on_account_callback:
-                    self.on_account_callback(account)
-                    
-        except Exception as e:
-            log_error("계좌 데이터 처리 오류", e)
-    
-    def _process_position_data(self, position_data: List[Dict[str, Any]]):
-        """포지션 데이터 처리"""
-        try:
-            for position in position_data:
-                inst_id = position.get('instId', '')
-                pos_size = float(position.get('pos', 0))
-                
-                if pos_size != 0:
-                    pnl = float(position.get('upl', 0))
-                    log_info(f"📊 {inst_id} 포지션: {pos_size} (PnL: ${pnl:+.2f})")
-                
-                # 콜백 호출
-                if self.on_position_callback:
-                    self.on_position_callback(position)
-                    
-        except Exception as e:
-            log_error("포지션 데이터 처리 오류", e)
-    
-    def _subscribe_private_channels(self):
-        """Private 채널 구독"""
-        try:
-            # 계좌 정보 구독
-            account_msg = {
+            sub_data = {
                 "op": "subscribe",
-                "args": [{"channel": "account"}]
+                "args": [{
+                    "channel": channel
+                }]
             }
             
-            # 포지션 정보 구독
-            position_msg = {
-                "op": "subscribe",
-                "args": [{"channel": "positions", "instType": "SWAP"}]
-            }
+            if inst_id:
+                sub_data["args"][0]["instId"] = inst_id
             
-            if self.private_ws:
-                self.private_ws.send(json.dumps(account_msg))
-                self.private_ws.send(json.dumps(position_msg))
-                log_system("📡 Private 채널 구독 완료")
+            message = json.dumps(sub_data)
+            self.ws.send(message)
+            logger.info(f"구독 요청: {channel} - {inst_id}")
+            return True
             
         except Exception as e:
-            log_error("Private 채널 구독 실패", e)
+            logger.error(f"구독 실패: {e}")
+            return False
     
-    def _reconnect_public(self):
-        """Public WebSocket 재연결"""
-        if not self.is_running:
+    def unsubscribe(self, channel: str, inst_id: str = None):
+        """구독 해제"""
+        if not self.is_connected:
+            logger.warning("WebSocket이 연결되지 않음")
+            return False
+        
+        try:
+            unsub_data = {
+                "op": "unsubscribe",
+                "args": [{
+                    "channel": channel
+                }]
+            }
+            
+            if inst_id:
+                unsub_data["args"][0]["instId"] = inst_id
+            
+            message = json.dumps(unsub_data)
+            self.ws.send(message)
+            logger.info(f"구독 해제: {channel} - {inst_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"구독 해제 실패: {e}")
+            return False
+    
+    def _start_ping_timer(self):
+        """핑 타이머 시작"""
+        def send_ping():
+            if self.is_connected and self.ws:
+                try:
+                    ping_data = {"op": "ping"}
+                    self.ws.send(json.dumps(ping_data))
+                    logger.debug("Ping 전송")
+                except Exception as e:
+                    logger.error(f"Ping 전송 실패: {e}")
+            
+            # 다음 핑 예약
+            if self.is_connected:
+                self.ping_timer = threading.Timer(self.ping_interval, send_ping)
+                self.ping_timer.daemon = True
+                self.ping_timer.start()
+        
+        send_ping()
+    
+    def _stop_ping_timer(self):
+        """핑 타이머 중지"""
+        if self.ping_timer:
+            self.ping_timer.cancel()
+            self.ping_timer = None
+    
+    def _schedule_reconnect(self):
+        """재연결 예약"""
+        if self.is_connected:
             return
         
-        self.current_reconnect_attempts += 1
-        log_system(f"🔄 Public WebSocket 재연결 시도 {self.current_reconnect_attempts}/{self.max_reconnect_attempts}")
+        logger.info(f"{self.reconnect_interval}초 후 재연결 시도")
         
-        time.sleep(self.reconnect_delay)
+        def reconnect():
+            if not self.is_connected:
+                logger.info("재연결 시도 중...")
+                self._connect()
         
-        try:
-            self._start_public_websocket(["tickers"])
-        except Exception as e:
-            log_error("재연결 실패", e)
+        timer = threading.Timer(self.reconnect_interval, reconnect)
+        timer.daemon = True
+        timer.start()
     
-    def stop_websocket(self):
-        """WebSocket 연결 중지"""
-        try:
-            log_system("🛑 WebSocket 연결 중지 중...")
-            self.is_running = False
-            
-            if self.public_ws:
-                self.public_ws.close()
-                self.is_public_connected = False
-            
-            if self.private_ws:
-                self.private_ws.close()
-                self.is_private_connected = False
-                self.is_authenticated = False
-            
-            log_system("✅ WebSocket 연결 중지 완료")
-            
-        except Exception as e:
-            log_error("WebSocket 중지 실패", e)
+    def add_callback(self, event: str, callback: Callable):
+        """콜백 함수 등록"""
+        self.callbacks[event] = callback
+        logger.debug(f"콜백 등록: {event}")
     
-    def get_connection_status(self) -> Dict[str, Any]:
-        """연결 상태 정보"""
-        uptime = 0
-        if self.connection_start_time:
-            uptime = (datetime.now() - self.connection_start_time).total_seconds()
-        
-        return {
-            'is_running': self.is_running,
-            'public_connected': self.is_public_connected,
-            'private_connected': self.is_private_connected,
-            'authenticated': self.is_authenticated,
-            'received_messages': self.received_messages,
-            'uptime_seconds': uptime,
-            'target_symbols': self.target_symbols,
-            'subscribed_channels': self.subscribed_channels,
-            'reconnect_attempts': self.current_reconnect_attempts
-        }
+    def remove_callback(self, event: str):
+        """콜백 함수 제거"""
+        if event in self.callbacks:
+            del self.callbacks[event]
+            logger.debug(f"콜백 제거: {event}")
     
-    def print_status(self):
-        """상태 정보 출력"""
-        status = self.get_connection_status()
-        
-        print("\n📡 WebSocket 연결 상태")
-        print("-" * 50)
-        print(f"🔄 실행 중: {'✅' if status['is_running'] else '❌'}")
-        print(f"🌐 Public 연결: {'✅' if status['public_connected'] else '❌'}")
-        print(f"🔐 Private 연결: {'✅' if status['private_connected'] else '❌'}")
-        print(f"🔑 인증 상태: {'✅' if status['authenticated'] else '❌'}")
-        print(f"📊 수신 메시지: {status['received_messages']:,}개")
-        print(f"⏰ 가동 시간: {status['uptime_seconds']:.0f}초")
-        print(f"📈 구독 심볼: {', '.join(status['target_symbols'])}")
-        print(f"🔄 재연결 시도: {status['reconnect_attempts']}/{self.max_reconnect_attempts}")
-
-# 간단한 WebSocket 테스트용 클래스
-class SimpleWebSocketHandler:
-    """간단한 WebSocket 테스트용 핸들러"""
-    
-    def __init__(self):
-        self.ws = None
+    def close(self):
+        """연결 종료"""
         self.is_connected = False
-        self.received_count = 0
-        self.on_price_callback = None
-        self.on_connection_callback = None
-    
-    def set_price_callback(self, callback):
-        """가격 업데이트 콜백 설정"""
-        self.on_price_callback = callback
-    
-    def set_connection_callback(self, callback):
-        """연결 상태 콜백 설정"""
-        self.on_connection_callback = callback
-    
-    def start_ws_ticker_only(self, symbols: List[str]):
-        """Ticker만 구독하는 간단한 WebSocket"""
-        def on_message(ws, message):
-            try:
-                data = json.loads(message)
-                self.received_count += 1
-                
-                if 'data' in data and 'arg' in data:
-                    if data['arg']['channel'] == 'tickers':
-                        ticker = data['data'][0]
-                        symbol = data['arg']['instId']
-                        price = float(ticker.get('last', 0))
-                        
-                        if self.on_price_callback:
-                            self.on_price_callback(symbol, price, ticker)
-                            
-            except Exception as e:
-                print(f"메시지 처리 오류: {e}")
         
-        def on_open(ws):
-            self.is_connected = True
-            print("✅ WebSocket 연결 성공")
-            
-            if self.on_connection_callback:
-                self.on_connection_callback(True)
-            
-            # Ticker 채널만 구독
-            for symbol in symbols:
-                subscribe_msg = {
-                    "op": "subscribe",
-                    "args": [{"channel": "tickers", "instId": symbol}]
-                }
-                ws.send(json.dumps(subscribe_msg))
+        # 핑 타이머 중지
+        self._stop_ping_timer()
         
-        def on_error(ws, error):
-            self.is_connected = False
-            print(f"WebSocket 오류: {error}")
-            if self.on_connection_callback:
-                self.on_connection_callback(False)
-        
-        def on_close(ws, close_status_code, close_msg):
-            self.is_connected = False
-            print("⚠️ WebSocket 연결 상태 변경")
-            if self.on_connection_callback:
-                self.on_connection_callback(False)
-        
-        self.ws = websocket.WebSocketApp(
-            "wss://ws.okx.com:8443/ws/v5/public",
-            on_message=on_message,
-            on_open=on_open,
-            on_error=on_error,
-            on_close=on_close
-        )
-        
-        thread = threading.Thread(
-            target=self.ws.run_forever,
-            daemon=True
-        )
-        thread.start()
-        
-        return thread, None
-    
-    def stop_ws(self):
-        """WebSocket 중지"""
+        # WebSocket 연결 종료
         if self.ws:
             self.ws.close()
-            self.is_connected = False
-            print("🛑 WebSocket 연결 종료")
+        
+        logger.info("WebSocket 연결 종료 요청")
 
-# 유틸리티 함수들
-def test_websocket_connection(symbols=None, duration=10):
-    """WebSocket 연결 간단 테스트"""
-    if symbols is None:
-        symbols = ['BTC-USDT-SWAP']
+class OKXPriceStream:
+    """OKX 가격 스트림 관리자"""
     
-    print(f"🧪 WebSocket 연결 테스트 시작: {symbols}")
-    
-    handler = SimpleWebSocketHandler()
-    received_data = False
-    
-    def on_price(symbol, price, data):
-        nonlocal received_data
-        received_data = True
-        print(f"📊 실시간 데이터 수신: {symbol} = ${price:,.2f}")
-    
-    def on_connection(is_connected):
-        status = "연결됨" if is_connected else "끊어짐"
-        print(f"🔗 연결 상태: {status}")
-    
-    handler.set_price_callback(on_price)
-    handler.set_connection_callback(on_connection)
-    
-    # 테스트 시작
-    print("✅ WebSocket 스레드 시작됨")
-    thread, _ = handler.start_ws_ticker_only(symbols)
-    
-    if thread:
-        print(f"⏳ 실시간 데이터 수신 대기 ({duration}초)...")
+    def __init__(self, symbols: list = None):
+        self.symbols = symbols or ["BTC-USDT-SWAP", "ETH-USDT-SWAP"]
+        self.ws_handler = WebSocketHandler()
+        self.price_callbacks = {}
         
-        # 대기 및 상태 체크
-        for i in range(duration):
-            time.sleep(1)
-            if handler.is_connected and not received_data:
-                print(f"  ⏳ 대기 중... ({i+1}/{duration}초)")
-        
-        handler.stop_ws()
-        
-        if received_data:
-            print("✅ WebSocket 테스트 성공!")
-            print(f"📊 수신된 메시지: {handler.received_count}건")
-            return True
-        else:
-            print("❌ 데이터 수신 실패")
-            return False
-    else:
-        print("❌ WebSocket 스레드 시작 실패")
-        return False
+        # 콜백 등록
+        self.ws_handler.add_callback('connect', self._on_connect)
+        self.ws_handler.add_callback('tickers', self._on_ticker_update)
+        self.ws_handler.add_callback('error', self._on_error)
+    
+    def start(self):
+        """가격 스트림 시작"""
+        self.ws_handler.connect()
+    
+    def stop(self):
+        """가격 스트림 중지"""
+        self.ws_handler.close()
+    
+    def _on_connect(self):
+        """연결 성공 시 구독 시작"""
+        for symbol in self.symbols:
+            self.ws_handler.subscribe('tickers', symbol)
+    
+    def _on_ticker_update(self, data, inst_id):
+        """가격 업데이트 처리"""
+        try:
+            for ticker in data:
+                symbol = ticker.get('instId')
+                price = float(ticker.get('last', 0))
+                
+                # 가격 콜백 호출
+                if symbol in self.price_callbacks:
+                    self.price_callbacks[symbol](symbol, price, ticker)
+                
+                # 전체 가격 콜백 호출
+                if 'all' in self.price_callbacks:
+                    self.price_callbacks['all'](symbol, price, ticker)
+                    
+        except Exception as e:
+            logger.error(f"가격 업데이트 처리 실패: {e}")
+    
+    def _on_error(self, error):
+        """에러 처리"""
+        logger.error(f"가격 스트림 에러: {error}")
+    
+    def add_price_callback(self, symbol: str, callback: Callable):
+        """가격 콜백 등록"""
+        self.price_callbacks[symbol] = callback
+    
+    def remove_price_callback(self, symbol: str):
+        """가격 콜백 제거"""
+        if symbol in self.price_callbacks:
+            del self.price_callbacks[symbol]
 
-def test_full_websocket():
-    """전체 WebSocket 기능 테스트"""
-    print("🧪 전체 WebSocket 기능 테스트")
-    print("=" * 80)
-    
-    # 1. 간단한 연결 테스트
-    simple_ok = test_websocket_connection(['BTC-USDT-SWAP'], 15)
-    
-    # 2. 고급 핸들러 테스트
-    print("\n📡 고급 WebSocket 핸들러 테스트")
-    print("-" * 50)
-    
-    handler = WebSocketHandler()
-    
-    # 콜백 설정
-    def on_price_update(symbol, price, data):
-        print(f"💰 가격 업데이트: {symbol} = ${price:,.2f}")
-    
-    def on_connection_change(is_connected):
-        status = "연결됨" if is_connected else "끊어짐"
-        print(f"🔗 연결 변경: {status}")
-    
-    handler.set_callbacks(
-        price_callback=on_price_update,
-        connection_callback=on_connection_change
-    )
-    
-    # WebSocket 시작
-    success = handler.start_websocket(['BTC-USDT-SWAP'], ['tickers'])
-    
-    if success:
-        print("✅ 고급 WebSocket 시작 성공")
-        
-        # 15초 대기
-        time.sleep(15)
-        
-        # 상태 출력
-        handler.print_status()
-        
-        # 중지
-        handler.stop_websocket()
-        
-        advanced_ok = True
-    else:
-        print("❌ 고급 WebSocket 시작 실패")
-        advanced_ok = False
-    
-    # 결과 요약
-    print("\n📋 WebSocket 테스트 결과")
-    print("=" * 80)
-    print(f"간단한 연결: {'✅ 통과' if simple_ok else '❌ 실패'}")
-    print(f"고급 핸들러: {'✅ 통과' if advanced_ok else '❌ 실패'}")
-    
-    if simple_ok and advanced_ok:
-        print("\n🎉 모든 WebSocket 테스트 통과!")
-        return True
-    else:
-        print("\n⚠️ 일부 WebSocket 테스트 실패")
-        return False
-    
-
-
-# 직접 실행시 테스트 수행
+# 간단한 사용 예제
 if __name__ == "__main__":
+    import time
+    
+    def on_price_update(symbol, price, data):
+        print(f"{symbol}: ${price:,.2f}")
+    
+    # 가격 스트림 시작
+    stream = OKXPriceStream(['BTC-USDT-SWAP'])
+    stream.add_price_callback('all', on_price_update)
+    stream.start()
+    
     try:
-        print("🚀 WebSocket 핸들러 테스트")
-        test_full_websocket()
-    except Exception as e:
-        print(f"❌ 테스트 실행 오류: {e}")
+        time.sleep(30)  # 30초 동안 실행
+    except KeyboardInterrupt:
+        pass
+    finally:
+        stream.stop()

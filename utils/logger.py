@@ -1,138 +1,159 @@
 # utils/logger.py
 """
-통합 로깅 시스템
+로깅 시스템 - 완전한 버전
 """
 
 import logging
 import os
 from datetime import datetime
-from typing import Optional
+from logging.handlers import RotatingFileHandler
+import colorlog
 
-class TradingLogger:
-    def __init__(self, name='trading', log_dir='logs'):
-        self.log_dir = log_dir
-        self.setup_directories()
-        
-        # 메인 로거
-        self.logger = self.setup_logger(name, f'{log_dir}/trading.log')
-        
-        # 전용 로거들
-        self.trade_logger = self.setup_logger('trades', f'{log_dir}/trades.log')
-        self.signal_logger = self.setup_logger('signals', f'{log_dir}/signals.log')
-        self.error_logger = self.setup_logger('errors', f'{log_dir}/errors.log')
+def setup_logger(name="trading_bot", level=logging.INFO, log_dir="logs"):
+    """
+    로거 설정
     
-    def setup_directories(self):
-        """로그 디렉토리 생성"""
-        os.makedirs(self.log_dir, exist_ok=True)
+    Args:
+        name: 로거 이름
+        level: 로그 레벨
+        log_dir: 로그 디렉토리
     
-    def setup_logger(self, name: str, log_file: str) -> logging.Logger:
-        """개별 로거 설정"""
-        logger = logging.getLogger(name)
-        
-        # 기존 핸들러 제거 (중복 방지)
-        for handler in logger.handlers[:]:
-            logger.removeHandler(handler)
-        
-        logger.setLevel(logging.INFO)
-        
-        # 파일 핸들러
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        file_handler.setLevel(logging.INFO)
-        
-        # 포맷터
-        formatter = logging.Formatter(
-            '%(asctime)s | %(levelname)s | %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-        
-        return logger
+    Returns:
+        logging.Logger: 설정된 로거
+    """
+    # 로그 디렉토리 생성
+    os.makedirs(log_dir, exist_ok=True)
     
-    def info(self, message: str):
-        """일반 정보"""
-        self.logger.info(message)
-        print(f"[INFO] {message}")
+    # 로거 생성
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
     
-    def error(self, message: str, exception: Optional[Exception] = None):
-        """오류 로깅"""
-        if exception:
-            error_msg = f"{message}: {str(exception)}"
-        else:
-            error_msg = message
-            
-        self.error_logger.error(error_msg)
-        self.logger.error(error_msg)
-        print(f"[ERROR] {error_msg}")
+    # 핸들러가 이미 있으면 제거 (중복 방지)
+    if logger.handlers:
+        logger.handlers.clear()
     
-    def trade(self, action: str, symbol: str, side: str, price: float, 
-              size: float, pnl: Optional[float] = None):
-        """거래 로깅"""
-        message = f"{action.upper()} | {symbol} | {side.upper()} | Size: {size:.6f} | Price: ${price:.2f}"
-        
-        if pnl is not None:
-            pnl_str = f"+${pnl:.2f}" if pnl >= 0 else f"-${abs(pnl):.2f}"
-            message += f" | PnL: {pnl_str}"
-        
-        self.trade_logger.info(message)
-        self.logger.info(f"TRADE: {message}")
-        print(f"[TRADE] {message}")
+    # 포맷터 설정
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
     
-    def signal(self, symbol: str, signal_type: str, details: str = ""):
-        """신호 로깅"""
-        message = f"{symbol} | {signal_type}"
-        if details:
-            message += f" | {details}"
-        
-        self.signal_logger.info(message)
-        self.logger.info(f"SIGNAL: {message}")
-        print(f"[SIGNAL] {message}")
+    # 콘솔 핸들러 (컬러 로그)
+    console_handler = colorlog.StreamHandler()
+    console_formatter = colorlog.ColoredFormatter(
+        '%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%H:%M:%S',
+        log_colors={
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'red,bg_white',
+        }
+    )
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
     
-    def system(self, message: str):
-        """시스템 로깅"""
-        system_msg = f"SYSTEM: {message}"
-        self.logger.info(system_msg)
-        print(f"[SYSTEM] {message}")
+    # 파일 핸들러 (일반 로그)
+    file_handler = RotatingFileHandler(
+        os.path.join(log_dir, f"{name}.log"),
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
     
-    def position(self, action: str, symbol: str, details: dict):
-        """포지션 관련 로깅"""
-        message = f"{action.upper()} | {symbol}"
-        
-        for key, value in details.items():
-            if isinstance(value, float):
-                if key in ['price', 'avg_price', 'entry_price']:
-                    message += f" | {key}: ${value:.2f}"
-                elif key in ['size', 'position_size']:
-                    message += f" | {key}: {value:.6f}"
-                elif key in ['pnl', 'unrealized_pnl']:
-                    pnl_str = f"+${value:.2f}" if value >= 0 else f"-${abs(value):.2f}"
-                    message += f" | {key}: {pnl_str}"
-                else:
-                    message += f" | {key}: {value:.4f}"
-            else:
-                message += f" | {key}: {value}"
-        
-        self.logger.info(f"POSITION: {message}")
-        print(f"[POSITION] {message}")
+    # 거래 전용 파일 핸들러
+    trade_handler = RotatingFileHandler(
+        os.path.join(log_dir, "trades.log"),
+        maxBytes=5*1024*1024,  # 5MB
+        backupCount=10
+    )
+    trade_handler.setFormatter(formatter)
+    trade_handler.addFilter(TradeFilter())
+    logger.addHandler(trade_handler)
+    
+    # 에러 전용 파일 핸들러
+    error_handler = RotatingFileHandler(
+        os.path.join(log_dir, "errors.log"),
+        maxBytes=5*1024*1024,  # 5MB
+        backupCount=5
+    )
+    error_handler.setFormatter(formatter)
+    error_handler.setLevel(logging.ERROR)
+    logger.addHandler(error_handler)
+    
+    return logger
+
+class TradeFilter(logging.Filter):
+    """거래 관련 로그만 필터링"""
+    
+    def filter(self, record):
+        trade_keywords = ['TRADE', 'ORDER', 'POSITION', 'BUY', 'SELL']
+        return any(keyword in record.getMessage().upper() for keyword in trade_keywords)
+
+class GUILogHandler(logging.Handler):
+    """GUI 로그 위젯으로 로그 전송"""
+    
+    def __init__(self, log_widget=None):
+        super().__init__()
+        self.log_widget = log_widget
+    
+    def emit(self, record):
+        if self.log_widget:
+            try:
+                msg = self.format(record)
+                level = record.levelname
+                self.log_widget.add_log(msg, level)
+            except Exception:
+                pass  # GUI 로그 실패해도 프로그램은 계속 실행
+
+def get_logger(name="trading_bot"):
+    """기본 로거 반환"""
+    return logging.getLogger(name)
 
 # 전역 로거 인스턴스
-trading_logger = TradingLogger()
+default_logger = None
 
-# 편의 함수들
-def log_info(message: str):
-    trading_logger.info(message)
+def init_logging(name="trading_bot", level=logging.INFO, log_dir="logs"):
+    """전역 로깅 초기화"""
+    global default_logger
+    default_logger = setup_logger(name, level, log_dir)
+    return default_logger
 
-def log_error(message: str, exception: Optional[Exception] = None):
-    trading_logger.error(message, exception)
+def log_trade(action, symbol, amount, price, **kwargs):
+    """거래 로그 기록"""
+    logger = get_logger()
+    extra_info = " | ".join([f"{k}={v}" for k, v in kwargs.items()])
+    message = f"TRADE: {action} {amount} {symbol} @ {price}"
+    if extra_info:
+        message += f" | {extra_info}"
+    logger.info(message)
 
-def log_trade(action: str, symbol: str, side: str, price: float, size: float, pnl: Optional[float] = None):
-    trading_logger.trade(action, symbol, side, price, size, pnl)
+def log_error(error, context=""):
+    """에러 로그 기록"""
+    logger = get_logger()
+    message = f"ERROR: {error}"
+    if context:
+        message += f" | Context: {context}"
+    logger.error(message)
 
-def log_signal(symbol: str, signal_type: str, details: str = ""):
-    trading_logger.signal(symbol, signal_type, details)
+def log_performance(metrics):
+    """성능 지표 로그"""
+    logger = get_logger()
+    logger.info(f"PERFORMANCE: {metrics}")
 
-def log_system(message: str):
-    trading_logger.system(message)
-
-def log_position(action: str, symbol: str, details: dict):
-    trading_logger.position(action, symbol, details)
+# 데코레이터
+def log_function_call(func):
+    """함수 호출 로깅 데코레이터"""
+    def wrapper(*args, **kwargs):
+        logger = get_logger()
+        logger.debug(f"Calling {func.__name__} with args={args}, kwargs={kwargs}")
+        try:
+            result = func(*args, **kwargs)
+            logger.debug(f"{func.__name__} completed successfully")
+            return result
+        except Exception as e:
+            logger.error(f"{func.__name__} failed: {e}")
+            raise
+    return wrapper
