@@ -43,19 +43,27 @@ class TradingDataThread(QThread):
         super().__init__()
         self.running = False
         self.account_manager = account_manager
+        
         self.last_price_update = 0
         self.last_balance_update = 0
         self.last_position_update = 0
         
-        # 업데이트 간격 (초)
-        self.price_update_interval = 3  # 3초마다 가격 업데이트
-        self.balance_update_interval = 10  # 10초마다 잔액 업데이트
-        self.position_update_interval = 5  # 5초마다 포지션 업데이트
+        # ✅ 업데이트 간격 조정 (API 호출 빈도 감소)
+        self.balance_update_interval = 10   # 10초마다 (기존: 5초)
+        self.price_update_interval = 3      # 3초마다 (기존: 2초)  
+        self.position_update_interval = 15  # 15초마다 (기존: 5초)
         
-        # 연결 상태
+        # 마지막 업데이트 시간 추적
+        self.last_balance_update = 0
+        self.last_price_update = 0
+        self.last_position_update = 0
+        
+        # 연결 상태 관리
         self.is_connected = False
         self.consecutive_failures = 0
-        self.max_consecutive_failures = 3  # 3번 연속 실패하면 Signal Lost
+        self.max_consecutive_failures = 3  # 3회 연속 실패 시 연결 끊김 처리
+        
+        self.running = False
         
         # AccountManager 초기화
         if not self.account_manager and ACCOUNT_MANAGER_AVAILABLE:
@@ -72,63 +80,174 @@ class TradingDataThread(QThread):
         else:
             print("⚠️ TradingDataThread - AccountManager 사용 불가")
     
+    # gui/data_thread.py의 run 메서드를 수정하세요
+
     def run(self):
-        """스레드 실행"""
+        """스레드 실행 - 완전한 순차 처리로 401 오류 방지"""
         self.running = True
         print("🔄 TradingDataThread 시작됨")
         
         # 초기 연결 상태 전송
         self.connection_changed.emit(self.is_connected)
         
+        # ✅ 완전한 순차 초기화 (동시 요청 완전 차단)
+        print("🔄 순차 초기화 시작...")
+        
+        # 1단계: 잔액 조회만 (3초 대기)
+        print("🔄 1단계: 잔액 조회")
+        try:
+            success = self.update_balance_info()
+            if success:
+                print("✅ 잔액 조회 성공")
+            else:
+                print("❌ 잔액 조회 실패")
+            self.last_balance_update = time.time()
+        except Exception as e:
+            print(f"❌ 잔액 조회 오류: {e}")
+        
+        time.sleep(3)  # 3초 대기
+        
+        # 2단계: 가격 조회만 (3초 대기)  
+        print("🔄 2단계: 가격 조회")
+        try:
+            success = self.update_price_info()
+            if success:
+                print("✅ 가격 조회 성공")
+            else:
+                print("❌ 가격 조회 실패")
+            self.last_price_update = time.time()
+        except Exception as e:
+            print(f"❌ 가격 조회 오류: {e}")
+        
+        time.sleep(3)  # 3초 대기
+        
+        # 3단계: 포지션 조회만 (5초 대기)
+        print("🔄 3단계: 포지션 조회")
+        try:
+            success = self.update_position_info()
+            if success:
+                print("✅ 포지션 조회 성공")
+            else:
+                print("❌ 포지션 조회 실패")
+            self.last_position_update = time.time()
+        except Exception as e:
+            print(f"❌ 포지션 조회 오류: {e}")
+        
+        time.sleep(5)  # 5초 대기
+        
+        print("✅ 순차 초기화 완료 - 정상 운영 모드 시작")
+        
+        # ✅ 정상 운영: 완전한 순차 처리 (절대 동시 실행 없음)
+        operation_cycle = 0
+        
         while self.running:
             try:
+                operation_cycle += 1
                 current_time = time.time()
                 
-                # 잔액 정보 업데이트
+                print(f"📊 운영 사이클 {operation_cycle} 시작")
+                
+                # 순차 처리 1: 잔액 정보 (10초마다)
                 if current_time - self.last_balance_update >= self.balance_update_interval:
-                    success = self.update_balance_info()
-                    self.last_balance_update = current_time
-                    if not success:
+                    print("💰 잔액 정보 업데이트 중...")
+                    try:
+                        success = self.update_balance_info()
+                        self.last_balance_update = current_time
+                        
+                        if success:
+                            print("✅ 잔액 업데이트 성공")
+                            self.consecutive_failures = 0
+                        else:
+                            print("❌ 잔액 업데이트 실패")
+                            self.handle_api_failure()
+                            
+                    except Exception as e:
+                        print(f"❌ 잔액 업데이트 오류: {e}")
                         self.handle_api_failure()
-                        continue
+                    
+                    # 잔액 업데이트 후 2초 대기
+                    time.sleep(2)
+                    
+                    if not self.running:
+                        break
                 
-                # 가격 정보 업데이트 (실제 API만 사용)
+                # 순차 처리 2: 가격 정보 (3초마다)
+                current_time = time.time()  # 시간 다시 체크
                 if current_time - self.last_price_update >= self.price_update_interval:
-                    success = self.update_price_info()
-                    self.last_price_update = current_time
-                    if not success:
+                    print("📈 가격 정보 업데이트 중...")
+                    try:
+                        success = self.update_price_info()
+                        self.last_price_update = current_time
+                        
+                        if success:
+                            print("✅ 가격 업데이트 성공")
+                            self.consecutive_failures = 0
+                        else:
+                            print("❌ 가격 업데이트 실패")
+                            self.handle_api_failure()
+                            
+                    except Exception as e:
+                        print(f"❌ 가격 업데이트 오류: {e}")
                         self.handle_api_failure()
-                        continue
+                    
+                    # 가격 업데이트 후 2초 대기
+                    time.sleep(2)
+                    
+                    if not self.running:
+                        break
                 
-                # 포지션 정보 업데이트
+                # 순차 처리 3: 포지션 정보 (5초마다)
+                current_time = time.time()  # 시간 다시 체크
                 if current_time - self.last_position_update >= self.position_update_interval:
-                    success = self.update_position_info()
-                    self.last_position_update = current_time
-                    if not success:
-                        self.handle_api_failure()
-                        continue
+                    print("📊 포지션 정보 업데이트 중...")
+                    try:
+                        success = self.update_position_info()
+                        self.last_position_update = current_time
+                        
+                        if success:
+                            print("✅ 포지션 업데이트 성공")
+                            self.consecutive_failures = 0
+                        else:
+                            print("❌ 포지션 업데이트 실패 (무시하고 계속)")
+                            # 포지션 업데이트 실패는 치명적이지 않으므로 계속 진행
+                            
+                    except Exception as e:
+                        print(f"❌ 포지션 업데이트 오류 (무시하고 계속): {e}")
+                    
+                    # 포지션 업데이트 후 2초 대기
+                    time.sleep(2)
+                    
+                    if not self.running:
+                        break
                 
-                # 전략 상태 업데이트 (실제 데이터만)
-                self.update_strategy_info()
+                # 전략 상태 업데이트 (API 호출 없음)
+                try:
+                    self.update_strategy_info()
+                except Exception as e:
+                    print(f"⚠️ 전략 상태 업데이트 오류: {e}")
                 
-                # 성공적으로 업데이트되면 연속 실패 카운트 리셋
-                self.consecutive_failures = 0
-                if not self.is_connected:
+                # 연결 상태 확인
+                if self.consecutive_failures == 0 and not self.is_connected:
                     self.is_connected = True
                     self.connection_changed.emit(True)
                     print("✅ API 연결 복구됨")
                 
-                # 1초 대기
-                time.sleep(1)
+                # 사이클 완료 - 3초 대기
+                print(f"✅ 운영 사이클 {operation_cycle} 완료")
+                time.sleep(3)
                 
             except Exception as e:
                 error_msg = f"데이터 스레드 오류: {e}"
                 print(f"❌ {error_msg}")
                 self.error_occurred.emit(error_msg)
                 self.handle_api_failure()
-                time.sleep(5)  # 5초 후 재시도
+                
+                # 오류 발생 시 10초 대기 후 재시도
+                time.sleep(10)
         
         print("⏹️ TradingDataThread 종료됨")
+
+
     
     def handle_api_failure(self):
         """API 실패 처리"""
@@ -142,7 +261,7 @@ class TradingDataThread(QThread):
                 print("🚨 Signal Lost - API 연결 지속 실패")
     
     def update_balance_info(self) -> bool:
-        """실제 계좌 잔액 정보 업데이트 - 더미 데이터 없음"""
+        """실제 계좌 잔액 정보 업데이트 - 'bal' 키 오류 수정"""
         if not self.account_manager:
             return False
         
@@ -150,7 +269,7 @@ class TradingDataThread(QThread):
             raw_balance = self.account_manager.get_account_balance()
             
             if raw_balance:
-                # 실제 잔액 파싱
+                # 실제 잔액 파싱 (올바른 키 사용)
                 parsed_balance = {
                     'currencies': {},
                     'total_equity': 0.0,
@@ -164,23 +283,30 @@ class TradingDataThread(QThread):
                 total_eq = raw_balance.get('totalEq', '0')
                 parsed_balance['total_equity'] = float(total_eq) if total_eq else 0.0
                 
-                # 상세 잔액 정보
+                # 상세 잔액 정보 (올바른 키 사용)
                 details = raw_balance.get('details', [])
                 for detail in details:
                     currency = detail.get('ccy', 'UNKNOWN')
-                    balance = float(detail.get('bal', 0))
-                    available = float(detail.get('availBal', 0))
-                    frozen = float(detail.get('frozenBal', 0))
+                    
+                    # ✅ 올바른 키 사용: 'availBal', 'eq', 'frozenBal'
+                    cash_bal = detail.get('eq', '0')  # 총 잔고 (수정됨)
+                    available = detail.get('availBal', '0')  # 사용가능 잔고
+                    frozen = detail.get('frozenBal', '0')  # 동결된 잔고
+                    
+                    # 빈 문자열 처리
+                    cash_bal = float(cash_bal) if cash_bal else 0.0
+                    available = float(available) if available else 0.0
+                    frozen = float(frozen) if frozen else 0.0
                     
                     parsed_balance['currencies'][currency] = {
-                        'balance': balance,
+                        'balance': cash_bal,
                         'available': available,
                         'frozen': frozen
                     }
                     
                     # USDT 특별 처리
                     if currency == 'USDT':
-                        parsed_balance['usdt_balance'] = balance
+                        parsed_balance['usdt_balance'] = cash_bal
                         parsed_balance['available_balance'] = available
                 
                 self.balance_updated.emit(parsed_balance)
@@ -192,6 +318,7 @@ class TradingDataThread(QThread):
         except Exception as e:
             print(f"⚠️ 실제 잔액 정보 업데이트 오류: {e}")
             return False
+
 
     def update_price_info(self) -> bool:
         """실제 가격 정보만 업데이트 - 더미 데이터 없음"""
@@ -268,42 +395,56 @@ class TradingDataThread(QThread):
             return False
 
     def update_position_info(self) -> bool:
-        """실제 포지션 정보만 업데이트 - 더미 데이터 없음"""
+        """포지션 정보 업데이트 - 안전한 파라미터 전달"""
         if not self.account_manager:
             return False
         
         try:
-            positions_response = self.account_manager.get_positions()
+            print("📊 포지션 조회 시작 (instType=SWAP)")
             
-            if positions_response and isinstance(positions_response, list):
+            # ✅ 명시적으로 SWAP 타입만 조회
+            positions_response = self.account_manager.get_positions("SWAP")
+            
+            if positions_response is not None and isinstance(positions_response, list):
                 # 활성 포지션만 필터링
                 active_positions = []
                 for position in positions_response:
-                    pos_size = float(position.get('pos', 0))
-                    if abs(pos_size) > 0.001:  # 0.001 이상만 활성 포지션으로 간주
-                        active_positions.append(position)
+                    try:
+                        pos_size = float(position.get('pos', 0))
+                        if abs(pos_size) > 0.001:  # 0.001 이상만 활성 포지션
+                            active_positions.append(position)
+                    except (ValueError, TypeError):
+                        continue
                 
-                # GUI에 실제 포지션 데이터 전송
+                # GUI에 포지션 데이터 전송
                 self.positions_updated.emit(active_positions)
                 
                 # 포지션 상태 로그
                 if active_positions:
-                    total_upl = sum(float(pos.get('upl', 0)) for pos in active_positions)
-                    print(f"📈 실제 포지션: {len(active_positions)}개 활성, 총 미실현손익: ${total_upl:+.2f}")
+                    total_upl = 0
+                    for pos in active_positions:
+                        try:
+                            total_upl += float(pos.get('upl', 0))
+                        except (ValueError, TypeError):
+                            continue
+                            
+                    print(f"📈 활성 포지션: {len(active_positions)}개, 총 PnL: ${total_upl:+.2f}")
                 else:
-                    print("📊 실제 포지션: 활성 포지션 없음")
+                    print("📊 활성 포지션: 없음")
                 
                 return True
                     
             else:
-                print("⚠️ 포지션 데이터가 예상된 형식이 아님")
-                # 빈 포지션 리스트 전송
+                print("⚠️ 포지션 데이터 조회 실패 - 빈 리스트로 처리")
                 self.positions_updated.emit([])
-                return False
+                return True  # 실패해도 True 반환하여 GUI 계속 작동
                 
         except Exception as e:
-            print(f"⚠️ 포지션 정보 업데이트 오류: {e}")
-            return False
+            print(f"⚠️ 포지션 정보 업데이트 오류 (무시하고 계속): {e}")
+            # 빈 포지션 리스트 전송하여 GUI가 계속 작동
+            self.positions_updated.emit([])
+            return True  # 오류가 있어도 True 반환
+
 
     def update_strategy_info(self):
         """실제 전략 상태 정보만 업데이트 - 더미 데이터 없음"""

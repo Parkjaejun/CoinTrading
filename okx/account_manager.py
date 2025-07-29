@@ -45,16 +45,36 @@ class AccountManager:
             print(f"❌ 계좌 설정 조회 실패: {e}")
             return None
     
+    # okx/account_manager.py의 get_positions 메서드도 함께 개선하세요
+
     def get_positions(self, inst_type: str = "SWAP") -> List[Dict[str, Any]]:
-        """포지션 조회"""
+        """포지션 조회 - 디버깅 정보 추가"""
         try:
+            print(f"🔍 포지션 조회 시작: instType={inst_type}")
+            
+            # ✅ 파라미터를 명시적으로 딕셔너리로 전달
             params = {"instType": inst_type}
+            print(f"🔍 전달할 파라미터: {params}")
+            
             result = make_api_request('GET', '/api/v5/account/positions', params=params)
-            if result and result.get('data'):
-                return result['data']
-            return []
+            
+            if result:
+                if result.get('code') == '0':
+                    data = result.get('data', [])
+                    print(f"✅ 포지션 조회 성공: {len(data)}개 포지션")
+                    return data
+                else:
+                    error_msg = result.get('msg', 'Unknown error')
+                    print(f"❌ 포지션 조회 API 오류: {error_msg}")
+                    return []
+            else:
+                print("❌ 포지션 조회 결과가 None")
+                return []
+                
         except Exception as e:
             print(f"❌ 포지션 조회 실패: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def get_position_history(self, inst_id: str = None, limit: int = 100) -> List[Dict[str, Any]]:

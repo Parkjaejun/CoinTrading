@@ -10,8 +10,10 @@ import hashlib
 import base64
 import requests
 import time
+import threading  # ← 이 줄을 추가
 from datetime import datetime, timezone
 from typing import Dict, Optional
+from urllib.parse import urlencode  # ✅ 이 줄을 추가
 
 # =================================================================
 # ⚠️ 여기에 실제 API 정보를 입력하세요
@@ -41,10 +43,28 @@ CONNECTION_CONFIG = {
 # =================================================================
 # 수정된 타임스탬프 함수 (OKX 표준 준수)
 # =================================================================
-def get_timestamp():
-    """OKX API 표준 타임스탬프 생성"""
-    return datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+# =================================================================
+# 유니크 타임스탬프 생성 (동시 요청 방지)
+# =================================================================
 
+_timestamp_lock = threading.Lock()
+_last_timestamp = ""
+
+def get_timestamp():
+    """OKX API 표준 타임스탬프 생성 - 유니크 보장"""
+    global _last_timestamp
+    
+    with _timestamp_lock:
+        while True:
+            current_timestamp = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            
+            # 이전 타임스탬프와 다를 때까지 대기
+            if current_timestamp != _last_timestamp:
+                _last_timestamp = current_timestamp
+                return current_timestamp
+            
+            # 1ms 대기 후 재시도
+            time.sleep(0.001)
 # =================================================================
 # 수정된 서명 생성 함수 (OKX 정확한 방식)
 # =================================================================
@@ -84,84 +104,6 @@ def get_api_headers(method: str, request_path: str, body: str = "") -> Dict[str,
         'Content-Type': 'application/json'
     }
 
-# =================================================================
-# API 요청 함수 (재시도 로직 포함)
-# =================================================================
-def make_api_request(method: str, endpoint: str, params: Dict = None, data: Dict = None) -> Optional[Dict]:
-    """통합 API 요청 함수"""
-    url = API_BASE_URL + endpoint
-    body = json.dumps(data, separators=(',', ':')) if data else ""
-    
-    for attempt in range(CONNECTION_CONFIG['max_retries']):
-        try:
-            headers = get_api_headers(method, endpoint, body)
-            
-            print(f"🔍 API 요청 디버그 (시도 {attempt + 1}):")
-            print(f"  URL: {url}")
-            print(f"  Method: {method}")
-            print(f"  Headers: OK-ACCESS-KEY={headers['OK-ACCESS-KEY'][:8]}...")
-            print(f"  Timestamp: {headers['OK-ACCESS-TIMESTAMP']}")
-            
-            # 요청 실행
-            if method.upper() == 'GET':
-                response = requests.get(
-                    url, 
-                    headers=headers, 
-                    params=params, 
-                    timeout=CONNECTION_CONFIG['request_timeout']
-                )
-            elif method.upper() == 'POST':
-                response = requests.post(
-                    url, 
-                    headers=headers, 
-                    data=body, 
-                    timeout=CONNECTION_CONFIG['request_timeout']
-                )
-            else:
-                raise ValueError(f"지원하지 않는 HTTP 메서드: {method}")
-            
-            # 응답 처리
-            if response.status_code == 200:
-                return response.json()
-            else:
-                error_msg = f"HTTP 오류 {response.status_code}"
-                try:
-                    error_detail = response.json()
-                    error_msg += f": {error_detail}"
-                except:
-                    error_msg += f": {response.text}"
-                
-                print(f"❌ {error_msg} (시도 {attempt + 1})")
-                
-                # 401 Unauthorized의 경우 즉시 중단 (API 키 문제)
-                if response.status_code == 401:
-                    print("🚨 API 인증 오류 - API 키를 확인하세요!")
-                    return None
-                
-                if attempt < CONNECTION_CONFIG['max_retries'] - 1:
-                    time.sleep(CONNECTION_CONFIG['retry_delay'])
-                    continue
-                return None
-                
-        except requests.exceptions.Timeout:
-            print(f"⏰ API 요청 타임아웃 (시도 {attempt + 1})")
-            if attempt < CONNECTION_CONFIG['max_retries'] - 1:
-                time.sleep(CONNECTION_CONFIG['retry_delay'])
-                continue
-            return None
-            
-        except requests.exceptions.ConnectionError:
-            print(f"🌐 네트워크 연결 오류 (시도 {attempt + 1})")
-            if attempt < CONNECTION_CONFIG['max_retries'] - 1:
-                time.sleep(CONNECTION_CONFIG['retry_delay'])
-                continue
-            return None
-            
-        except Exception as e:
-            print(f"❌ API 요청 실패: {e}")
-            return None
-    
-    return None
 
 # =================================================================
 # API 연결 테스트 함수
@@ -249,6 +191,113 @@ def validate_config() -> bool:
     print(f"   PASSPHRASE: {'*' * len(PASSPHRASE)}")
     
     return True
+
+# 전역 rate limiting 객체
+_api_lock = threading.Lock()
+_last_request_time = 0
+_min_request_interval = 0.1  # 100ms 간격
+
+
+# =================================================================
+# Rate Limiting 추가 (동시 요청 방지)
+# =================================================================
+
+def make_api_request(method: str, endpoint: str, params: Dict = None, data: Dict = None) -> Optional[Dict]:
+    """통합 API 요청 함수 - 파라미터 처리 개선"""
+    base_url = API_BASE_URL + endpoint
+    body = json.dumps(data, separators=(',', ':')) if data else ""
+    
+    for attempt in range(CONNECTION_CONFIG['max_retries']):
+        try:
+            # ✅ 파라미터 처리 개선
+            query_string = ""
+            if params and method.upper() == 'GET':
+                # URL 인코딩을 위해 urllib.parse 사용
+                from urllib.parse import urlencode
+                query_string = urlencode(params)
+                print(f"🔍 생성된 쿼리 스트링: {query_string}")
+            
+            # ✅ 서명용 request_path 생성 (디버깅 도구와 동일)
+            request_path = endpoint
+            if query_string:
+                request_path = endpoint + "?" + query_string
+            
+            print(f"🔍 서명용 request_path: {request_path}")
+            
+            # ✅ 헤더 생성 (개선된 request_path 사용)
+            headers = get_api_headers(method, request_path, body)
+            
+            print(f"🔍 API 요청 디버그 (시도 {attempt + 1}):")
+            print(f"  URL: {base_url}")
+            print(f"  Method: {method}")
+            print(f"  Headers: OK-ACCESS-KEY={headers['OK-ACCESS-KEY'][:8]}...")
+            print(f"  Timestamp: {headers['OK-ACCESS-TIMESTAMP']}")
+            print(f"  Request Path (서명용): {request_path}")
+            if query_string:
+                print(f"  Query String: {query_string}")
+            
+            # ✅ 요청 실행 (디버깅 도구와 동일한 방식)
+            if method.upper() == 'GET':
+                if params:
+                    # 파라미터가 있으면 params로 전달 (requests가 자동 인코딩)
+                    response = requests.get(
+                        base_url, 
+                        headers=headers, 
+                        params=params,  # ← 이 방식이 디버깅 도구와 동일
+                        timeout=CONNECTION_CONFIG['request_timeout']
+                    )
+                else:
+                    # 파라미터가 없으면 그냥 요청
+                    response = requests.get(
+                        base_url, 
+                        headers=headers, 
+                        timeout=CONNECTION_CONFIG['request_timeout']
+                    )
+                    
+            elif method.upper() == 'POST':
+                response = requests.post(
+                    base_url, 
+                    headers=headers, 
+                    data=body, 
+                    timeout=CONNECTION_CONFIG['request_timeout']
+                )
+            else:
+                raise ValueError(f"지원하지 않는 HTTP 메서드: {method}")
+            
+            print(f"🔍 실제 요청 URL: {response.url}")
+            
+            # 응답 처리
+            if response.status_code == 200:
+                return response.json()
+            else:
+                error_msg = f"HTTP 오류 {response.status_code}"
+                try:
+                    error_detail = response.json()
+                    error_msg += f": {error_detail}"
+                except:
+                    error_msg += f": {response.text}"
+                
+                print(f"❌ {error_msg} (시도 {attempt + 1})")
+                
+                # 401 Unauthorized의 경우 즉시 중단 (API 키 문제)
+                if response.status_code == 401:
+                    print("🚨 API 인증 오류 - API 키를 확인하세요!")
+                    break
+                    
+                time.sleep(CONNECTION_CONFIG['retry_delay'])
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ 네트워크 오류: {e} (시도 {attempt + 1})")
+            if attempt < CONNECTION_CONFIG['max_retries'] - 1:
+                time.sleep(CONNECTION_CONFIG['retry_delay'])
+                
+        except Exception as e:
+            print(f"❌ 요청 처리 오류: {e} (시도 {attempt + 1})")
+            if attempt < CONNECTION_CONFIG['max_retries'] - 1:
+                time.sleep(CONNECTION_CONFIG['retry_delay'])
+    
+    return None
+
 
 # =================================================================
 # 기존 설정들 (호환성 유지)
