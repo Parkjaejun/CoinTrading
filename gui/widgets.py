@@ -1,7 +1,7 @@
 # gui/widgets.py
 """
-GUI 위젯 컴포넌트들 - 완전한 버전
-차트, 테이블, 제어 패널 등
+GUI 위젯 컴포넌트들 - Signal Lost 지원
+차트, 테이블, 제어 패널 등 - 더미 데이터 없음
 """
 
 import time
@@ -30,13 +30,14 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 class PriceChartWidget(QWidget):
-    """실시간 가격 차트 위젯"""
+    """실시간 가격 차트 위젯 - Signal Lost 지원"""
     
     def __init__(self):
         super().__init__()
         self.price_data = []
         self.time_data = []
         self.max_points = 100
+        self.signal_lost = False
         self.setup_ui()
         
     def setup_ui(self):
@@ -54,8 +55,15 @@ class PriceChartWidget(QWidget):
         self.change_label = QLabel("0.00%")
         self.change_label.setFont(QFont("Arial", 12))
         
+        # Signal Lost 표시
+        self.signal_lost_label = QLabel("")
+        self.signal_lost_label.setFont(QFont("Arial", 14, QFont.Bold))
+        self.signal_lost_label.setStyleSheet("color: #ff0000")
+        self.signal_lost_label.hide()
+        
         header_layout.addWidget(self.symbol_label)
         header_layout.addStretch()
+        header_layout.addWidget(self.signal_lost_label)
         header_layout.addWidget(self.price_label)
         header_layout.addWidget(self.change_label)
         
@@ -63,9 +71,23 @@ class PriceChartWidget(QWidget):
         
         # 차트
         if PYQTGRAPH_AVAILABLE:
-            self.chart = pg.PlotWidget()
+            # 커스텀 시간 축 클래스 정의
+            class TimeAxisItem(pg.AxisItem):
+                def tickStrings(self, values, scale, spacing):
+                    """시간 문자열 반환"""
+                    formatted = []
+                    for timestamp in values:
+                        if timestamp > 0:
+                            dt = datetime.fromtimestamp(timestamp)
+                            formatted.append(dt.strftime('%H:%M:%S'))
+                        else:
+                            formatted.append('')
+                    return formatted
+            
+            # 시간 축이 적용된 차트 생성
+            self.chart = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
             self.chart.setLabel('left', 'Price ($)')
-            self.chart.setLabel('bottom', 'Time')
+            self.chart.setLabel('bottom', 'Time (HH:MM:SS)')
             self.chart.showGrid(x=True, y=True)
             self.chart.setMinimumHeight(300)
             
@@ -74,17 +96,33 @@ class PriceChartWidget(QWidget):
             
             layout.addWidget(self.chart)
         else:
-            # pyqtgraph가 없는 경우 간단한 텍스트
-            no_chart_label = QLabel("차트를 보려면 pyqtgraph를 설치하세요:\npip install pyqtgraph")
-            no_chart_label.setAlignment(Qt.AlignCenter)
-            no_chart_label.setMinimumHeight(300)
-            no_chart_label.setStyleSheet("border: 1px solid #555; background-color: #2b2b2b; color: #999;")
-            layout.addWidget(no_chart_label)
+            # pyqtgraph가 없는 경우
+            self.no_chart_label = QLabel("차트를 보려면 pyqtgraph를 설치하세요:\npip install pyqtgraph")
+            self.no_chart_label.setAlignment(Qt.AlignCenter)
+            self.no_chart_label.setMinimumHeight(300)
+            self.no_chart_label.setStyleSheet("border: 1px solid #555; background-color: #2b2b2b; color: #999;")
+            layout.addWidget(self.no_chart_label)
         
         self.setLayout(layout)
     
+    def update_time_axis(self):
+        """X축 시간 범위 업데이트"""
+        if PYQTGRAPH_AVAILABLE and hasattr(self, 'chart') and len(self.time_data) > 1:
+            # X축 범위를 최근 데이터로 제한
+            min_time = min(self.time_data)
+            max_time = max(self.time_data)
+            
+            # 약간의 여백 추가
+            time_range = max_time - min_time
+            padding = time_range * 0.05 if time_range > 0 else 30  # 최소 30초 여백
+            
+            self.chart.setXRange(min_time - padding, max_time + padding, padding=0)
+    
     def update_price(self, symbol: str, price: float, price_info: Dict = None):
-        """가격 업데이트"""
+        """가격 업데이트 - 실제 데이터만"""
+        if self.signal_lost:
+            return
+            
         self.symbol_label.setText(symbol)
         self.price_label.setText(f"${price:,.2f}")
         
@@ -94,6 +132,7 @@ class PriceChartWidget(QWidget):
             self.change_label.setText(f"{change_pct:+.2f}%")
             color = "#00ff00" if change_pct >= 0 else "#ff0000"
             self.change_label.setStyleSheet(f"color: {color}")
+            self.price_label.setStyleSheet(f"color: {color}")
         
         # 차트 데이터 업데이트
         if PYQTGRAPH_AVAILABLE and hasattr(self, 'chart'):
@@ -110,21 +149,77 @@ class PriceChartWidget(QWidget):
             # 차트 업데이트
             if len(self.price_data) > 1:
                 self.price_line.setData(self.time_data, self.price_data)
+                
+            # X축 시간 표시 업데이트
+            self.update_time_axis()
+    
+    def show_signal_lost(self):
+        """Signal Lost 상태 표시"""
+        self.signal_lost = True
+        
+        # 헤더 표시 변경
+        self.signal_lost_label.setText("🚨 SIGNAL LOST")
+        self.signal_lost_label.show()
+        
+        self.price_label.setText("SIGNAL LOST")
+        self.price_label.setStyleSheet("color: #ff0000")
+        
+        self.change_label.setText("--")
+        self.change_label.setStyleSheet("color: #ff0000")
+        
+        # 차트 클리어
+        if PYQTGRAPH_AVAILABLE and hasattr(self, 'chart'):
+            self.price_line.clear()
+            self.price_data.clear()
+            self.time_data.clear()
+            
+            # 차트에 Signal Lost 메시지 표시
+            self.chart.setTitle("🚨 SIGNAL LOST - API 연결을 확인해주세요", color='#ff0000', size='12pt')
+        
+        # no_chart_label이 있다면 Signal Lost로 변경
+        if hasattr(self, 'no_chart_label'):
+            self.no_chart_label.setText("🚨 SIGNAL LOST\n\nAPI 연결을 확인해주세요")
+            self.no_chart_label.setStyleSheet("border: 1px solid #ff0000; background-color: #2b2b2b; color: #ff0000;")
+    
+    def restore_connection(self):
+        """연결 복구 시 호출"""
+        self.signal_lost = False
+        self.signal_lost_label.hide()
+        
+        # 차트 타이틀 제거
+        if PYQTGRAPH_AVAILABLE and hasattr(self, 'chart'):
+            self.chart.setTitle("")
+        
+        if hasattr(self, 'no_chart_label'):
+            self.no_chart_label.setText("차트를 보려면 pyqtgraph를 설치하세요:\npip install pyqtgraph")
+            self.no_chart_label.setStyleSheet("border: 1px solid #555; background-color: #2b2b2b; color: #999;")
 
 class PositionTableWidget(QWidget):
-    """포지션 테이블 위젯"""
+    """포지션 테이블 위젯 - Signal Lost 지원"""
     
     def __init__(self):
         super().__init__()
+        self.signal_lost = False
         self.setup_ui()
         
     def setup_ui(self):
         layout = QVBoxLayout()
         
         # 헤더
+        header_layout = QHBoxLayout()
         header_label = QLabel("📊 현재 포지션")
         header_label.setFont(QFont("Arial", 12, QFont.Bold))
-        layout.addWidget(header_label)
+        
+        self.signal_lost_label = QLabel("")
+        self.signal_lost_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.signal_lost_label.setStyleSheet("color: #ff0000")
+        self.signal_lost_label.hide()
+        
+        header_layout.addWidget(header_label)
+        header_layout.addStretch()
+        header_layout.addWidget(self.signal_lost_label)
+        
+        layout.addLayout(header_layout)
         
         # 테이블
         self.table = QTableWidget()
@@ -142,269 +237,412 @@ class PositionTableWidget(QWidget):
         layout.addWidget(self.table)
         self.setLayout(layout)
     
-    def update_positions(self, positions: List[Dict]):
-        """포지션 업데이트"""
+    def update_positions(self, positions: List[Dict[str, Any]]):
+        """포지션 업데이트 - 실제 데이터만"""
+        if self.signal_lost:
+            return
+            
         self.table.setRowCount(len(positions))
         
-        for row, position in enumerate(positions):
-            self.table.setItem(row, 0, QTableWidgetItem(position.get('symbol', '')))
-            self.table.setItem(row, 1, QTableWidgetItem(position.get('side', '').upper()))
-            self.table.setItem(row, 2, QTableWidgetItem(f"{position.get('size', 0):.6f}"))
-            self.table.setItem(row, 3, QTableWidgetItem(f"${position.get('entry_price', 0):.2f}"))
-            self.table.setItem(row, 4, QTableWidgetItem(f"${position.get('current_price', 0):.2f}"))
+        for i, position in enumerate(positions):
+            symbol = position.get('instId', '')
+            side = position.get('posSide', '').upper()
+            size = position.get('pos', '0')
+            entry_price = float(position.get('avgPx', 0))
+            upl = float(position.get('upl', 0))
+            
+            # 현재가는 별도로 계산해야 할 수 있음
+            current_price = entry_price  # 임시
+            
+            self.table.setItem(i, 0, QTableWidgetItem(symbol))
+            self.table.setItem(i, 1, QTableWidgetItem(side))
+            self.table.setItem(i, 2, QTableWidgetItem(f"{float(size):.6f}"))
+            self.table.setItem(i, 3, QTableWidgetItem(f"${entry_price:.2f}"))
+            self.table.setItem(i, 4, QTableWidgetItem(f"${current_price:.2f}"))
             
             # 손익 색상 설정
-            pnl = position.get('unrealized_pnl', 0)
-            pnl_item = QTableWidgetItem(f"${pnl:+.2f}")
-            if pnl > 0:
-                pnl_item.setForeground(QColor("#4CAF50"))
-            elif pnl < 0:
-                pnl_item.setForeground(QColor("#F44336"))
-            self.table.setItem(row, 5, pnl_item)
+            pnl_item = QTableWidgetItem(f"${upl:+.2f}")
+            if upl > 0:
+                pnl_item.setForeground(QColor("#00ff00"))
+            elif upl < 0:
+                pnl_item.setForeground(QColor("#ff0000"))
+            
+            self.table.setItem(i, 5, pnl_item)
+    
+    def show_signal_lost(self):
+        """Signal Lost 상태 표시"""
+        self.signal_lost = True
+        self.signal_lost_label.setText("🚨 SIGNAL LOST")
+        self.signal_lost_label.show()
+        
+        # 테이블 클리어
+        self.table.setRowCount(0)
+    
+    def restore_connection(self):
+        """연결 복구 시 호출"""
+        self.signal_lost = False
+        self.signal_lost_label.hide()
 
 class TradingControlWidget(QWidget):
-    """거래 제어 위젯"""
+    """거래 제어 위젯 - Signal Lost 지원"""
     
-    # 시그널
-    start_trading_requested = pyqtSignal()
-    stop_trading_requested = pyqtSignal()
-    emergency_stop_requested = pyqtSignal()
+    # 시그널 정의
+    start_trading = pyqtSignal()
+    stop_trading = pyqtSignal()
+    emergency_stop = pyqtSignal()
     
     def __init__(self):
         super().__init__()
-        self.is_trading = False
+        self.signal_lost = False
+        self.trading_active = False
         self.setup_ui()
         
     def setup_ui(self):
         layout = QVBoxLayout()
         
-        # 제어 그룹
-        control_group = QGroupBox("🎮 거래 제어")
-        control_layout = QGridLayout()
-        
-        # 시작/중지 버튼
-        self.start_btn = QPushButton("▶️ 자동매매 시작")
-        self.start_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 10px;")
-        self.start_btn.clicked.connect(self.on_start_clicked)
-        
-        self.stop_btn = QPushButton("⏹️ 자동매매 중지")
-        self.stop_btn.setStyleSheet("background-color: #F44336; color: white; font-weight: bold; padding: 10px;")
-        self.stop_btn.setEnabled(False)
-        self.stop_btn.clicked.connect(self.on_stop_clicked)
-        
-        # 긴급 중지 버튼
-        self.emergency_btn = QPushButton("🚨 긴급 중지")
-        self.emergency_btn.setStyleSheet("background-color: #FF5722; color: white; font-weight: bold; padding: 10px;")
-        self.emergency_btn.clicked.connect(self.on_emergency_clicked)
-        
-        control_layout.addWidget(self.start_btn, 0, 0)
-        control_layout.addWidget(self.stop_btn, 0, 1)
-        control_layout.addWidget(self.emergency_btn, 1, 0, 1, 2)
-        
-        control_group.setLayout(control_layout)
-        layout.addWidget(control_group)
-        
         # 상태 표시
-        status_group = QGroupBox("📊 상태")
-        status_layout = QFormLayout()
+        status_group = QGroupBox("🎮 거래 제어")
+        status_layout = QGridLayout()
+        status_group.setLayout(status_layout)
         
         self.status_label = QLabel("대기 중")
-        self.status_label.setStyleSheet("color: #FFA500; font-weight: bold;")
+        self.status_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.status_label.setStyleSheet("color: #ffaa00")
         
-        self.uptime_label = QLabel("00:00:00")
-        self.trades_label = QLabel("0")
-        self.pnl_label = QLabel("$0.00")
+        self.signal_lost_label = QLabel("")
+        self.signal_lost_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.signal_lost_label.setStyleSheet("color: #ff0000")
+        self.signal_lost_label.hide()
         
-        status_layout.addRow("상태:", self.status_label)
-        status_layout.addRow("실행 시간:", self.uptime_label)
-        status_layout.addRow("총 거래:", self.trades_label)
-        status_layout.addRow("손익:", self.pnl_label)
+        status_layout.addWidget(QLabel("상태:"), 0, 0)
+        status_layout.addWidget(self.status_label, 0, 1)
+        status_layout.addWidget(self.signal_lost_label, 1, 0, 1, 2)
         
-        status_group.setLayout(status_layout)
+        # 제어 버튼
+        control_group = QGroupBox("제어")
+        control_layout = QVBoxLayout()
+        control_group.setLayout(control_layout)
+        
+        self.start_btn = QPushButton("▶️ 거래 시작")
+        self.start_btn.setStyleSheet("background-color: #28a745; padding: 10px;")
+        self.start_btn.clicked.connect(self.on_start_trading)
+        
+        self.stop_btn = QPushButton("⏹️ 거래 중지")
+        self.stop_btn.setStyleSheet("background-color: #ffc107; padding: 10px;")
+        self.stop_btn.clicked.connect(self.on_stop_trading)
+        self.stop_btn.setEnabled(False)
+        
+        self.emergency_btn = QPushButton("🚨 긴급 정지")
+        self.emergency_btn.setStyleSheet("background-color: #dc3545; padding: 10px;")
+        self.emergency_btn.clicked.connect(self.on_emergency_stop)
+        
+        control_layout.addWidget(self.start_btn)
+        control_layout.addWidget(self.stop_btn)
+        control_layout.addWidget(self.emergency_btn)
+        
         layout.addWidget(status_group)
+        layout.addWidget(control_group)
+        layout.addStretch()
         
         self.setLayout(layout)
     
-    def on_start_clicked(self):
-        """시작 버튼 클릭"""
-        self.is_trading = True
-        self.start_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-        self.status_label.setText("실행 중")
-        self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
-        self.start_trading_requested.emit()
+    def on_start_trading(self):
+        """거래 시작"""
+        if not self.signal_lost:
+            self.trading_active = True
+            self.update_ui_state()
+            self.start_trading.emit()
     
-    def on_stop_clicked(self):
-        """중지 버튼 클릭"""
-        self.is_trading = False
-        self.start_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
-        self.status_label.setText("대기 중")
-        self.status_label.setStyleSheet("color: #FFA500; font-weight: bold;")
-        self.stop_trading_requested.emit()
+    def on_stop_trading(self):
+        """거래 중지"""
+        self.trading_active = False
+        self.update_ui_state()
+        self.stop_trading.emit()
     
-    def on_emergency_clicked(self):
-        """긴급 중지 버튼 클릭"""
-        self.is_trading = False
-        self.start_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
-        self.status_label.setText("긴급 중지됨")
-        self.status_label.setStyleSheet("color: #F44336; font-weight: bold;")
-        self.emergency_stop_requested.emit()
+    def on_emergency_stop(self):
+        """긴급 정지"""
+        self.trading_active = False
+        self.update_ui_state()
+        self.emergency_stop.emit()
     
-    def update_status(self, strategy_data: Dict):
-        """상태 업데이트"""
-        is_running = strategy_data.get('is_running', False)
-        uptime = strategy_data.get('uptime', 0)
-        total_trades = strategy_data.get('total_trades', 0)
-        total_pnl = strategy_data.get('total_pnl', 0)
+    def update_ui_state(self):
+        """UI 상태 업데이트"""
+        if self.signal_lost:
+            self.status_label.setText("SIGNAL LOST")
+            self.status_label.setStyleSheet("color: #ff0000")
+            self.start_btn.setEnabled(False)
+            self.stop_btn.setEnabled(False)
+        elif self.trading_active:
+            self.status_label.setText("거래 중")
+            self.status_label.setStyleSheet("color: #28a745")
+            self.start_btn.setEnabled(False)
+            self.stop_btn.setEnabled(True)
+        else:
+            self.status_label.setText("대기 중")
+            self.status_label.setStyleSheet("color: #ffaa00")
+            self.start_btn.setEnabled(True)
+            self.stop_btn.setEnabled(False)
+    
+    def show_signal_lost(self):
+        """Signal Lost 상태 표시"""
+        self.signal_lost = True
+        self.signal_lost_label.setText("🚨 SIGNAL LOST - 거래 불가")
+        self.signal_lost_label.show()
+        self.update_ui_state()
+    
+    def restore_connection(self):
+        """연결 복구 시 호출"""
+        self.signal_lost = False
+        self.signal_lost_label.hide()
+        self.update_ui_state()
+
+class SystemMonitorWidget(QWidget):
+    """시스템 모니터 위젯"""
+    
+    def __init__(self):
+        super().__init__()
+        self.setup_ui()
+        self.setup_timer()
         
-        # 실행 시간 포맷팅
-        hours = int(uptime // 3600)
-        minutes = int((uptime % 3600) // 60)
-        seconds = int(uptime % 60)
+    def setup_ui(self):
+        layout = QGridLayout()
         
-        self.uptime_label.setText(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
-        self.trades_label.setText(str(total_trades))
+        # CPU 사용률
+        self.cpu_label = QLabel("CPU: --%")
+        self.cpu_progress = QProgressBar()
+        self.cpu_progress.setRange(0, 100)
         
-        # 손익 색상 설정
-        pnl_color = "#4CAF50" if total_pnl >= 0 else "#F44336"
-        self.pnl_label.setText(f"${total_pnl:+.2f}")
-        self.pnl_label.setStyleSheet(f"color: {pnl_color}; font-weight: bold;")
+        # 메모리 사용률
+        self.memory_label = QLabel("메모리: --%")
+        self.memory_progress = QProgressBar()
+        self.memory_progress.setRange(0, 100)
+        
+        # 네트워크 상태
+        self.network_label = QLabel("네트워크: --")
+        
+        layout.addWidget(QLabel("시스템 상태:"), 0, 0)
+        layout.addWidget(self.cpu_label, 1, 0)
+        layout.addWidget(self.cpu_progress, 1, 1)
+        layout.addWidget(self.memory_label, 2, 0)
+        layout.addWidget(self.memory_progress, 2, 1)
+        layout.addWidget(self.network_label, 3, 0, 1, 2)
+        
+        self.setLayout(layout)
+    
+    def setup_timer(self):
+        """타이머 설정"""
+        if PSUTIL_AVAILABLE:
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.update_system_info)
+            self.timer.start(2000)  # 2초마다 업데이트
+        
+    def update_system_info(self):
+        """시스템 정보 업데이트"""
+        if PSUTIL_AVAILABLE:
+            try:
+                # CPU 사용률
+                cpu_percent = psutil.cpu_percent(interval=1)
+                self.cpu_label.setText(f"CPU: {cpu_percent:.1f}%")
+                self.cpu_progress.setValue(int(cpu_percent))
+                
+                # 메모리 사용률
+                memory = psutil.virtual_memory()
+                memory_percent = memory.percent
+                self.memory_label.setText(f"메모리: {memory_percent:.1f}%")
+                self.memory_progress.setValue(int(memory_percent))
+                
+                # 네트워크 상태 (간단히)
+                self.network_label.setText("네트워크: 정상")
+                
+            except Exception as e:
+                self.cpu_label.setText("CPU: 오류")
+                self.memory_label.setText("메모리: 오류")
+                self.network_label.setText(f"시스템 정보 오류: {e}")
 
 class LogDisplayWidget(QWidget):
     """로그 표시 위젯"""
     
-    def __init__(self):
+    def __init__(self, max_lines=1000):
         super().__init__()
+        self.max_lines = max_lines
         self.setup_ui()
         
     def setup_ui(self):
         layout = QVBoxLayout()
         
-        # 헤더
-        header_layout = QHBoxLayout()
-        header_label = QLabel("📝 거래 로그")
-        header_label.setFont(QFont("Arial", 12, QFont.Bold))
-        
-        # 클리어 버튼
-        clear_btn = QPushButton("🗑️ 지우기")
-        clear_btn.setMaximumWidth(80)
-        clear_btn.clicked.connect(self.clear_logs)
-        
-        header_layout.addWidget(header_label)
-        header_layout.addStretch()
-        header_layout.addWidget(clear_btn)
-        
-        layout.addLayout(header_layout)
-        
-        # 로그 텍스트
+        # 로그 텍스트 에리어
         self.log_text = QTextEdit()
-        self.log_text.setMaximumHeight(200)
         self.log_text.setReadOnly(True)
+        self.log_text.setFont(QFont("Consolas", 10))
         self.log_text.setStyleSheet("""
             QTextEdit {
-                background-color: #1e1e1e;
+                background-color: #1a1a1a;
                 color: #ffffff;
-                font-family: 'Consolas', 'Monaco', monospace;
-                font-size: 11px;
-                border: 1px solid #555;
+                border: 1px solid #3a3a3a;
             }
         """)
         
+        # 제어 버튼
+        button_layout = QHBoxLayout()
+        
+        self.clear_btn = QPushButton("Clear")
+        self.clear_btn.clicked.connect(self.clear_logs)
+        
+        self.auto_scroll_cb = QCheckBox("자동 스크롤")
+        self.auto_scroll_cb.setChecked(True)
+        
+        button_layout.addWidget(self.clear_btn)
+        button_layout.addWidget(self.auto_scroll_cb)
+        button_layout.addStretch()
+        
         layout.addWidget(self.log_text)
+        layout.addLayout(button_layout)
+        
         self.setLayout(layout)
     
-    def add_log(self, message: str, level: str = "INFO"):
-        """로그 추가"""
+    def add_log(self, message: str):
+        """로그 메시지 추가"""
         timestamp = datetime.now().strftime("%H:%M:%S")
+        formatted_message = f"[{timestamp}] {message}"
         
-        # 레벨별 색상
-        colors = {
-            "INFO": "#FFFFFF",
-            "SUCCESS": "#4CAF50", 
-            "WARNING": "#FFA500",
-            "ERROR": "#F44336",
-            "DEBUG": "#9E9E9E"
-        }
+        self.log_text.append(formatted_message)
         
-        color = colors.get(level, "#FFFFFF")
-        formatted_msg = f'<span style="color: {color}">[{timestamp}] {message}</span>'
+        # 최대 라인 수 제한
+        if self.log_text.document().lineCount() > self.max_lines:
+            cursor = self.log_text.textCursor()
+            cursor.movePosition(cursor.Start)
+            cursor.select(cursor.LineUnderCursor)
+            cursor.removeSelectedText()
+            cursor.deleteChar()  # 개행 문자 제거
         
-        self.log_text.append(formatted_msg)
-        
-        # 스크롤을 맨 아래로
-        cursor = self.log_text.textCursor()
-        cursor.movePosition(cursor.End)
-        self.log_text.setTextCursor(cursor)
+        # 자동 스크롤
+        if self.auto_scroll_cb.isChecked():
+            scrollbar = self.log_text.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
     
     def clear_logs(self):
-        """로그 지우기"""
+        """로그 클리어"""
         self.log_text.clear()
+        self.add_log("로그가 클리어되었습니다.")
 
-class SystemMonitorWidget(QWidget):
-    """시스템 모니터링 위젯"""
+class StatusIndicatorWidget(QWidget):
+    """상태 표시 위젯"""
+    
+    def __init__(self, title: str):
+        super().__init__()
+        self.title = title
+        self.setup_ui()
+        
+    def setup_ui(self):
+        layout = QHBoxLayout()
+        
+        self.title_label = QLabel(self.title)
+        self.status_label = QLabel("●")
+        self.status_label.setFont(QFont("Arial", 16))
+        self.status_text = QLabel("연결 중...")
+        
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.status_text)
+        layout.addStretch()
+        
+        self.setLayout(layout)
+        
+        # 초기 상태
+        self.set_status("connecting")
+    
+    def set_status(self, status: str, message: str = ""):
+        """상태 설정"""
+        if status == "connected":
+            self.status_label.setStyleSheet("color: #00ff00")
+            self.status_text.setText(message or "연결됨")
+        elif status == "disconnected":
+            self.status_label.setStyleSheet("color: #ff0000")
+            self.status_text.setText(message or "연결 끊어짐")
+        elif status == "signal_lost":
+            self.status_label.setStyleSheet("color: #ff0000")
+            self.status_text.setText("SIGNAL LOST")
+        else:  # connecting
+            self.status_label.setStyleSheet("color: #ffaa00")
+            self.status_text.setText(message or "연결 중...")
+
+class BalanceDisplayWidget(QWidget):
+    """잔고 표시 위젯"""
     
     def __init__(self):
         super().__init__()
+        self.signal_lost = False
         self.setup_ui()
         
-        # 업데이트 타이머
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.update_stats)
-        self.update_timer.start(5000)  # 5초마다 업데이트
-        
     def setup_ui(self):
-        layout = QVBoxLayout()
+        layout = QGridLayout()
         
-        # 헤더
-        header_label = QLabel("🖥️ 시스템 모니터")
-        header_label.setFont(QFont("Arial", 12, QFont.Bold))
-        layout.addWidget(header_label)
+        # 총 자산
+        self.total_label = QLabel("총 자산:")
+        self.total_value = QLabel("$--")
+        self.total_value.setFont(QFont("Arial", 16, QFont.Bold))
         
-        # 시스템 정보
-        info_layout = QFormLayout()
+        # 사용 가능 자산
+        self.available_label = QLabel("사용 가능:")
+        self.available_value = QLabel("$--")
         
-        self.cpu_label = QLabel("0%")
-        self.memory_label = QLabel("0%")
-        self.network_label = QLabel("0 KB/s")
+        # 미실현 손익
+        self.pnl_label = QLabel("미실현 손익:")
+        self.pnl_value = QLabel("$--")
         
-        # CPU 진행바
-        self.cpu_bar = QProgressBar()
-        self.cpu_bar.setMaximum(100)
+        # Signal Lost 표시
+        self.signal_lost_label = QLabel("")
+        self.signal_lost_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.signal_lost_label.setStyleSheet("color: #ff0000")
+        self.signal_lost_label.hide()
         
-        # 메모리 진행바
-        self.memory_bar = QProgressBar()
-        self.memory_bar.setMaximum(100)
+        layout.addWidget(self.total_label, 0, 0)
+        layout.addWidget(self.total_value, 0, 1)
+        layout.addWidget(self.available_label, 1, 0)
+        layout.addWidget(self.available_value, 1, 1)
+        layout.addWidget(self.pnl_label, 2, 0)
+        layout.addWidget(self.pnl_value, 2, 1)
+        layout.addWidget(self.signal_lost_label, 3, 0, 1, 2)
         
-        info_layout.addRow("CPU:", self.cpu_bar)
-        info_layout.addRow("", self.cpu_label)
-        info_layout.addRow("메모리:", self.memory_bar)
-        info_layout.addRow("", self.memory_label)
-        info_layout.addRow("네트워크:", self.network_label)
-        
-        layout.addLayout(info_layout)
         self.setLayout(layout)
     
-    def update_stats(self):
-        """시스템 통계 업데이트"""
-        if PSUTIL_AVAILABLE:
-            try:
-                # CPU 사용률
-                cpu_percent = psutil.cpu_percent()
-                self.cpu_bar.setValue(int(cpu_percent))
-                self.cpu_label.setText(f"{cpu_percent:.1f}%")
-                
-                # 메모리 사용률
-                memory = psutil.virtual_memory()
-                self.memory_bar.setValue(int(memory.percent))
-                self.memory_label.setText(f"{memory.percent:.1f}%")
-                
-                # 네트워크 (간단한 표시)
-                self.network_label.setText("N/A")
-                
-            except Exception as e:
-                print(f"시스템 모니터링 오류: {e}")
+    def update_balance(self, balance_data: Dict[str, Any]):
+        """잔고 업데이트 - 실제 데이터만"""
+        if self.signal_lost:
+            return
+            
+        total = balance_data.get('total_equity', 0)
+        available = balance_data.get('available_balance', 0)
+        pnl = balance_data.get('unrealized_pnl', 0)
+        
+        self.total_value.setText(f"${total:,.2f}")
+        self.total_value.setStyleSheet("color: #00ff00")
+        
+        self.available_value.setText(f"${available:,.2f}")
+        
+        self.pnl_value.setText(f"${pnl:+,.2f}")
+        if pnl > 0:
+            self.pnl_value.setStyleSheet("color: #00ff00")
+        elif pnl < 0:
+            self.pnl_value.setStyleSheet("color: #ff0000")
         else:
-            self.cpu_label.setText("psutil 필요")
-            self.memory_label.setText("psutil 필요")
+            self.pnl_value.setStyleSheet("color: #ffffff")
+    
+    def show_signal_lost(self):
+        """Signal Lost 상태 표시"""
+        self.signal_lost = True
+        self.signal_lost_label.setText("🚨 SIGNAL LOST")
+        self.signal_lost_label.show()
+        
+        # 모든 값을 Signal Lost로 변경
+        self.total_value.setText("SIGNAL LOST")
+        self.total_value.setStyleSheet("color: #ff0000")
+        self.available_value.setText("SIGNAL LOST")
+        self.available_value.setStyleSheet("color: #ff0000")
+        self.pnl_value.setText("SIGNAL LOST")
+        self.pnl_value.setStyleSheet("color: #ff0000")
+    
+    def restore_connection(self):
+        """연결 복구 시 호출"""
+        self.signal_lost = False
+        self.signal_lost_label.hide()
