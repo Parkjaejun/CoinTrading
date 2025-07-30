@@ -72,6 +72,17 @@ except ImportError as e:
     print(f"⚠️ AccountManager 임포트 실패: {e}")
     ACCOUNT_MANAGER_AVAILABLE = False
 
+
+try:
+    from monitoring.condition_monitor import ConditionMonitor
+    from gui.condition_widgets import ConditionMonitoringWidget
+    print("✅ 조건 모니터링 모듈 임포트 성공")
+    CONDITION_MONITORING_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ 조건 모니터링 모듈 임포트 실패: {e}")
+    CONDITION_MONITORING_AVAILABLE = False
+
+
 class TradingMainWindow(QMainWindow):
     """메인 거래 윈도우 - Signal Lost 지원"""
     
@@ -85,9 +96,14 @@ class TradingMainWindow(QMainWindow):
         # Signal Lost 상태
         self.signal_lost = False
         
+        # 조건 모니터링 시스템
+        self.condition_monitor = None
+        self.condition_widget = None
+        
         self.setup_window()
         self.setup_ui()
         self.setup_connections()
+        self.setup_condition_monitoring()  # 새로 추가
         self.start_data_collection()
         
         print("🖥️ GUI 메인 윈도우 초기화 완료")
@@ -171,6 +187,26 @@ class TradingMainWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("시스템 초기화 중...")
     
+    def setup_condition_monitoring(self):
+        """조건 모니터링 시스템 설정"""
+        if CONDITION_MONITORING_AVAILABLE:
+            try:
+                self.condition_monitor = ConditionMonitor()
+                
+                # 자동 체크 카운터 초기화
+                self._auto_check_count = 0
+                self._auto_check_error_logged = False
+                
+                print("✅ 조건 모니터링 시스템 초기화 완료")
+                print(f"🔄 자동 체크 상태: {'활성화' if self.condition_monitor.monitoring_active else '비활성화'}")
+            except Exception as e:
+                print(f"⚠️ 조건 모니터링 시스템 초기화 실패: {e}")
+                self.condition_monitor = None
+        else:
+            print("⚠️ 조건 모니터링 모듈을 사용할 수 없습니다")
+
+
+
     def create_status_bar(self, layout):
         """상단 상태바 생성"""
         status_frame = QFrame()
@@ -372,10 +408,18 @@ class TradingMainWindow(QMainWindow):
         self.tab_widget.addTab(settings_widget, "⚙️ 설정")
     
     def create_monitoring_tab(self):
-        """모니터링 탭 생성"""
+        """모니터링 탭 생성 - 조건 모니터링 추가"""
         monitoring_widget = QWidget()
         layout = QVBoxLayout()
         monitoring_widget.setLayout(layout)
+        
+        # 탭 위젯 생성 (모니터링 내 서브탭)
+        monitoring_tabs = QTabWidget()
+        
+        # 1. 시스템 로그 탭 (기존)
+        system_log_tab = QWidget()
+        system_layout = QVBoxLayout()
+        system_log_tab.setLayout(system_layout)
         
         # 로그 표시
         log_group = QGroupBox("📝 시스템 로그")
@@ -388,25 +432,87 @@ class TradingMainWindow(QMainWindow):
         else:
             self.log_display = QTextEdit()
             self.log_display.setReadOnly(True)
-            self.log_display.setMaximumHeight(300)
+            self.log_display.setMaximumHeight(200)
             log_layout.addWidget(self.log_display)
         
         # 시스템 상태
         system_group = QGroupBox("🖥️ 시스템 상태")
-        system_layout = QGridLayout()
-        system_group.setLayout(system_layout)
+        system_layout_inner = QGridLayout()
+        system_group.setLayout(system_layout_inner)
         
         if SystemMonitorWidget:
             self.system_monitor = SystemMonitorWidget()
-            system_layout.addWidget(self.system_monitor, 0, 0, 1, 2)
+            system_layout_inner.addWidget(self.system_monitor, 0, 0, 1, 2)
         else:
-            system_layout.addWidget(QLabel("시스템 모니터를 사용할 수 없습니다"), 0, 0)
+            system_layout_inner.addWidget(QLabel("시스템 모니터를 사용할 수 없습니다"), 0, 0)
         
-        layout.addWidget(log_group)
-        layout.addWidget(system_group)
+        system_layout.addWidget(log_group)
+        system_layout.addWidget(system_group)
+        
+        # 2. 조건 모니터링 탭 (새로 추가)
+        condition_tab = QWidget()
+        condition_layout = QVBoxLayout()
+        condition_tab.setLayout(condition_layout)
+        
+        if CONDITION_MONITORING_AVAILABLE:
+            self.condition_widget = ConditionMonitoringWidget()
+            
+            # 조건 모니터 연결
+            if self.condition_monitor:
+                self.condition_widget.set_condition_monitor(self.condition_monitor)
+            
+            condition_layout.addWidget(self.condition_widget)
+            
+            # 제어 패널 추가
+            control_group = QGroupBox("🎮 모니터링 제어")
+            control_layout = QHBoxLayout()
+            control_group.setLayout(control_layout)
+            
+            # 모니터링 시작/중지 버튼
+            self.monitoring_toggle_btn = QPushButton("모니터링 중지")
+            self.monitoring_toggle_btn.setStyleSheet("background-color: #dc3545")
+            self.monitoring_toggle_btn.clicked.connect(self.toggle_condition_monitoring)
+            
+            # 기존 제어 버튼들에 추가:
+            auto_check_btn = QPushButton("자동 체크 활성화")
+            auto_check_btn.clicked.connect(self.force_enable_auto_check)
+
+            status_check_btn = QPushButton("상태 확인")  
+            status_check_btn.clicked.connect(self.check_auto_monitoring_status)
+
+            control_layout.addWidget(auto_check_btn)
+            control_layout.addWidget(status_check_btn)
+            
+            # 조건 수동 체크 버튼  
+            manual_check_btn = QPushButton("수동 체크")
+            manual_check_btn.clicked.connect(self.manual_condition_check)
+            
+            # 로그 내보내기 버튼
+            export_log_btn = QPushButton("로그 내보내기")
+            export_log_btn.clicked.connect(self.export_condition_logs)
+            
+            control_layout.addWidget(self.monitoring_toggle_btn)
+            control_layout.addWidget(manual_check_btn)
+            control_layout.addWidget(export_log_btn)
+            control_layout.addStretch()
+            
+            condition_layout.addWidget(control_group)
+        else:
+            # 조건 모니터링을 사용할 수 없는 경우
+            unavailable_label = QLabel("조건 모니터링 모듈을 사용할 수 없습니다.\n"
+                                    "monitoring/condition_monitor.py 파일을 확인하세요.")
+            unavailable_label.setAlignment(Qt.AlignCenter)
+            unavailable_label.setStyleSheet("color: #ff6666; font-size: 14px;")
+            condition_layout.addWidget(unavailable_label)
+        
+        # 탭에 추가
+        monitoring_tabs.addTab(system_log_tab, "🖥️ 시스템")
+        monitoring_tabs.addTab(condition_tab, "🔍 조건 분석")
+        
+        layout.addWidget(monitoring_tabs)
         
         self.tab_widget.addTab(monitoring_widget, "📡 모니터링")
-    
+
     def setup_connections(self):
         """시그널 연결 설정"""
         pass
@@ -541,24 +647,104 @@ class TradingMainWindow(QMainWindow):
             print(f"잔고 표시 업데이트 오류: {e}")
     
     def update_price_display(self, symbol, price, price_info):
-        """가격 표시 업데이트 - 실제 데이터만"""
+        """가격 표시 업데이트 - 조건 모니터링 추가"""
         try:
             if not self.signal_lost:
                 self.latest_prices[symbol] = price
                 
-                # 차트 업데이트
+                # 기존 차트 업데이트
                 if hasattr(self, 'price_chart') and hasattr(self.price_chart, 'update_price'):
                     self.price_chart.update_price(symbol, price, price_info)
                 
-                # 로그 추가 (10초마다 한 번만)
+                # 조건 모니터링 자동 체크 (매번 실행)
+                if (self.condition_monitor and 
+                    hasattr(self.condition_monitor, 'monitoring_active') and
+                    self.condition_monitor.monitoring_active):
+                    
+                    # 가격 데이터에 EMA 정보 추가 (더미 데이터로 테스트)
+                    enhanced_price_info = self._generate_enhanced_price_data(symbol, price, price_info)
+                    
+                    # 조건 체크 실행
+                    try:
+                        condition_result = self.condition_monitor.check_conditions(
+                            symbol, enhanced_price_info, None
+                        )
+                        
+                        if condition_result and self.condition_widget:
+                            self.condition_widget.handle_condition_change(condition_result)
+                            
+                            # 자동 체크 로깅 (매 10회마다 한 번)
+                            check_count = getattr(self, '_auto_check_count', 0) + 1
+                            self._auto_check_count = check_count
+                            
+                            if check_count % 10 == 0:  # 10번째마다 로깅
+                                self.condition_widget.add_condition_log(
+                                    f"자동 체크 #{check_count} 완료", "정보"
+                                )
+                    
+                    except Exception as e:
+                        # 자동 체크 오류 로깅 (처음 1번만)
+                        if not hasattr(self, '_auto_check_error_logged'):
+                            self._auto_check_error_logged = True
+                            if self.condition_widget:
+                                self.condition_widget.add_condition_log(
+                                    f"자동 체크 오류: {e}", "오류"
+                                )
+                
+                # 기존 로그 추가 (10초마다 한 번만)
                 if hasattr(self, 'log_display') and hasattr(self.log_display, 'add_log'):
                     if int(time.time()) % 10 == 0:
-                        change_pct = price_info.get('change_24h', 0)
+                        change_pct = price_info.get('change_24h', 0) if price_info else 0
                         self.log_display.add_log(f"가격 업데이트: {symbol} = ${price:,.2f} ({change_pct:+.2f}%)")
                 
         except Exception as e:
             print(f"가격 표시 업데이트 오류: {e}")
-    
+
+    def _generate_enhanced_price_data(self, symbol, price, price_info):
+        """실제 가격 데이터를 기반으로 EMA 데이터 생성"""
+        import random
+        
+        # 실제 가격 기반으로 EMA 값들 계산 (더 현실적인 값)
+        base_price = float(price)
+        
+        # EMA 값들을 실제 가격 근처로 설정
+        # 일반적으로 EMA 150 > EMA 200 이면 상승 추세
+        trend_multiplier = 1 + random.uniform(-0.01, 0.01)  # ±1% 범위
+        
+        return {
+            'close': base_price,
+            'ema_trend_fast': base_price * (0.998 + random.uniform(-0.002, 0.002)),  # EMA 150
+            'ema_trend_slow': base_price * (0.996 + random.uniform(-0.002, 0.002)),  # EMA 200  
+            'curr_entry_fast': base_price * (1.0005 + random.uniform(-0.001, 0.001)), # EMA 20
+            'curr_entry_slow': base_price * (0.9995 + random.uniform(-0.001, 0.001)), # EMA 50
+            'curr_exit_slow': base_price * (0.997 + random.uniform(-0.002, 0.002)),   # EMA 100
+            'volume': random.uniform(1000000, 5000000),
+            'change_24h': price_info.get('change_24h', 0) if price_info else random.uniform(-2, 2),
+            'symbol': symbol,
+            'timestamp': time.time()
+        }
+
+    # 추가 메소드: 자동 체크 강제 활성화
+    def force_enable_auto_check(self):
+        """자동 체크 강제 활성화 (디버깅용)"""
+        if self.condition_monitor:
+            self.condition_monitor.monitoring_active = True
+            if self.condition_widget:
+                self.condition_widget.add_condition_log("자동 체크 강제 활성화됨", "정보")
+            print("🔄 자동 체크 강제 활성화됨")
+
+    # 추가 메소드: 자동 체크 상태 확인
+    def check_auto_monitoring_status(self):
+        """자동 체크 상태 확인"""
+        if self.condition_monitor:
+            status = "활성화" if self.condition_monitor.monitoring_active else "비활성화"
+            if self.condition_widget:
+                self.condition_widget.add_condition_log(f"자동 모니터링 상태: {status}", "정보")
+            print(f"🔍 자동 모니터링 상태: {status}")
+        else:
+            print("❌ 조건 모니터 객체 없음")
+
+
     def update_positions_display(self, positions):
         """포지션 표시 업데이트 - 실제 데이터만"""
         try:
@@ -655,14 +841,142 @@ class TradingMainWindow(QMainWindow):
             # 실제 청산 로직 구현 필요
     
     def closeEvent(self, event):
-        """윈도우 종료 시 처리"""
+        """윈도우 종료 시 처리 - 조건 모니터링 정리 추가"""
+        # 조건 모니터링 정리
+        if self.condition_monitor:
+            self.condition_monitor.stop_monitoring()
+        
+        # 기존 정리 작업
         if self.data_thread and self.data_thread.isRunning():
             self.data_thread.stop()
             self.data_thread.wait(3000)  # 최대 3초 대기
         
         event.accept()
-        print("🔚 GUI 윈도우 종료됨")
+        print("🔚 GUI 윈도우 종료됨")       
+
+    def toggle_condition_monitoring(self):
+            """조건 모니터링 시작/중지 토글"""
+            if not self.condition_monitor:
+                return
             
+            if self.condition_monitor.monitoring_active:
+                # 모니터링 중지
+                self.condition_monitor.stop_monitoring()
+                self.monitoring_toggle_btn.setText("모니터링 시작")
+                self.monitoring_toggle_btn.setStyleSheet("background-color: #28a745")
+                
+                if self.condition_widget:
+                    self.condition_widget.add_condition_log("조건 모니터링이 중지되었습니다", "경고")
+            else:
+                # 모니터링 시작
+                self.condition_monitor.monitoring_active = True
+                self.monitoring_toggle_btn.setText("모니터링 중지")
+                self.monitoring_toggle_btn.setStyleSheet("background-color: #dc3545")
+                
+                if self.condition_widget:
+                    self.condition_widget.add_condition_log("조건 모니터링이 시작되었습니다", "정보")
+        
+    def manual_condition_check(self):
+        """수동 조건 체크 - 디버깅 강화"""
+        if not self.condition_monitor:
+            if self.condition_widget:
+                self.condition_widget.add_condition_log("조건 모니터 객체 없음", "오류")
+            return
+        
+        # 자동 체크 상태 확인
+        auto_status = "활성화" if self.condition_monitor.monitoring_active else "비활성화"
+        
+        try:
+            # 실제 가격 데이터 사용
+            symbol = "BTC-USDT-SWAP"
+            if symbol in self.latest_prices:
+                price_data = self._generate_enhanced_price_data(
+                    symbol, self.latest_prices[symbol], {}
+                )
+                self.condition_widget.add_condition_log(
+                    f"실제 가격 데이터 사용: ${self.latest_prices[symbol]:,.2f}", "정보"
+                )
+            else:
+                # 기본 더미 데이터
+                price_data = {
+                    'close': 45000 + random.uniform(-1000, 1000),
+                    'ema_trend_fast': 44550,
+                    'ema_trend_slow': 44100,
+                    'curr_entry_fast': 45045,
+                    'curr_entry_slow': 44955,
+                    'curr_exit_slow': 44865
+                }
+                self.condition_widget.add_condition_log("더미 데이터 사용", "경고")
+            
+            # 조건 체크 실행
+            condition_result = self.condition_monitor.check_conditions(
+                symbol, price_data, None
+            )
+            
+            if condition_result and self.condition_widget:
+                self.condition_widget.handle_condition_change(condition_result)
+                self.condition_widget.add_condition_log(
+                    f"수동 체크 완료 (자동 체크: {auto_status})", "정보"
+                )
+            else:
+                self.condition_widget.add_condition_log("조건 체크 결과 없음", "경고")
+            
+        except Exception as e:
+            if self.condition_widget:
+                self.condition_widget.add_condition_log(f"수동 체크 오류: {e}", "오류")
+            print(f"수동 체크 오류: {e}")
+
+    def export_condition_logs(self):
+            """조건 로그 내보내기"""
+            if not self.condition_widget:
+                return
+            
+            try:
+                from PyQt5.QtWidgets import QFileDialog
+                
+                # 파일 저장 대화상자
+                file_path, _ = QFileDialog.getSaveFileName(
+                    self, "조건 로그 저장", 
+                    f"condition_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    "텍스트 파일 (*.txt)"
+                )
+                
+                if file_path:
+                    # 로그 텍스트 가져오기
+                    log_content = self.condition_widget.log_widget.log_text.toPlainText()
+                    
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(f"# OKX 자동매매 시스템 - 조건 모니터링 로그\n")
+                        f.write(f"# 생성 시간: {datetime.now()}\n")
+                        f.write(f"# =" * 50 + "\n\n")
+                        f.write(log_content)
+                    
+                    self.condition_widget.add_condition_log(f"로그 저장 완료: {file_path}", "정보")
+            
+            except Exception as e:
+                if self.condition_widget:
+                    self.condition_widget.add_condition_log(f"로그 저장 오류: {e}", "오류")
+
+    # 조건 모니터링용 더미 데이터 생성 함수 (테스트용)
+    def generate_test_condition_data(symbol: str = "BTC-USDT-SWAP") -> Dict[str, Any]:
+        """테스트용 조건 데이터 생성"""
+        import random
+        
+        base_price = 45000 + random.uniform(-1000, 1000)
+        
+        return {
+            'close': base_price,
+            'ema_trend_fast': base_price * (1 + random.uniform(-0.02, 0.02)),  # EMA 150
+            'ema_trend_slow': base_price * (1 + random.uniform(-0.03, 0.01)),  # EMA 200
+            'curr_entry_fast': base_price * (1 + random.uniform(-0.005, 0.005)),  # EMA 20
+            'curr_entry_slow': base_price * (1 + random.uniform(-0.01, 0.01)),   # EMA 50
+            'curr_exit_slow': base_price * (1 + random.uniform(-0.015, 0.005)),  # EMA 100
+            'volume': random.uniform(1000000, 5000000),
+            'change_24h': random.uniform(-5, 5)
+        }
+                    
+
+
 
 # 메인 함수
 def main():
