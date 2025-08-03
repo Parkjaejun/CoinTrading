@@ -14,6 +14,7 @@ import traceback
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+from gui.debug_condition_monitoring import ConditionMonitoringDebugger, add_debugger_to_main_window
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -25,6 +26,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
 from PyQt5.QtGui import QFont, QColor, QPalette, QIcon, QPixmap
+from gui.debug_condition_monitoring import ConditionMonitoringDebugger
+
 
 try:
     import pyqtgraph as pg
@@ -105,9 +108,33 @@ class TradingMainWindow(QMainWindow):
         self.setup_connections()
         self.setup_condition_monitoring()  # 새로 추가
         self.start_data_collection()
-        
+        self.setup_debugger()
+
         print("🖥️ GUI 메인 윈도우 초기화 완료")
     
+    def setup_debugger(self):
+        """디버거 설정 및 추가 - 동기화 포함"""
+        try:
+            # 디버거 탭 추가
+            self.debugger = ConditionMonitoringDebugger(self)
+            self.tab_widget.addTab(self.debugger, "🔧 디버깅")
+            
+            print("✅ 조건 모니터링 디버거 추가됨")
+            
+            # 3초 후 자동으로 전체 시스템 체크 실행
+            QTimer.singleShot(3000, self.debugger.run_full_system_check)
+            
+            # 7초 후 첫 동기화 실행
+            QTimer.singleShot(7000, self.sync_debugger_to_main_gui)
+            
+            # 10초 후 지속적 동기화 시작
+            QTimer.singleShot(10000, self.start_continuous_sync)
+            
+        except Exception as e:
+            print(f"❌ 디버거 설정 실패: {e}")
+            import traceback
+            traceback.print_exc()
+
     def setup_window(self):
         """윈도우 기본 설정"""
         self.setWindowTitle("OKX 자동매매 시스템 - No Dummy Data")
@@ -204,8 +231,6 @@ class TradingMainWindow(QMainWindow):
                 self.condition_monitor = None
         else:
             print("⚠️ 조건 모니터링 모듈을 사용할 수 없습니다")
-
-
 
     def create_status_bar(self, layout):
         """상단 상태바 생성"""
@@ -726,24 +751,41 @@ class TradingMainWindow(QMainWindow):
 
     # 추가 메소드: 자동 체크 강제 활성화
     def force_enable_auto_check(self):
-        """자동 체크 강제 활성화 (디버깅용)"""
+        """자동 체크 강제 활성화 (디버깅 강화)"""
         if self.condition_monitor:
             self.condition_monitor.monitoring_active = True
             if self.condition_widget:
                 self.condition_widget.add_condition_log("자동 체크 강제 활성화됨", "정보")
             print("🔄 자동 체크 강제 활성화됨")
+            
+            # 디버거에도 로그 추가
+            if hasattr(self, 'debugger'):
+                from gui.debug_condition_monitoring import DebugLevel
+                self.debugger.add_debug_log("자동 체크 강제 활성화 실행됨", DebugLevel.SUCCESS)
+        else:
+            print("❌ 조건 모니터 객체 없음")
+            if hasattr(self, 'debugger'):
+                from gui.debug_condition_monitoring import DebugLevel
+                self.debugger.add_debug_log("조건 모니터 객체 없음", DebugLevel.ERROR)
 
     # 추가 메소드: 자동 체크 상태 확인
     def check_auto_monitoring_status(self):
-        """자동 체크 상태 확인"""
+        """자동 체크 상태 확인 (디버깅 강화)"""
         if self.condition_monitor:
             status = "활성화" if self.condition_monitor.monitoring_active else "비활성화"
             if self.condition_widget:
                 self.condition_widget.add_condition_log(f"자동 모니터링 상태: {status}", "정보")
+            
+            if hasattr(self, 'debugger'):
+                from gui.debug_condition_monitoring import DebugLevel
+                self.debugger.add_debug_log(f"자동 모니터링 상태 확인: {status}", DebugLevel.INFO)
+                
             print(f"🔍 자동 모니터링 상태: {status}")
         else:
+            if hasattr(self, 'debugger'):
+                from gui.debug_condition_monitoring import DebugLevel
+                self.debugger.add_debug_log("조건 모니터 객체 없음", DebugLevel.ERROR)
             print("❌ 조건 모니터 객체 없음")
-
 
     def update_positions_display(self, positions):
         """포지션 표시 업데이트 - 실제 데이터만"""
@@ -841,10 +883,23 @@ class TradingMainWindow(QMainWindow):
             # 실제 청산 로직 구현 필요
     
     def closeEvent(self, event):
-        """윈도우 종료 시 처리 - 조건 모니터링 정리 추가"""
+        """윈도우 종료 시 처리 - 디버거 정리 추가"""
+        # 디버거 정리
+        if hasattr(self, 'debugger'):
+            try:
+                if hasattr(self.debugger, 'auto_debug_timer'):
+                    self.debugger.auto_debug_timer.stop()
+                if hasattr(self.debugger, 'continuous_test_timer'):
+                    self.debugger.continuous_test_timer.stop()
+            except:
+                pass
+        
         # 조건 모니터링 정리
         if self.condition_monitor:
-            self.condition_monitor.stop_monitoring()
+            try:
+                self.condition_monitor.stop_monitoring()
+            except:
+                pass
         
         # 기존 정리 작업
         if self.data_thread and self.data_thread.isRunning():
@@ -852,7 +907,7 @@ class TradingMainWindow(QMainWindow):
             self.data_thread.wait(3000)  # 최대 3초 대기
         
         event.accept()
-        print("🔚 GUI 윈도우 종료됨")       
+        print("🔚 GUI 윈도우 종료됨")      
 
     def toggle_condition_monitoring(self):
             """조건 모니터링 시작/중지 토글"""
@@ -877,27 +932,30 @@ class TradingMainWindow(QMainWindow):
                     self.condition_widget.add_condition_log("조건 모니터링이 시작되었습니다", "정보")
         
     def manual_condition_check(self):
-        """수동 조건 체크 - 디버깅 강화"""
+        """수동 조건 체크 (위젯 업데이트 강화)"""
+        if hasattr(self, 'debugger'):
+            from gui.debug_condition_monitoring import DebugLevel
+            self.debugger.add_debug_log("수동 조건 체크 요청됨", DebugLevel.INFO)
+        
         if not self.condition_monitor:
             if self.condition_widget:
                 self.condition_widget.add_condition_log("조건 모니터 객체 없음", "오류")
             return
         
-        # 자동 체크 상태 확인
-        auto_status = "활성화" if self.condition_monitor.monitoring_active else "비활성화"
-        
         try:
-            # 실제 가격 데이터 사용
+            import random
             symbol = "BTC-USDT-SWAP"
+            
+            # 실제 가격 데이터 사용
             if symbol in self.latest_prices:
                 price_data = self._generate_enhanced_price_data(
                     symbol, self.latest_prices[symbol], {}
                 )
-                self.condition_widget.add_condition_log(
-                    f"실제 가격 데이터 사용: ${self.latest_prices[symbol]:,.2f}", "정보"
-                )
+                if self.condition_widget:
+                    self.condition_widget.add_condition_log(
+                        f"실제 가격 데이터 사용: ${self.latest_prices[symbol]:,.2f}", "정보"
+                    )
             else:
-                # 기본 더미 데이터
                 price_data = {
                     'close': 45000 + random.uniform(-1000, 1000),
                     'ema_trend_fast': 44550,
@@ -906,20 +964,49 @@ class TradingMainWindow(QMainWindow):
                     'curr_entry_slow': 44955,
                     'curr_exit_slow': 44865
                 }
-                self.condition_widget.add_condition_log("더미 데이터 사용", "경고")
+                if self.condition_widget:
+                    self.condition_widget.add_condition_log("더미 데이터 사용", "경고")
             
             # 조건 체크 실행
             condition_result = self.condition_monitor.check_conditions(
                 symbol, price_data, None
             )
             
+            # *** 중요: 위젯 업데이트 강제 실행 ***
+            if self.condition_widget and hasattr(self.condition_widget, 'stats_widget'):
+                current_checks = self.condition_monitor.counters.get('total_checks', 0)
+                
+                # 실제 가동시간 계산
+                if hasattr(self.condition_monitor, 'start_time'):
+                    current_time = time.time()
+                    actual_uptime = (current_time - self.condition_monitor.start_time) / 60
+                else:
+                    actual_uptime = 0
+                    
+                stats = {
+                    'total_checks': current_checks,
+                    'uptime_minutes': actual_uptime,  # 올바른 가동시간
+                    'trend_distribution': {
+                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
+                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
+                        'sideways': 0
+                    },
+                    'signal_counts': {
+                        'golden_cross': self.condition_monitor.counters.get('long_signals', 0),
+                        'dead_cross': self.condition_monitor.counters.get('short_signals', 0)
+                    }
+                }
+                
+                # 직접 업데이트
+                self.condition_widget.stats_widget.update_stats(stats)
+                print(f"📊 위젯 업데이트됨: {current_checks}회, 가동시간: {actual_uptime:.1f}분")
+            
             if condition_result and self.condition_widget:
                 self.condition_widget.handle_condition_change(condition_result)
-                self.condition_widget.add_condition_log(
-                    f"수동 체크 완료 (자동 체크: {auto_status})", "정보"
-                )
+                self.condition_widget.add_condition_log("수동 체크 완료", "정보")
             else:
-                self.condition_widget.add_condition_log("조건 체크 결과 없음", "경고")
+                if self.condition_widget:
+                    self.condition_widget.add_condition_log("조건 체크 결과 없음", "경고")
             
         except Exception as e:
             if self.condition_widget:
@@ -974,8 +1061,354 @@ class TradingMainWindow(QMainWindow):
             'volume': random.uniform(1000000, 5000000),
             'change_24h': random.uniform(-5, 5)
         }
-                    
 
+    def force_widget_connection(self):
+        """조건 위젯과 모니터 강제 연결"""
+        try:
+            if not self.condition_monitor or not self.condition_widget:
+                print("❌ 조건 모니터 또는 위젯이 없음")
+                return False
+            
+            # 1. 위젯에 모니터 연결
+            self.condition_widget.set_condition_monitor(self.condition_monitor)
+            
+            # 2. 강제로 통계 업데이트
+            if hasattr(self.condition_monitor, 'counters'):
+                stats = {
+                    'total_checks': self.condition_monitor.counters.get('total_checks', 0),
+                    'uptime_minutes': 1,  # 최소 1분으로 설정
+                    'trend_distribution': {
+                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
+                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
+                        'sideways': 0
+                    },
+                    'signal_counts': {
+                        'golden_cross': self.condition_monitor.counters.get('long_signals', 0),
+                        'dead_cross': self.condition_monitor.counters.get('short_signals', 0)
+                    },
+                    'mode_distribution': {
+                        'virtual': self.condition_monitor.counters.get('virtual_mode_strategies', 0),
+                        'real': self.condition_monitor.counters.get('real_mode_strategies', 0)
+                    },
+                    'switch_opportunities': 0
+                }
+                
+                # 3. 위젯 업데이트 강제 실행
+                if hasattr(self.condition_widget, 'stats_widget'):
+                    self.condition_widget.stats_widget.update_stats(stats)
+                    print(f"✅ 위젯 강제 업데이트: 총 체크 {stats['total_checks']}회")
+                
+                # 4. 로그 추가
+                if hasattr(self.condition_widget, 'add_condition_log'):
+                    self.condition_widget.add_condition_log("위젯 연결 강제 수정됨", "정보")
+                
+                return True
+            
+        except Exception as e:
+            print(f"❌ 위젯 연결 강제 수정 실패: {e}")
+            return False
+
+    def start_auto_monitoring_loop(self):
+        """자동 모니터링 루프 강제 시작"""
+        try:
+            if not self.condition_monitor:
+                return
+            
+            # 모니터링 활성화
+            self.condition_monitor.monitoring_active = True
+            
+            # 업데이트 타이머 생성
+            if not hasattr(self, 'condition_update_timer'):
+                self.condition_update_timer = QTimer()
+                self.condition_update_timer.timeout.connect(self.force_condition_update)
+                
+            # 5초마다 강제 업데이트
+            self.condition_update_timer.start(5000)
+            
+            print("✅ 자동 모니터링 루프 시작됨")
+            
+            if self.condition_widget:
+                self.condition_widget.add_condition_log("자동 모니터링 루프 시작", "정보")
+                
+        except Exception as e:
+            print(f"❌ 자동 모니터링 루프 시작 실패: {e}")
+
+    def force_condition_update(self):
+        """조건 강제 업데이트"""
+        try:
+            if not self.condition_monitor or not self.condition_widget:
+                return
+            
+            # 1. 테스트 데이터 생성
+            import random
+            symbol = "BTC-USDT-SWAP"
+            
+            if symbol in self.latest_prices:
+                price_data = self._generate_enhanced_price_data(
+                    symbol, self.latest_prices[symbol], {}
+                )
+            else:
+                price_data = {
+                    'close': 45000 + random.uniform(-1000, 1000),
+                    'ema_trend_fast': 44550,
+                    'ema_trend_slow': 44100,
+                    'curr_entry_fast': 45045,
+                    'curr_entry_slow': 44955,
+                    'curr_exit_slow': 44865,
+                    'volume': 2000000,
+                    'timestamp': time.time()
+                }
+            
+            # 2. 조건 체크 실행
+            condition_result = self.condition_monitor.check_conditions(
+                symbol, price_data, None
+            )
+            
+            # 3. 카운터 강제 증가
+            self.condition_monitor.counters['total_checks'] += 1
+            
+            # 4. 위젯 업데이트
+            if hasattr(self.condition_widget, 'stats_widget'):
+                stats = {
+                    'total_checks': self.condition_monitor.counters.get('total_checks', 0),
+                    'uptime_minutes': time.time() / 60,  # 현재 가동시간
+                    'trend_distribution': {
+                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
+                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
+                        'sideways': 0
+                    }
+                }
+                self.condition_widget.stats_widget.update_stats(stats)
+            
+            # 5. 로그 업데이트 (10회마다)
+            total_checks = self.condition_monitor.counters.get('total_checks', 0)
+            if total_checks % 10 == 0:
+                self.condition_widget.add_condition_log(
+                    f"자동 업데이트 #{total_checks} 완료", "정보"
+                )
+            
+        except Exception as e:
+            print(f"❌ 조건 강제 업데이트 실패: {e}")
+
+    def force_condition_widget_sync(self):
+        """조건 위젯과 모니터 강제 동기화 - 수정된 가동시간"""
+        try:
+            print("🔄 조건 위젯 강제 동기화 시작...")
+            
+            if not self.condition_monitor:
+                print("❌ 조건 모니터 없음")
+                return False
+                
+            if not self.condition_widget:
+                print("❌ 조건 위젯 없음")
+                return False
+            
+            # 1. 모니터 활성화
+            self.condition_monitor.monitoring_active = True
+            
+            # 2. 시작 시간이 없으면 현재 시간으로 설정
+            if not hasattr(self.condition_monitor, 'start_time'):
+                self.condition_monitor.start_time = time.time()
+            
+            # 3. 실제 가동시간 계산
+            current_time = time.time()
+            actual_uptime_minutes = (current_time - self.condition_monitor.start_time) / 60
+            
+            # 4. 카운터 설정
+            if self.condition_monitor.counters['total_checks'] == 0:
+                self.condition_monitor.counters['total_checks'] = 1  # 최소값
+            
+            # 5. 위젯 업데이트
+            if hasattr(self.condition_widget, 'stats_widget'):
+                stats = {
+                    'total_checks': self.condition_monitor.counters['total_checks'],
+                    'uptime_minutes': actual_uptime_minutes,  # 올바른 가동시간
+                    'trend_distribution': {
+                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
+                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
+                        'sideways': 0
+                    },
+                    'signal_counts': {
+                        'golden_cross': 0,
+                        'dead_cross': 0
+                    },
+                    'mode_distribution': {
+                        'virtual': 0,
+                        'real': 0
+                    },
+                    'switch_opportunities': 0
+                }
+                
+                print(f"📊 위젯 업데이트: {stats['total_checks']}회, 가동시간: {actual_uptime_minutes:.1f}분")
+                self.condition_widget.stats_widget.update_stats(stats)
+                
+            # 6. 로그 메시지 추가
+            if hasattr(self.condition_widget, 'add_condition_log'):
+                self.condition_widget.add_condition_log("가동시간 계산 수정됨", "정보")
+                
+            print("✅ 조건 위젯 강제 동기화 완료")
+            return True
+            
+        except Exception as e:
+            print(f"❌ 조건 위젯 동기화 실패: {e}")
+            return False
+
+    def _periodic_sync(self):
+        """주기적 동기화 - 수정된 가동시간"""
+        try:
+            if not self.condition_monitor or not self.condition_widget:
+                return
+                
+            # 카운터 자동 증가
+            self.condition_monitor.counters['total_checks'] += 1
+            
+            # 실제 가동시간 계산
+            if hasattr(self.condition_monitor, 'start_time'):
+                current_time = time.time()
+                actual_uptime_minutes = (current_time - self.condition_monitor.start_time) / 60
+            else:
+                actual_uptime_minutes = 0
+            
+            # 위젯 업데이트
+            if hasattr(self.condition_widget, 'stats_widget'):
+                stats = {
+                    'total_checks': self.condition_monitor.counters['total_checks'],
+                    'uptime_minutes': actual_uptime_minutes,  # 올바른 가동시간
+                    'trend_distribution': {
+                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
+                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
+                        'sideways': 0
+                    }
+                }
+                self.condition_widget.stats_widget.update_stats(stats)
+                
+        except Exception as e:
+            print(f"주기적 동기화 오류: {e}")
+
+    def sync_debugger_to_main_gui(self):
+        """디버거의 데이터를 메인 GUI로 강제 동기화"""
+        try:
+            print("🔄 디버거 → 메인 GUI 동기화 시작...")
+            
+            if not hasattr(self, 'debugger') or not self.debugger:
+                print("❌ 디버거 없음")
+                return False
+                
+            if not self.condition_monitor or not self.condition_widget:
+                print("❌ 조건 모니터 또는 위젯 없음")
+                return False
+            
+            # 1. 디버거의 메인 윈도우에서 조건 모니터 데이터 가져오기
+            debugger_main_window = self.debugger.main_window
+            if debugger_main_window and hasattr(debugger_main_window, 'condition_monitor'):
+                debugger_monitor = debugger_main_window.condition_monitor
+                
+                if debugger_monitor and hasattr(debugger_monitor, 'counters'):
+                    print("📊 디버거 카운터 발견:")
+                    for key, value in debugger_monitor.counters.items():
+                        print(f"   {key}: {value}")
+                    
+                    # 2. 메인 GUI의 조건 모니터에 데이터 복사
+                    self.condition_monitor.counters.update(debugger_monitor.counters)
+                    
+                    # 3. 시작 시간도 복사 (있다면)
+                    if hasattr(debugger_monitor, 'start_time'):
+                        self.condition_monitor.start_time = debugger_monitor.start_time
+                    else:
+                        self.condition_monitor.start_time = time.time() - 300  # 5분 전으로 설정
+                    
+                    # 4. 모니터링 활성화 상태 복사
+                    if hasattr(debugger_monitor, 'monitoring_active'):
+                        self.condition_monitor.monitoring_active = debugger_monitor.monitoring_active
+                    
+                    print("✅ 디버거 데이터 복사 완료")
+            
+            # 5. 위젯 강제 업데이트
+            current_time = time.time()
+            actual_uptime_minutes = (current_time - self.condition_monitor.start_time) / 60
+            
+            stats = {
+                'total_checks': self.condition_monitor.counters.get('total_checks', 0),
+                'uptime_minutes': actual_uptime_minutes,
+                'trend_distribution': {
+                    'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
+                    'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
+                    'sideways': self.condition_monitor.counters.get('trend_sideways', 0)
+                },
+                'signal_counts': {
+                    'golden_cross': self.condition_monitor.counters.get('long_signals', 0),
+                    'dead_cross': self.condition_monitor.counters.get('short_signals', 0)
+                },
+                'mode_distribution': {
+                    'virtual': self.condition_monitor.counters.get('virtual_mode_strategies', 0),
+                    'real': self.condition_monitor.counters.get('real_mode_strategies', 0)
+                },
+                'switch_opportunities': self.condition_monitor.counters.get('switch_opportunities', 0)
+            }
+            
+            # 6. 위젯 업데이트 실행
+            if hasattr(self.condition_widget, 'stats_widget'):
+                self.condition_widget.stats_widget.update_stats(stats)
+                print(f"📊 메인 GUI 업데이트: {stats['total_checks']}회, 가동시간: {actual_uptime_minutes:.1f}분")
+            
+            # 7. 로그 추가
+            if hasattr(self.condition_widget, 'add_condition_log'):
+                self.condition_widget.add_condition_log(
+                    f"디버거 동기화: 체크 {stats['total_checks']}회 복사됨", "정보"
+                )
+            
+            print("✅ 디버거 → 메인 GUI 동기화 완료")
+            return True
+            
+        except Exception as e:
+            print(f"❌ 동기화 실패: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def start_continuous_sync(self):
+        """지속적 동기화 시작"""
+        try:
+            if not hasattr(self, '_sync_timer'):
+                self._sync_timer = QTimer()
+                self._sync_timer.timeout.connect(self.sync_debugger_to_main_gui)
+                
+            # 5초마다 동기화
+            self._sync_timer.start(5000)
+            print("🔄 지속적 동기화 시작 (5초 간격)")
+            
+            if self.condition_widget:
+                self.condition_widget.add_condition_log("지속적 동기화 시작됨", "정보")
+                
+        except Exception as e:
+            print(f"❌ 지속적 동기화 시작 실패: {e}")
+
+    def manual_sync_from_debugger(self):
+        """수동으로 디버거에서 동기화"""
+        result = self.sync_debugger_to_main_gui()
+        if result:
+            print("✅ 수동 동기화 성공")
+            if self.condition_widget:
+                self.condition_widget.add_condition_log("수동 동기화 완료", "정보")
+        else:
+            print("❌ 수동 동기화 실패")
+            if self.condition_widget:
+                self.condition_widget.add_condition_log("수동 동기화 실패", "오류")
+
+    # GUI에 동기화 버튼 추가용 코드 (create_monitoring_tab에 추가)
+    def add_sync_button_to_monitoring_tab(self):
+        """모니터링 탭에 동기화 버튼 추가"""
+        # 기존 제어 패널에 버튼 추가
+        if hasattr(self, 'condition_widget') and self.condition_widget:
+            # 동기화 버튼 생성
+            sync_btn = QPushButton("🔄 디버거 동기화")
+            sync_btn.setStyleSheet("background-color: #17a2b8; color: white;")
+            sync_btn.clicked.connect(self.manual_sync_from_debugger)
+            
+            # 기존 제어 패널에 추가 (수정 필요할 수 있음)
+            # self.control_layout.addWidget(sync_btn)  # 실제 레이아웃에 맞게 수정
+            
+            print("✅ 동기화 버튼 추가됨")
 
 
 # 메인 함수

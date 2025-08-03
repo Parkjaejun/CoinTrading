@@ -72,17 +72,27 @@ class ConditionMonitor:
             'trend_uptrend': 0,
             'trend_downtrend': 0,
             'trend_sideways': 0,
+            'long_signals': 0,
+            'short_signals': 0,
             'golden_cross_signals': 0,
             'dead_cross_signals': 0,
+            'virtual_mode_strategies': 0,
+            'real_mode_strategies': 0,
             'virtual_mode_count': 0,
             'real_mode_count': 0,
             'switch_opportunities': 0
         }
         
+        print("🔍 거래 조건 모니터링 시스템 초기화")
+        
         # 알림 설정
         self.last_alert_time = {}
         self.alert_cooldown = 30  # 30초 쿨다운
         
+        # 시작 시간 추가
+        self.start_time = time.time()  # 시작 시간 기록
+        self.monitoring_active = False
+
         print("🔍 거래 조건 모니터링 시스템 초기화")
     
     def check_conditions(self, symbol: str, price_data: Dict[str, Any], 
@@ -343,12 +353,18 @@ class ConditionMonitor:
         return False
     
     def get_summary_stats(self) -> Dict[str, Any]:
-        """요약 통계 반환"""
+        """요약 통계 반환 - 수정된 가동시간 계산"""
         total_checks = self.counters['total_checks']
+        
+        # *** 올바른 가동시간 계산 ***
+        current_time = time.time()
+        uptime_seconds = current_time - self.start_time
+        uptime_minutes = uptime_seconds / 60
         
         return {
             'total_checks': total_checks,
-            'uptime_minutes': (time.time() - (total_checks * self.check_interval if total_checks > 0 else time.time())) / 60,
+            'uptime_minutes': uptime_minutes,  # 실제 가동시간
+            'uptime_seconds': uptime_seconds,
             'trend_distribution': {
                 'uptrend': self.counters['trend_uptrend'],
                 'downtrend': self.counters['trend_downtrend'],
