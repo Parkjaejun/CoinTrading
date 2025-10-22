@@ -267,6 +267,59 @@ class OrderValidator:
             'max_capital_per_trade': f"{self.max_capital_per_trade*100:.0f}%"
         }
 
+    def validate_test_order(self, symbol: str, side: str, size: float, 
+                            leverage: int = 1, test_balance: float = 10000) -> Tuple[bool, str, Dict]:
+        """테스트 주문 종합 검증"""
+        
+        # 테스트 가격 설정
+        test_prices = {
+            'BTC-USDT-SWAP': 45000,
+            'ETH-USDT-SWAP': 2800
+        }
+        price = test_prices.get(symbol, 1000)
+        
+        # 1. 심볼 검증
+        is_valid, error = self.validate_symbol(symbol)
+        if not is_valid:
+            return False, error, {}
+        
+        # 2. 사이드 검증
+        if side not in ['buy', 'sell']:
+            return False, "잘못된 거래 방향", {}
+        
+        # 3. 크기 검증
+        is_valid, error = self.validate_order_size(symbol, size, price)
+        if not is_valid:
+            return False, error, {}
+        
+        # 4. 레버리지 검증
+        is_valid, error = self.validate_leverage(symbol, leverage)
+        if not is_valid:
+            return False, error, {}
+        
+        # 5. 잔고 검증 (테스트)
+        notional_value = size * price
+        required_margin = notional_value / leverage
+        
+        if required_margin > test_balance:
+            return False, f"잔고 부족: 필요 ${required_margin:.2f}, 가용 ${test_balance:.2f}", {}
+        
+        # 검증 통과 - 상세 정보 반환
+        validation_result = {
+            'symbol': symbol,
+            'side': side,
+            'size': size,
+            'price': price,
+            'leverage': leverage,
+            'notional_value': notional_value,
+            'required_margin': required_margin,
+            'estimated_fee': notional_value * 0.0005,
+            'max_loss': required_margin,
+            'test_mode': True
+        }
+        
+        return True, "검증 통과", validation_result
+
 # 전역 검증기 인스턴스
 order_validator = OrderValidator()
 
@@ -285,3 +338,6 @@ def validate_order(order_params: Dict[str, Any]) -> Tuple[bool, List[str]]:
 def get_order_limits(symbol: str) -> Dict[str, Any]:
     """주문 한계 정보 조회"""
     return order_validator.get_validation_summary(symbol)
+
+
+

@@ -646,3 +646,120 @@ class BalanceDisplayWidget(QWidget):
         """연결 복구 시 호출"""
         self.signal_lost = False
         self.signal_lost_label.hide()
+
+
+
+
+
+        # gui/widgets.py에 추가할 BTC 거래 테스트 기능들
+
+class TestTradingWidget(QWidget):
+    """BTC 테스트 거래 전용 위젯"""
+    
+    def __init__(self):
+        super().__init__()
+        self.test_positions = {}  # 테스트 포지션 추적
+        self.test_balance = 10000  # 초기 테스트 잔고
+        self.init_ui()
+    
+    def init_ui(self):
+        layout = QVBoxLayout()
+        
+        # 테스트 잔고 표시
+        balance_layout = QHBoxLayout()
+        balance_layout.addWidget(QLabel("테스트 잔고:"))
+        self.balance_label = QLabel(f"${self.test_balance:,.2f}")
+        self.balance_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
+        balance_layout.addWidget(self.balance_label)
+        balance_layout.addStretch()
+        layout.addLayout(balance_layout)
+        
+        # 빠른 거래 버튼
+        quick_trade_group = QGroupBox("빠른 테스트 거래")
+        quick_layout = QGridLayout()
+        
+        # BTC 0.001 매수/매도
+        btc_buy_btn = QPushButton("BTC 0.001 매수")
+        btc_buy_btn.clicked.connect(lambda: self.quick_test_trade("BTC-USDT-SWAP", "buy", 0.001))
+        quick_layout.addWidget(btc_buy_btn, 0, 0)
+        
+        btc_sell_btn = QPushButton("BTC 0.001 매도")
+        btc_sell_btn.clicked.connect(lambda: self.quick_test_trade("BTC-USDT-SWAP", "sell", 0.001))
+        quick_layout.addWidget(btc_sell_btn, 0, 1)
+        
+        quick_trade_group.setLayout(quick_layout)
+        layout.addWidget(quick_trade_group)
+        
+        # 테스트 포지션 표시
+        self.position_table = QTableWidget()
+        self.position_table.setColumnCount(6)
+        self.position_table.setHorizontalHeaderLabels(
+            ["심볼", "방향", "수량", "진입가", "현재가", "손익"]
+        )
+        layout.addWidget(self.position_table)
+        
+        self.setLayout(layout)
+    
+    def quick_test_trade(self, symbol, side, size):
+        """빠른 테스트 거래 실행"""
+        from okx.order_manager import OrderManager
+        
+        manager = OrderManager()
+        result = manager.validate_and_execute_test(symbol, side, size, leverage=1)
+        
+        if result['success']:
+            self.update_test_position(result['order'])
+        else:
+            QMessageBox.warning(self, "테스트 거래 실패", result['error'])
+    
+    def update_test_position(self, order_result):
+        """테스트 포지션 업데이트"""
+        symbol = order_result['instrument']
+        
+        if symbol not in self.test_positions:
+            self.test_positions[symbol] = {
+                'side': order_result['side'],
+                'size': order_result['size'],
+                'entry_price': order_result['price'],
+                'current_price': order_result['price'],
+                'pnl': 0
+            }
+        else:
+            # 기존 포지션에 추가/감소
+            pos = self.test_positions[symbol]
+            if pos['side'] == order_result['side']:
+                # 같은 방향 - 포지션 증가
+                total_size = pos['size'] + order_result['size']
+                avg_price = (pos['entry_price'] * pos['size'] + 
+                           order_result['price'] * order_result['size']) / total_size
+                pos['size'] = total_size
+                pos['entry_price'] = avg_price
+            else:
+                # 반대 방향 - 포지션 감소/청산
+                if pos['size'] > order_result['size']:
+                    pos['size'] -= order_result['size']
+                else:
+                    del self.test_positions[symbol]
+        
+        self.refresh_position_table()
+    
+    def refresh_position_table(self):
+        """포지션 테이블 새로고침"""
+        self.position_table.setRowCount(len(self.test_positions))
+        
+        for row, (symbol, pos) in enumerate(self.test_positions.items()):
+            self.position_table.setItem(row, 0, QTableWidgetItem(symbol))
+            self.position_table.setItem(row, 1, QTableWidgetItem(pos['side']))
+            self.position_table.setItem(row, 2, QTableWidgetItem(f"{pos['size']:.4f}"))
+            self.position_table.setItem(row, 3, QTableWidgetItem(f"${pos['entry_price']:,.2f}"))
+            self.position_table.setItem(row, 4, QTableWidgetItem(f"${pos['current_price']:,.2f}"))
+            
+            # PnL 계산
+            if pos['side'] == 'buy':
+                pnl = (pos['current_price'] - pos['entry_price']) * pos['size']
+            else:
+                pnl = (pos['entry_price'] - pos['current_price']) * pos['size']
+            
+            pnl_item = QTableWidgetItem(f"${pnl:,.2f}")
+            pnl_item.setForeground(Qt.green if pnl >= 0 else Qt.red)
+            self.position_table.setItem(row, 5, pnl_item)

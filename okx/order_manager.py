@@ -329,6 +329,7 @@ class OrderManager(AccountManager):
             return None
     
     def cancel_algo_order(self, algo_id, inst_id):
+
         """알고리즘 주문 취소 (트레일링 스탑 등)"""
         endpoint = "/api/v5/trade/cancel-algos"
         
@@ -343,6 +344,96 @@ class OrderManager(AccountManager):
             print(f"알고리즘 주문 취소 성공: {algo_id}")
             return True
         else:
+
             error_msg = response.get('msg', '알 수 없는 오류') if response else 'API 응답 없음'
             print(f"알고리즘 주문 취소 실패: {error_msg}")
             return False
+        
+
+    def place_test_order(self, inst_id, side, size, leverage=1, test_mode=True):
+        """테스트 주문 실행 (실제 거래 없음)"""
+        
+        if not test_mode:
+            print("⚠️ 실제 거래 모드입니다. test_mode=True로 설정하세요.")
+            return None
+        
+        # 테스트 주문 ID 생성
+        test_order_id = f"TEST_{inst_id}_{side}_{int(time.time())}"
+        
+        # 현재 시장 가격 시뮬레이션 (실제로는 WebSocket에서 가져와야 함)
+        simulated_price = {
+            'BTC-USDT-SWAP': 45000 + (time.time() % 1000),
+            'ETH-USDT-SWAP': 2800 + (time.time() % 100)
+        }.get(inst_id, 1000)
+        
+        test_result = {
+            'order_id': test_order_id,
+            'instrument': inst_id,
+            'side': side,
+            'size': size,
+            'price': simulated_price,
+            'leverage': leverage,
+            'order_type': 'market',
+            'status': 'TEST_FILLED',
+            'timestamp': datetime.now(),
+            'test_mode': True,
+            'notional_value': size * simulated_price,
+            'margin_required': (size * simulated_price) / leverage,
+            'fee': size * simulated_price * 0.0005
+        }
+        
+        print(f"🧪 테스트 주문 실행:")
+        print(f"  주문 ID: {test_order_id}")
+        print(f"  상품: {inst_id}")
+        print(f"  방향: {side}")
+        print(f"  수량: {size}")
+        print(f"  가격: ${simulated_price:,.2f}")
+        print(f"  레버리지: {leverage}x")
+        print(f"  명목가치: ${test_result['notional_value']:,.2f}")
+        print(f"  필요증거금: ${test_result['margin_required']:,.2f}")
+        print(f"  수수료: ${test_result['fee']:,.2f}")
+        
+        # 테스트 주문 기록
+        self.order_history.append(test_result)
+        
+        return test_result
+
+    def validate_and_execute_test(self, inst_id, side, size, leverage=1):
+        """검증 후 테스트 거래 실행"""
+        from okx.order_validator import OrderValidator
+        
+        validator = OrderValidator()
+        
+        # 심볼 검증
+        is_valid, error_msg = validator.validate_symbol(inst_id)
+        if not is_valid:
+            return {'success': False, 'error': error_msg}
+        
+        # 테스트 가격 가져오기
+        test_price = {
+            'BTC-USDT-SWAP': 45000,
+            'ETH-USDT-SWAP': 2800
+        }.get(inst_id, 1000)
+        
+        # 주문 크기 검증
+        is_valid, error_msg = validator.validate_order_size(inst_id, size, test_price)
+        if not is_valid:
+            return {'success': False, 'error': error_msg}
+        
+        # 레버리지 검증
+        is_valid, error_msg = validator.validate_leverage(inst_id, leverage)
+        if not is_valid:
+            return {'success': False, 'error': error_msg}
+        
+        # 모든 검증 통과 시 테스트 주문 실행
+        result = self.place_test_order(inst_id, side, size, leverage, test_mode=True)
+        
+        return {'success': True, 'order': result}
+
+
+
+
+
+
+
+

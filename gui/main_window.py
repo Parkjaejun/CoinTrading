@@ -15,6 +15,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from gui.debug_condition_monitoring import ConditionMonitoringDebugger, add_debugger_to_main_window
+from PyQt5.QtWidgets import QMessageBox
+
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -109,6 +111,7 @@ class TradingMainWindow(QMainWindow):
         self.setup_condition_monitoring()  # 새로 추가
         self.start_data_collection()
         self.setup_debugger()
+
 
         print("🖥️ GUI 메인 윈도우 초기화 완료")
     
@@ -208,6 +211,9 @@ class TradingMainWindow(QMainWindow):
         self.create_positions_tab()
         self.create_settings_tab()
         self.create_monitoring_tab()
+        
+        # ⭐ 테스트 거래 탭 추가 - 이 줄을 추가해야 합니다!
+        self.create_test_trading_tab()
         
         # 하단 상태바
         self.status_bar = QStatusBar()
@@ -1409,6 +1415,475 @@ class TradingMainWindow(QMainWindow):
             # self.control_layout.addWidget(sync_btn)  # 실제 레이아웃에 맞게 수정
             
             print("✅ 동기화 버튼 추가됨")
+
+
+    # trading test
+
+    def create_test_trading_tab(self):
+        """BTC 테스트 거래 탭 생성"""
+        test_tab = QWidget()
+        test_layout = QVBoxLayout()
+        test_tab.setLayout(test_layout)
+        
+        # 테스트 거래 그룹
+        test_group = QGroupBox("🧪 BTC 거래 테스트")
+        test_group_layout = QVBoxLayout()
+        
+        # 테스트 모드 토글
+        self.test_mode_checkbox = QCheckBox("테스트 모드 활성화")
+        self.test_mode_checkbox.setChecked(True)
+        test_group_layout.addWidget(self.test_mode_checkbox)
+        
+        # 거래 설정
+        settings_layout = QGridLayout()
+        
+        # 심볼 선택
+        settings_layout.addWidget(QLabel("거래 심볼:"), 0, 0)
+        self.test_symbol_combo = QComboBox()
+        self.test_symbol_combo.addItems(["BTC-USDT-SWAP", "ETH-USDT-SWAP"])
+        settings_layout.addWidget(self.test_symbol_combo, 0, 1)
+        
+        # 거래 수량
+        settings_layout.addWidget(QLabel("거래 수량:"), 1, 0)
+        self.test_size_spin = QDoubleSpinBox()
+        self.test_size_spin.setMinimum(0.001)
+        self.test_size_spin.setMaximum(1.0)
+        self.test_size_spin.setSingleStep(0.001)
+        self.test_size_spin.setValue(0.001)
+        self.test_size_spin.setDecimals(4)
+        settings_layout.addWidget(self.test_size_spin, 1, 1)
+        
+        # 레버리지
+        settings_layout.addWidget(QLabel("레버리지:"), 2, 0)
+        self.test_leverage_spin = QSpinBox()
+        self.test_leverage_spin.setMinimum(1)
+        self.test_leverage_spin.setMaximum(10)
+        self.test_leverage_spin.setValue(1)
+        settings_layout.addWidget(self.test_leverage_spin, 2, 1)
+        
+        test_group_layout.addLayout(settings_layout)
+        
+        # 거래 버튼
+        button_layout = QHBoxLayout()
+        
+        self.test_buy_btn = QPushButton("📈 테스트 매수")
+        self.test_buy_btn.clicked.connect(lambda: self.execute_test_trade("buy"))
+        self.test_buy_btn.setStyleSheet("background-color: #4CAF50;")
+        button_layout.addWidget(self.test_buy_btn)
+        
+        self.test_sell_btn = QPushButton("📉 테스트 매도")
+        self.test_sell_btn.clicked.connect(lambda: self.execute_test_trade("sell"))
+        self.test_sell_btn.setStyleSheet("background-color: #f44336;")
+        button_layout.addWidget(self.test_sell_btn)
+        
+        self.test_close_btn = QPushButton("❌ 포지션 종료")
+        self.test_close_btn.clicked.connect(self.close_test_position)
+        button_layout.addWidget(self.test_close_btn)
+        
+        test_group_layout.addLayout(button_layout)
+        test_group.setLayout(test_group_layout)
+        
+        # 테스트 결과 표시
+        result_group = QGroupBox("📊 테스트 결과")
+        result_layout = QVBoxLayout()
+        
+        self.test_result_text = QTextEdit()
+        self.test_result_text.setReadOnly(True)
+        self.test_result_text.setMaximumHeight(300)
+        result_layout.addWidget(self.test_result_text)
+        
+        result_group.setLayout(result_layout)
+        
+        test_layout.addWidget(test_group)
+        test_layout.addWidget(result_group)
+        test_layout.addStretch()
+        
+        self.tab_widget.addTab(test_tab, "🧪 거래 테스트")
+
+    def execute_test_trade(self, side: str):
+        """실제 거래 실행 - 디버깅 강화 버전"""
+        try:
+            from okx.order_manager import OrderManager
+            from okx.order_validator import OrderValidator
+            
+            symbol = self.test_symbol_combo.currentText()
+            size = self.test_size_spin.value()
+            leverage = self.test_leverage_spin.value()
+            
+            # 테스트 모드 체크
+            is_test_mode = self.test_mode_checkbox.isChecked()
+            
+            # 로그 시작
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.test_result_text.append(f"\n{'='*50}")
+            self.test_result_text.append(f"⏰ {timestamp}")
+            
+            # 실제 거래 확인
+            if not is_test_mode:
+                reply = QMessageBox.question(
+                    self, 
+                    "⚠️ 실제 거래 확인", 
+                    f"실제 자금으로 거래를 실행합니다!\n\n"
+                    f"심볼: {symbol}\n"
+                    f"방향: {'매수' if side == 'buy' else '매도'}\n"
+                    f"수량: {size} BTC\n"
+                    f"레버리지: {leverage}x\n\n"
+                    f"정말 실행하시겠습니까?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    self.test_result_text.append("❌ 사용자가 거래를 취소했습니다.")
+                    return
+            
+            # 가격 가져오기 - 타임아웃 추가
+            self.test_result_text.append("🔄 가격 조회 중...")
+            QApplication.processEvents()  # UI 업데이트
+            
+            current_price = None
+            
+            # 1차 시도: WebSocket 데이터
+            if hasattr(self, 'latest_prices') and self.latest_prices:
+                self.test_result_text.append("  WebSocket 데이터 확인...")
+                QApplication.processEvents()
+                
+                if isinstance(self.latest_prices, dict) and symbol in self.latest_prices:
+                    price_data = self.latest_prices[symbol]
+                    if isinstance(price_data, dict):
+                        current_price = price_data.get('last') or price_data.get('close')
+                    elif isinstance(price_data, (float, int)):
+                        current_price = float(price_data)
+                        
+                if current_price:
+                    self.test_result_text.append(f"  ✅ WebSocket 가격: ${current_price:,.2f}")
+            
+            # 2차 시도: API 호출
+            if not current_price:
+                self.test_result_text.append("  API 직접 호출...")
+                QApplication.processEvents()
+                
+                try:
+                    from okx.market_data import MarketDataManager
+                    market = MarketDataManager()
+                    ticker = market.get_ticker(symbol)
+                    
+                    if ticker and 'last' in ticker:
+                        current_price = float(ticker['last'])
+                        self.test_result_text.append(f"  ✅ API 가격: ${current_price:,.2f}")
+                except Exception as e:
+                    self.test_result_text.append(f"  ❌ API 호출 실패: {str(e)}")
+            
+            # 3차: 기본값 사용
+            if not current_price:
+                current_price = 45000 if 'BTC' in symbol else 2800
+                self.test_result_text.append(f"  ⚠️ 기본 가격 사용: ${current_price:,.2f}")
+            
+            # 거래 검증
+            self.test_result_text.append("📋 거래 검증 중...")
+            QApplication.processEvents()
+            
+            validator = OrderValidator()
+            is_valid, error_msg = validator.validate_order_size(symbol, size, current_price)
+            
+            if not is_valid:
+                self.test_result_text.append(f"❌ 거래 검증 실패: {error_msg}")
+                return
+            
+            self.test_result_text.append("✅ 거래 검증 통과")
+            
+            # 거래 정보 표시
+            if is_test_mode:
+                self.test_result_text.append(f"\n🧪 **테스트 거래 시뮬레이션**")
+            else:
+                self.test_result_text.append(f"\n💰 **실제 거래 실행**")
+            
+            self.test_result_text.append(f"  심볼: {symbol}")
+            self.test_result_text.append(f"  방향: {'매수 🟢' if side == 'buy' else '매도 🔴'}")
+            self.test_result_text.append(f"  수량: {size} BTC")
+            self.test_result_text.append(f"  레버리지: {leverage}x")
+            self.test_result_text.append(f"  현재가: ${current_price:,.2f}")
+            
+            # 계산
+            notional_value = size * current_price
+            margin_required = notional_value / leverage
+            fee = notional_value * 0.0005
+            
+            self.test_result_text.append(f"  명목 가치: ${notional_value:,.2f}")
+            self.test_result_text.append(f"  필요 증거금: ${margin_required:,.2f}")
+            self.test_result_text.append(f"  예상 수수료: ${fee:,.2f}")
+            
+            if is_test_mode:
+                # 시뮬레이션 모드
+                self.test_result_text.append(f"\n📊 예상 손익 (레버리지 {leverage}x):")
+                for change_pct in [0.5, 1, 2, -0.5, -1, -2]:
+                    future_price = current_price * (1 + change_pct/100)
+                    if side == "buy":
+                        pnl = (future_price - current_price) * size * leverage
+                    else:
+                        pnl = (current_price - future_price) * size * leverage
+                    
+                    color = "🟢" if pnl > 0 else "🔴"
+                    self.test_result_text.append(f"    {color} {change_pct:+.1f}%: ${pnl:+,.2f}")
+                
+                self.test_result_text.append(f"\n✅ 시뮬레이션 완료")
+            else:
+                # 실제 거래 실행
+                self.test_result_text.append(f"\n🚀 주문 전송 중...")
+                QApplication.processEvents()
+                
+                order_manager = OrderManager()
+                
+                try:
+                    result = order_manager.place_market_order(
+                        inst_id=symbol,
+                        side=side,
+                        size=size,
+                        leverage=leverage,
+                        position_side="net",
+                        trade_mode="cross"
+                    )
+                    
+                    if result:
+                        self.test_result_text.append(f"✅ 주문 전송 성공!")
+                        self.test_result_text.append(f"  주문 ID: {result.get('order_id')}")
+                        
+                        # 2초 후 체결 확인
+                        QTimer.singleShot(2000, lambda: self._check_order_status_safe(symbol, result.get('order_id')))
+                    else:
+                        self.test_result_text.append(f"❌ 주문 실패 - API 응답 없음")
+                        
+                except Exception as e:
+                    self.test_result_text.append(f"❌ 주문 오류: {str(e)}")
+                    import traceback
+                    self.test_result_text.append(f"상세: {traceback.format_exc()}")
+            
+        except Exception as e:
+            self.test_result_text.append(f"\n❌ 전체 오류 발생!")
+            self.test_result_text.append(f"  오류: {str(e)}")
+            import traceback
+            self.test_result_text.append(f"  상세:\n{traceback.format_exc()}")
+        
+        finally:
+            # 스크롤 맨 아래로
+            self.test_result_text.verticalScrollBar().setValue(
+                self.test_result_text.verticalScrollBar().maximum()
+            )
+
+    def _execute_real_trade(self, symbol, side, size, leverage, current_price):
+        """실제 거래 실행"""
+        from okx.order_manager import OrderManager
+        
+        self.test_result_text.append(f"💰 **실제 거래 실행**")
+        self.test_result_text.append(f"  심볼: {symbol}")
+        self.test_result_text.append(f"  방향: {'매수 🟢' if side == 'buy' else '매도 🔴'}")
+        self.test_result_text.append(f"  수량: {size} BTC")
+        self.test_result_text.append(f"  레버리지: {leverage}x")
+        self.test_result_text.append(f"  현재가: ${current_price:,.2f}")
+        
+        # 예상 비용 계산
+        notional_value = size * current_price
+        margin_required = notional_value / leverage
+        fee = notional_value * 0.0005
+        
+        self.test_result_text.append(f"  필요 증거금: ${margin_required:,.2f}")
+        self.test_result_text.append(f"  예상 수수료: ${fee:,.2f}")
+        
+        self.test_result_text.append(f"\n🚀 주문 전송 중...")
+        QApplication.processEvents()
+        
+        # 실제 주문 실행
+        order_manager = OrderManager()
+        
+        try:
+            # OKX API로 실제 주문 전송
+            result = order_manager.place_market_order(
+                inst_id=symbol,
+                side=side,
+                size=size,
+                leverage=leverage,
+                position_side="net",
+                trade_mode="cross"
+            )
+            
+            if result and result.get('order_id'):
+                self.test_result_text.append(f"✅ **주문 전송 성공!**")
+                self.test_result_text.append(f"  주문 ID: {result.get('order_id')}")
+                self.test_result_text.append(f"  상태: {result.get('status')}")
+                
+                # 실시간 체결 확인 (2초 후)
+                QTimer.singleShot(2000, lambda: self._check_real_order_status(
+                    symbol, result.get('order_id'), size, current_price, side
+                ))
+                
+                # 주문 내역 저장
+                self._save_trade_log(result)
+                
+            else:
+                self.test_result_text.append(f"❌ 주문 실패!")
+                self.test_result_text.append(f"  서버 응답을 확인하세요")
+                
+        except Exception as e:
+            self.test_result_text.append(f"❌ **주문 오류!**")
+            self.test_result_text.append(f"  오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        # 스크롤 맨 아래로
+        self.test_result_text.verticalScrollBar().setValue(
+            self.test_result_text.verticalScrollBar().maximum()
+        )
+
+    def _check_real_order_status(self, symbol, order_id, size, entry_price, side):
+        """실제 주문 체결 상태 확인"""
+        from okx.order_manager import OrderManager
+        
+        self.test_result_text.append(f"\n📋 체결 상태 확인 중...")
+        QApplication.processEvents()
+        
+        order_manager = OrderManager()
+        status_info = order_manager.get_order_status(symbol, order_id)
+        
+        if status_info:
+            filled_size = float(status_info.get('filled_size', 0))
+            avg_price = float(status_info.get('avg_price', 0))
+            fee_paid = float(status_info.get('fee', 0))
+            status = status_info.get('status')
+            
+            self.test_result_text.append(f"\n✅ **체결 확인**")
+            self.test_result_text.append(f"  상태: {status}")
+            self.test_result_text.append(f"  체결 수량: {filled_size} / {size}")
+            self.test_result_text.append(f"  평균 체결가: ${avg_price:,.2f}")
+            self.test_result_text.append(f"  실제 수수료: ${abs(fee_paid):,.4f}")
+            
+            if status == 'filled':
+                # 완전 체결
+                slippage = ((avg_price - entry_price) / entry_price) * 100
+                self.test_result_text.append(f"  슬리피지: {slippage:+.3f}%")
+                
+                # 포지션 정보 업데이트
+                self._update_position_info(symbol, side, filled_size, avg_price)
+                
+                self.test_result_text.append(f"\n🎉 **거래 완료!**")
+                self.test_result_text.append(f"  포지션이 생성되었습니다.")
+                
+            elif status == 'partially_filled':
+                self.test_result_text.append(f"⚠️ 부분 체결됨")
+            else:
+                self.test_result_text.append(f"⏳ 미체결 상태")
+        else:
+            self.test_result_text.append(f"❌ 체결 상태 확인 실패")
+        
+        # 스크롤 맨 아래로
+        self.test_result_text.verticalScrollBar().setValue(
+            self.test_result_text.verticalScrollBar().maximum()
+        )
+
+    def _check_order_status_safe(self, symbol, order_id):
+        """안전한 주문 상태 확인"""
+        try:
+            if not order_id:
+                self.test_result_text.append("❌ 주문 ID가 없습니다")
+                return
+            
+            from okx.order_manager import OrderManager
+            
+            self.test_result_text.append(f"\n📋 체결 확인 중...")
+            order_manager = OrderManager()
+            status = order_manager.get_order_status(symbol, order_id)
+            
+            if status:
+                self.test_result_text.append(f"  상태: {status.get('status')}")
+                self.test_result_text.append(f"  체결가: ${float(status.get('avg_price', 0)):,.2f}")
+                self.test_result_text.append(f"  체결 수량: {status.get('filled_size')}")
+                self.test_result_text.append(f"  수수료: ${float(status.get('fee', 0)):,.4f}")
+            else:
+                self.test_result_text.append("❌ 체결 상태 조회 실패")
+                
+        except Exception as e:
+            self.test_result_text.append(f"❌ 체결 확인 오류: {str(e)}")
+        
+        finally:
+            self.test_result_text.verticalScrollBar().setValue(
+                self.test_result_text.verticalScrollBar().maximum()
+            )
+
+    def get_current_market_price(self, symbol):
+        """현재 시장가 가져오기"""
+        # 1. WebSocket 실시간 가격
+        if hasattr(self, 'latest_prices') and symbol in self.latest_prices:
+            price_data = self.latest_prices[symbol]
+            if isinstance(price_data, dict):
+                return price_data.get('last') or price_data.get('close')
+            elif isinstance(price_data, (float, int)):
+                return float(price_data)
+        
+        # 2. API 직접 호출
+        try:
+            from okx.market_data import MarketDataManager
+            market = MarketDataManager()
+            ticker = market.get_ticker(symbol)
+            if ticker and 'last' in ticker:
+                return float(ticker['last'])
+        except:
+            pass
+        
+        # 3. 기본값
+        return 45000 if 'BTC' in symbol else 2800
+
+    def _save_trade_log(self, order_result):
+        """거래 로그 저장"""
+        import json
+        from pathlib import Path
+        
+        log_dir = Path("logs/trades")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        
+        log_file = log_dir / f"trades_{datetime.now().strftime('%Y%m%d')}.json"
+        
+        trade_log = {
+            'timestamp': datetime.now().isoformat(),
+            'order_id': order_result.get('order_id'),
+            'symbol': order_result.get('instrument'),
+            'side': order_result.get('side'),
+            'size': order_result.get('size'),
+            'leverage': order_result.get('leverage'),
+            'status': order_result.get('status')
+        }
+        
+        # 기존 로그 읽기
+        logs = []
+        if log_file.exists():
+            with open(log_file, 'r') as f:
+                logs = json.load(f)
+        
+        # 새 로그 추가
+        logs.append(trade_log)
+        
+        # 저장
+        with open(log_file, 'w') as f:
+            json.dump(logs, f, indent=2)
+
+    def _update_position_info(self, symbol, side, size, price):
+        """포지션 정보 업데이트"""
+        self.test_result_text.append(f"\n📊 포지션 업데이트:")
+        self.test_result_text.append(f"  심볼: {symbol}")
+        self.test_result_text.append(f"  방향: {side}")
+        self.test_result_text.append(f"  수량: {size}")
+        self.test_result_text.append(f"  진입가: ${price:,.2f}")
+
+    def close_test_position(self):
+        """테스트 포지션 종료"""
+        symbol = self.test_symbol_combo.currentText()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        self.test_result_text.append(f"\n{'='*50}")
+        self.test_result_text.append(f"⏰ {timestamp}")
+        self.test_result_text.append(f"❌ 포지션 종료: {symbol}")
+        self.test_result_text.append(f"  테스트 모드에서 포지션이 종료되었습니다.")
+        
+        # 스크롤을 맨 아래로
+        self.test_result_text.verticalScrollBar().setValue(
+            self.test_result_text.verticalScrollBar().maximum()
+        ) 
 
 
 # 메인 함수
