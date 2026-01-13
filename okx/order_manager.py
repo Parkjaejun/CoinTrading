@@ -1,101 +1,122 @@
+# okx/order_manager.py
+"""
+OKX 주문 관리자 - 실제 거래 지원
+- net_mode / long_short_mode 자동 감지
+- 선물(SWAP) 거래 지원
+- 레버리지, 트레일링스탑 지원
+"""
+
 import json
 import time
 from datetime import datetime
-from okx.account import AccountManager
+from typing import Dict, List, Optional, Tuple, Any
+from config import make_api_request
 
-class OrderManager(AccountManager):
+
+class OrderManager:
+    """
+    OKX 주문 관리자
+    
+    주요 기능:
+    - 시장가/지정가 주문
+    - 포지션 관리 (조회, 청산)
+    - 레버리지 설정
+    - 트레일링스탑
+    """
+    
     def __init__(self):
-        super().__init__()
         self.open_orders = {}
         self.order_history = []
+        self.position_mode = None  # 'net_mode' or 'long_short_mode'
+        self.account_level = None  # 1=Simple, 2=Single-currency, 3=Multi-currency, 4=Portfolio
         
-    def place_market_order(self, inst_id, side, size, leverage=1, position_side="net", 
-                          trade_mode="cross", reduce_only=False):
-        """시장가 주문 실행
+        # 계좌 설정 확인
+        self._load_account_config()
+        print("✅ OrderManager 초기화 완료")
+    
+    def _load_account_config(self):
+        """계좌 설정 로드"""
+        try:
+            result = make_api_request('GET', '/api/v5/account/config')
+            if result and result.get('code') == '0':
+                config = result['data'][0]
+                self.position_mode = config.get('posMode', 'net_mode')
+                self.account_level = config.get('acctLv', '1')
+                print(f"📊 계좌 레벨: {self.account_level}")
+                print(f"📊 포지션 모드: {self.position_mode}")
+            else:
+                print("⚠️ 계좌 설정 로드 실패, 기본값 사용")
+                self.position_mode = 'net_mode'
+                self.account_level = '2'
+        except Exception as e:
+            print(f"⚠️ 계좌 설정 로드 예외: {e}")
+            self.position_mode = 'net_mode'
+            self.account_level = '2'
+    
+    def _get_pos_side(self, side: str, reduce_only: bool = False) -> str:
+        """
+        포지션 모드에 따라 posSide 결정
+        
+        net_mode: posSide = 'net'
+        long_short_mode: posSide = 'long' or 'short'
+        """
+        if self.position_mode == 'net_mode':
+            return 'net'
+        
+        # long_short_mode
+        if reduce_only:
+            # 청산 시: 기존 포지션 방향 유지
+            return 'short' if side == 'buy' else 'long'
+        else:
+            # 진입 시: buy=long, sell=short
+            return 'long' if side == 'buy' else 'short'
+    
+    # ==================== 주문 관련 ====================
+    
+    def place_market_order(self, inst_id: str, side: str, size: float, 
+                          leverage: int = 1, pos_side: str = None,
+                          trade_mode: str = "cross", reduce_only: bool = False) -> Optional[Dict]:
+        """
+        시장가 주문 실행
         
         Args:
-            inst_id: 거래 상품 (예: BTC-USDT-SWAP)
-            side: buy 또는 sell
+            inst_id: 거래 상품 (예: 'BTC-USDT-SWAP')
+            side: 'buy' 또는 'sell'
             size: 주문 수량 (계약 수)
-            leverage: 레버리지 배수
-            position_side: net(양방향), long, short
-            trade_mode: cross(전체), isolated(격리)
-            reduce_only: 포지션 감소 전용 여부
+            leverage: 레버리지 배수 (기본 1)
+            pos_side: 포지션 방향 (None이면 자동 결정)
+            trade_mode: 'cross'(전체) 또는 'isolated'(격리)
+            reduce_only: True면 청산 전용
+            
+        Returns:
+            성공 시 주문 정보, 실패 시 None
         """
-        endpoint = "/api/v5/trade/order"
+        # posSide 결정
+        if pos_side is None:
+            pos_side = self._get_pos_side(side, reduce_only)
         
+        print(f"🚀 시장가 주문: {side.upper()} {size} {inst_id}")
+        print(f"   posSide: {pos_side}, 레버리지: {leverage}x")
+        
+        # 레버리지 설정 (진입 시에만)
+        if not reduce_only and leverage >= 1:
+            self.set_leverage(inst_id, leverage, trade_mode, pos_side)
+        
+        # 주문 데이터 구성
         order_data = {
             "instId": inst_id,
             "tdMode": trade_mode,
             "side": side,
             "ordType": "market",
             "sz": str(size),
-            "posSide": position_side
+            "posSide": pos_side
         }
-        
-        # 포지션 감소 전용이 아닐 때만 레버리지 설정
-        if not reduce_only and leverage > 1:
-            # 먼저 레버리지 설정
-            lever_result = self.set_leverage(inst_id, leverage, trade_mode, position_side)
-            if not lever_result:
-                print(f"레버리지 설정 실패 - 주문 취소")
-                return None
         
         if reduce_only:
             order_data["reduceOnly"] = "true"
-            
-        response = self._make_request('POST', endpoint, data=order_data)
         
-        if response and response.get('code') == '0':
-            order_info = response.get('data', [{}])[0]
-            order_id = order_info.get('ordId')
-            client_order_id = order_info.get('clOrdId')
-            
-            order_result = {
-                'order_id': order_id,
-                'client_order_id': client_order_id,
-                'instrument': inst_id,
-                'side': side,
-                'size': size,
-                'order_type': 'market',
-                'status': 'submitted',
-                'timestamp': datetime.now(),
-                'leverage': leverage
-            }
-            
-            # 주문 추적을 위해 저장
-            self.open_orders[order_id] = order_result
-            self.order_history.append(order_result)
-            
-            print(f"주문 성공: {side} {size} {inst_id} (주문ID: {order_id})")
-            return order_result
-        else:
-            error_msg = response.get('msg', '알 수 없는 오류') if response else 'API 응답 없음'
-            print(f"주문 실패: {error_msg}")
-            return None
-    
-    def place_limit_order(self, inst_id, side, size, price, leverage=1, 
-                         position_side="net", trade_mode="cross"):
-        """지정가 주문 실행"""
-        endpoint = "/api/v5/trade/order"
-        
-        # 레버리지 설정
-        if leverage > 1:
-            lever_result = self.set_leverage(inst_id, leverage, trade_mode, position_side)
-            if not lever_result:
-                return None
-        
-        order_data = {
-            "instId": inst_id,
-            "tdMode": trade_mode,
-            "side": side,
-            "ordType": "limit",
-            "sz": str(size),
-            "px": str(price),
-            "posSide": position_side
-        }
-        
-        response = self._make_request('POST', endpoint, data=order_data)
+        # 주문 전송
+        response = make_api_request('POST', '/api/v5/trade/order', data=order_data)
         
         if response and response.get('code') == '0':
             order_info = response.get('data', [{}])[0]
@@ -104,6 +125,67 @@ class OrderManager(AccountManager):
             order_result = {
                 'order_id': order_id,
                 'client_order_id': order_info.get('clOrdId'),
+                'instrument': inst_id,
+                'side': side,
+                'pos_side': pos_side,
+                'size': size,
+                'order_type': 'market',
+                'status': 'submitted',
+                'timestamp': datetime.now(),
+                'leverage': leverage
+            }
+            
+            self.open_orders[order_id] = order_result
+            self.order_history.append(order_result)
+            
+            print(f"✅ 주문 성공! ID: {order_id}")
+            return order_result
+        else:
+            self._handle_order_error(response)
+            return None
+    
+    def place_limit_order(self, inst_id: str, side: str, size: float, price: float,
+                         leverage: int = 1, pos_side: str = None,
+                         trade_mode: str = "cross") -> Optional[Dict]:
+        """
+        지정가 주문 실행
+        
+        Args:
+            inst_id: 거래 상품
+            side: 'buy' 또는 'sell'
+            size: 주문 수량
+            price: 지정가
+            leverage: 레버리지
+            pos_side: 포지션 방향
+            trade_mode: 마진 모드
+        """
+        if pos_side is None:
+            pos_side = self._get_pos_side(side)
+        
+        print(f"📝 지정가 주문: {side.upper()} {size} {inst_id} @ ${price:,.2f}")
+        
+        # 레버리지 설정
+        if leverage >= 1:
+            self.set_leverage(inst_id, leverage, trade_mode, pos_side)
+        
+        order_data = {
+            "instId": inst_id,
+            "tdMode": trade_mode,
+            "side": side,
+            "ordType": "limit",
+            "sz": str(size),
+            "px": str(price),
+            "posSide": pos_side
+        }
+        
+        response = make_api_request('POST', '/api/v5/trade/order', data=order_data)
+        
+        if response and response.get('code') == '0':
+            order_info = response.get('data', [{}])[0]
+            order_id = order_info.get('ordId')
+            
+            order_result = {
+                'order_id': order_id,
                 'instrument': inst_id,
                 'side': side,
                 'size': size,
@@ -116,324 +198,486 @@ class OrderManager(AccountManager):
             self.open_orders[order_id] = order_result
             self.order_history.append(order_result)
             
-            print(f"지정가 주문 성공: {side} {size} {inst_id} @ {price}")
+            print(f"✅ 지정가 주문 성공! ID: {order_id}")
             return order_result
         else:
-            error_msg = response.get('msg', '알 수 없는 오류') if response else 'API 응답 없음'
-            print(f"지정가 주문 실패: {error_msg}")
+            self._handle_order_error(response)
             return None
     
-    def cancel_order(self, inst_id, order_id=None, client_order_id=None):
+    def cancel_order(self, inst_id: str, order_id: str = None, 
+                    client_order_id: str = None) -> bool:
         """주문 취소"""
-        endpoint = "/api/v5/trade/cancel-order"
-        
         cancel_data = {"instId": inst_id}
+        
         if order_id:
             cancel_data["ordId"] = order_id
         elif client_order_id:
             cancel_data["clOrdId"] = client_order_id
         else:
-            print("주문 ID 또는 클라이언트 주문 ID가 필요합니다")
+            print("❌ 주문 ID가 필요합니다")
             return False
-            
-        response = self._make_request('POST', endpoint, data=cancel_data)
+        
+        response = make_api_request('POST', '/api/v5/trade/cancel-order', data=cancel_data)
         
         if response and response.get('code') == '0':
-            print(f"주문 취소 성공: {order_id or client_order_id}")
-            # 추적 목록에서 제거
+            print(f"✅ 주문 취소 성공: {order_id or client_order_id}")
             if order_id in self.open_orders:
                 del self.open_orders[order_id]
             return True
         else:
-            error_msg = response.get('msg', '알 수 없는 오류') if response else 'API 응답 없음'
-            print(f"주문 취소 실패: {error_msg}")
+            print(f"❌ 주문 취소 실패: {response}")
             return False
     
-    def close_position(self, inst_id, position_side="net", trade_mode="cross"):
-        """전체 포지션 청산"""
-        # 현재 포지션 조회
-        positions = self.get_positions()
-        target_position = None
+    def get_order_status(self, inst_id: str, order_id: str) -> Optional[Dict]:
+        """주문 상태 조회"""
+        params = {"instId": inst_id, "ordId": order_id}
+        response = make_api_request('GET', '/api/v5/trade/order', params=params)
         
-        for pos in positions:
-            if pos['instrument'] == inst_id:
-                if position_side == "net" or pos['position_side'] == position_side:
-                    target_position = pos
-                    break
-        
-        if not target_position:
-            print(f"청산할 포지션이 없습니다: {inst_id}")
-            return False
+        if response and response.get('code') == '0':
+            data = response.get('data', [{}])[0]
+            return {
+                'order_id': data.get('ordId'),
+                'status': data.get('state'),
+                'filled_size': float(data.get('fillSz') or 0),
+                'avg_price': float(data.get('avgPx') or 0),
+                'fee': float(data.get('fee') or 0),
+                'pnl': float(data.get('pnl') or 0),
+            }
+        return None
+    
+    def _handle_order_error(self, response: Dict):
+        """주문 오류 처리"""
+        if response and response.get('data'):
+            error = response['data'][0]
+            s_code = error.get('sCode', '')
+            s_msg = error.get('sMsg', '')
+            print(f"❌ 주문 실패: [{s_code}] {s_msg}")
             
-        # 포지션의 반대 방향으로 주문
-        position_size = abs(target_position['size'])
-        if target_position['size'] > 0:
-            close_side = "sell"
+            # 오류별 해결책 제안
+            error_hints = {
+                '51000': "💡 잔고 부족. USDT를 충전하세요.",
+                '51001': "💡 주문 수량 오류. 최소 수량을 확인하세요.",
+                '51008': "💡 주문 금액이 너무 작습니다.",
+                '51010': "💡 포지션 모드 불일치. 계좌 설정을 확인하세요.",
+                '51020': "💡 주문 수량 초과.",
+                '50014': "💡 API 권한 없음. 거래 권한을 확인하세요.",
+            }
+            if s_code in error_hints:
+                print(error_hints[s_code])
         else:
-            close_side = "buy"
-            
-        print(f"포지션 청산 시도: {close_side} {position_size} {inst_id}")
+            print(f"❌ 주문 실패: API 응답 없음")
+    
+    # ==================== 포지션 관련 ====================
+    
+    def get_positions(self, inst_type: str = "SWAP", inst_id: str = None) -> List[Dict]:
+        """
+        포지션 조회
         
-        # 시장가 청산 주문
-        result = self.place_market_order(
+        Args:
+            inst_type: 상품 유형 ('SWAP', 'FUTURES', 'MARGIN')
+            inst_id: 특정 상품만 조회 (선택)
+        """
+        params = {"instType": inst_type}
+        if inst_id:
+            params["instId"] = inst_id
+        
+        response = make_api_request('GET', '/api/v5/account/positions', params=params)
+        
+        if response and response.get('code') == '0':
+            positions = []
+            for pos in response.get('data', []):
+                pos_size = float(pos.get('pos') or 0)
+                if pos_size != 0:
+                    positions.append({
+                        'inst_id': pos.get('instId'),
+                        'pos_side': pos.get('posSide'),
+                        'position': pos_size,
+                        'avg_price': float(pos.get('avgPx') or 0),
+                        'upl': float(pos.get('upl') or 0),
+                        'upl_ratio': float(pos.get('uplRatio') or 0),
+                        'leverage': pos.get('lever'),
+                        'liq_price': pos.get('liqPx'),
+                        'margin': float(pos.get('margin') or 0),
+                        'mgn_mode': pos.get('mgnMode'),
+                    })
+            return positions
+        return []
+    
+    def close_position(self, inst_id: str, pos_side: str = None, 
+                      trade_mode: str = "cross") -> Optional[Dict]:
+        """
+        포지션 청산
+        
+        Args:
+            inst_id: 거래 상품
+            pos_side: 청산할 포지션 방향 ('long', 'short', 'net')
+        """
+        # 포지션 조회
+        positions = self.get_positions(inst_id=inst_id)
+        
+        if not positions:
+            print(f"❌ 청산할 포지션이 없습니다: {inst_id}")
+            return None
+        
+        # net_mode에서는 첫 번째 포지션 사용
+        if self.position_mode == 'net_mode':
+            target_pos = positions[0]
+        else:
+            # long_short_mode에서는 지정된 방향 찾기
+            target_pos = None
+            for pos in positions:
+                if pos_side is None or pos['pos_side'] == pos_side:
+                    target_pos = pos
+                    break
+            
+            if not target_pos:
+                print(f"❌ 해당 방향의 포지션이 없습니다: {pos_side}")
+                return None
+        
+        pos_size = abs(target_pos['position'])
+        current_pos_side = target_pos['pos_side']
+        
+        # 청산 방향 결정
+        if self.position_mode == 'net_mode':
+            # net_mode: 양수면 매도, 음수면 매수
+            close_side = 'sell' if target_pos['position'] > 0 else 'buy'
+            close_pos_side = 'net'
+        else:
+            # long_short_mode: long청산=sell, short청산=buy
+            close_side = 'sell' if current_pos_side == 'long' else 'buy'
+            close_pos_side = current_pos_side
+        
+        print(f"📤 포지션 청산: {close_side} {pos_size} {inst_id} ({close_pos_side})")
+        print(f"   미실현 손익: ${target_pos['upl']:.2f}")
+        
+        return self.place_market_order(
             inst_id=inst_id,
             side=close_side,
-            size=position_size,
-            position_side=position_side,
+            size=pos_size,
+            pos_side=close_pos_side,
             trade_mode=trade_mode,
             reduce_only=True
         )
-        
-        return result is not None
     
-    def set_leverage(self, inst_id, leverage, margin_mode="cross", position_side="net"):
-        """레버리지 설정"""
-        endpoint = "/api/v5/account/set-leverage"
+    def close_all_positions(self, inst_type: str = "SWAP") -> List[Dict]:
+        """모든 포지션 청산"""
+        positions = self.get_positions(inst_type)
+        results = []
         
+        for pos in positions:
+            result = self.close_position(pos['inst_id'], pos['pos_side'])
+            results.append({
+                'inst_id': pos['inst_id'],
+                'pos_side': pos['pos_side'],
+                'success': result is not None
+            })
+        
+        return results
+    
+    # ==================== 레버리지 ====================
+    
+    def set_leverage(self, inst_id: str, leverage: int, 
+                    margin_mode: str = "cross", pos_side: str = None) -> bool:
+        """
+        레버리지 설정
+        
+        Args:
+            inst_id: 거래 상품
+            leverage: 레버리지 배수
+            margin_mode: 'cross' 또는 'isolated'
+            pos_side: 포지션 방향 (long_short_mode에서 필요)
+        """
         lever_data = {
             "instId": inst_id,
             "lever": str(leverage),
             "mgnMode": margin_mode
         }
         
-        if position_side != "net":
-            lever_data["posSide"] = position_side
-            
-        response = self._make_request('POST', endpoint, data=lever_data)
+        # long_short_mode에서는 posSide 필요
+        if self.position_mode == 'long_short_mode' and pos_side and pos_side != 'net':
+            lever_data["posSide"] = pos_side
+        
+        response = make_api_request('POST', '/api/v5/account/set-leverage', data=lever_data)
         
         if response and response.get('code') == '0':
-            print(f"레버리지 설정 성공: {inst_id} - {leverage}배")
+            print(f"✅ 레버리지 설정: {inst_id} {leverage}x")
             return True
         else:
-            error_msg = response.get('msg', '알 수 없는 오류') if response else 'API 응답 없음'
-            print(f"레버리지 설정 실패: {error_msg}")
+            print(f"⚠️ 레버리지 설정 실패: {response}")
             return False
     
-    def get_order_status(self, inst_id, order_id=None, client_order_id=None):
-        """주문 상태 조회"""
-        endpoint = "/api/v5/trade/order"
-        
-        params = {"instId": inst_id}
-        if order_id:
-            params["ordId"] = order_id
-        elif client_order_id:
-            params["clOrdId"] = client_order_id
-        else:
-            print("주문 ID가 필요합니다")
-            return None
-            
-        response = self._make_request('GET', endpoint, params=params)
+    def get_leverage(self, inst_id: str, margin_mode: str = "cross") -> Optional[Dict]:
+        """레버리지 조회"""
+        params = {"instId": inst_id, "mgnMode": margin_mode}
+        response = make_api_request('GET', '/api/v5/account/leverage-info', params=params)
         
         if response and response.get('code') == '0':
-            order_data = response.get('data', [{}])[0]
-            return {
-                'order_id': order_data.get('ordId'),
-                'client_order_id': order_data.get('clOrdId'),
-                'status': order_data.get('state'),
-                'filled_size': float(order_data.get('fillSz', 0)),
-                'avg_price': float(order_data.get('avgPx', 0)),
-                'fee': float(order_data.get('fee', 0)),
-                'pnl': float(order_data.get('pnl', 0)),
-                'update_time': order_data.get('uTime')
-            }
-        else:
-            print(f"주문 상태 조회 실패: {response}")
-            return None
+            return response.get('data', [])
+        return None
     
-    def get_order_history(self, inst_id=None, limit=100):
-        """주문 내역 조회"""
-        endpoint = "/api/v5/trade/orders-history-archive"
-        
-        params = {"limit": str(limit)}
-        if inst_id:
-            params["instId"] = inst_id
-            
-        response = self._make_request('GET', endpoint, params=params)
-        
-        if response and response.get('code') == '0':
-            orders = []
-            for order_data in response.get('data', []):
-                order_info = {
-                    'order_id': order_data.get('ordId'),
-                    'instrument': order_data.get('instId'),
-                    'side': order_data.get('side'),
-                    'size': float(order_data.get('sz', 0)),
-                    'price': float(order_data.get('px', 0)),
-                    'filled_size': float(order_data.get('fillSz', 0)),
-                    'avg_price': float(order_data.get('avgPx', 0)),
-                    'status': order_data.get('state'),
-                    'fee': float(order_data.get('fee', 0)),
-                    'pnl': float(order_data.get('pnl', 0)),
-                    'create_time': order_data.get('cTime'),
-                    'update_time': order_data.get('uTime')
-                }
-                orders.append(order_info)
-            return orders
-        else:
-            print(f"주문 내역 조회 실패: {response}")
-            return []
+    # ==================== 트레일링스탑 ====================
     
-    def place_trailing_stop(self, inst_id, callback_ratio, position_side="net", 
-                          trade_mode="cross", active_px=None):
-        """트레일링 스탑 주문 (OKX 알고리즘 주문 사용)"""
-        endpoint = "/api/v5/trade/order-algo"
+    def set_trailing_stop(self, inst_id: str, callback_ratio: float,
+                         active_px: float = None, pos_side: str = None,
+                         trade_mode: str = "cross") -> Optional[Dict]:
+        """
+        트레일링 스탑 설정
         
+        Args:
+            inst_id: 거래 상품
+            callback_ratio: 콜백 비율 (예: 0.01 = 1%)
+            active_px: 활성화 가격 (선택)
+            pos_side: 포지션 방향
+        """
         # 현재 포지션 확인
-        positions = self.get_positions()
-        target_position = None
-        
-        for pos in positions:
-            if pos['instrument'] == inst_id:
-                target_position = pos
-                break
-                
-        if not target_position:
-            print(f"트레일링 스탑을 설정할 포지션이 없습니다: {inst_id}")
+        positions = self.get_positions(inst_id=inst_id)
+        if not positions:
+            print(f"❌ 트레일링스탑 설정 실패: 포지션 없음")
             return None
         
-        position_size = abs(target_position['size'])
-        # 포지션 방향의 반대로 청산 주문
-        side = "sell" if target_position['size'] > 0 else "buy"
+        target_pos = positions[0]
+        if pos_side:
+            for pos in positions:
+                if pos['pos_side'] == pos_side:
+                    target_pos = pos
+                    break
+        
+        pos_size = abs(target_pos['position'])
+        current_pos_side = target_pos['pos_side'] if self.position_mode == 'long_short_mode' else 'net'
+        
+        # 청산 방향
+        if self.position_mode == 'net_mode':
+            side = 'sell' if target_pos['position'] > 0 else 'buy'
+        else:
+            side = 'sell' if current_pos_side == 'long' else 'buy'
         
         algo_data = {
             "instId": inst_id,
             "tdMode": trade_mode,
             "side": side,
-            "posSide": position_side,
-            "ordType": "move_order_stop",  # 트레일링 스탑
-            "sz": str(position_size),
-            "callbackRatio": str(callback_ratio),  # 콜백 비율 (예: 0.01 = 1%)
+            "posSide": current_pos_side,
+            "ordType": "move_order_stop",
+            "sz": str(pos_size),
+            "callbackRatio": str(callback_ratio),
             "reduceOnly": "true"
         }
         
         if active_px:
             algo_data["activePx"] = str(active_px)
-            
-        response = self._make_request('POST', endpoint, data=algo_data)
+        
+        response = make_api_request('POST', '/api/v5/trade/order-algo', data=algo_data)
         
         if response and response.get('code') == '0':
-            algo_info = response.get('data', [{}])[0]
-            algo_id = algo_info.get('algoId')
-            
-            print(f"트레일링 스탑 설정 성공: {callback_ratio*100:.1f}% (ID: {algo_id})")
-            return {
-                'algo_id': algo_id,
-                'instrument': inst_id,
-                'callback_ratio': callback_ratio,
-                'size': position_size,
-                'side': side
-            }
+            algo_id = response['data'][0].get('algoId')
+            print(f"✅ 트레일링스탑 설정: {callback_ratio*100:.1f}% (ID: {algo_id})")
+            return {'algo_id': algo_id, 'callback_ratio': callback_ratio}
         else:
-            error_msg = response.get('msg', '알 수 없는 오류') if response else 'API 응답 없음'
-            print(f"트레일링 스탑 설정 실패: {error_msg}")
+            print(f"❌ 트레일링스탑 설정 실패: {response}")
             return None
     
-    def cancel_algo_order(self, algo_id, inst_id):
-
-        """알고리즘 주문 취소 (트레일링 스탑 등)"""
-        endpoint = "/api/v5/trade/cancel-algos"
-        
-        cancel_data = [{
-            "algoId": algo_id,
-            "instId": inst_id
-        }]
-        
-        response = self._make_request('POST', endpoint, data=cancel_data)
+    def cancel_trailing_stop(self, inst_id: str, algo_id: str) -> bool:
+        """트레일링스탑 취소"""
+        cancel_data = [{"algoId": algo_id, "instId": inst_id}]
+        response = make_api_request('POST', '/api/v5/trade/cancel-algos', data=cancel_data)
         
         if response and response.get('code') == '0':
-            print(f"알고리즘 주문 취소 성공: {algo_id}")
+            print(f"✅ 트레일링스탑 취소: {algo_id}")
             return True
-        else:
-
-            error_msg = response.get('msg', '알 수 없는 오류') if response else 'API 응답 없음'
-            print(f"알고리즘 주문 취소 실패: {error_msg}")
-            return False
+        return False
+    
+    # ==================== 시장 정보 ====================
+    
+    def get_current_price(self, inst_id: str) -> Optional[float]:
+        """현재가 조회"""
+        params = {"instId": inst_id}
+        response = make_api_request('GET', '/api/v5/market/ticker', params=params)
         
-
-    def place_test_order(self, inst_id, side, size, leverage=1, test_mode=True):
-        """테스트 주문 실행 (실제 거래 없음)"""
+        if response and response.get('code') == '0':
+            data = response.get('data', [{}])[0]
+            return float(data.get('last') or 0)
+        return None
+    
+    def get_instrument_info(self, inst_id: str) -> Optional[Dict]:
+        """상품 정보 조회"""
+        inst_type = "SWAP" if inst_id.endswith("-SWAP") else "SPOT"
+        params = {"instType": inst_type, "instId": inst_id}
         
-        if not test_mode:
-            print("⚠️ 실제 거래 모드입니다. test_mode=True로 설정하세요.")
-            return None
+        response = make_api_request('GET', '/api/v5/public/instruments', params=params)
         
-        # 테스트 주문 ID 생성
-        test_order_id = f"TEST_{inst_id}_{side}_{int(time.time())}"
+        if response and response.get('code') == '0':
+            data = response.get('data', [])
+            if data:
+                inst = data[0]
+                return {
+                    'inst_id': inst.get('instId'),
+                    'min_size': float(inst.get('minSz') or 0.01),
+                    'lot_size': float(inst.get('lotSz') or 0.01),
+                    'tick_size': float(inst.get('tickSz') or 0.01),
+                    'ct_val': float(inst.get('ctVal') or 0.01),
+                    'settle_ccy': inst.get('settleCcy', 'USDT'),
+                }
+        return None
+    
+    def calculate_order_size(self, inst_id: str, usdt_amount: float) -> Tuple[float, Dict]:
+        """
+        USDT 금액으로 주문 수량 계산
         
-        # 현재 시장 가격 시뮬레이션 (실제로는 WebSocket에서 가져와야 함)
-        simulated_price = {
-            'BTC-USDT-SWAP': 45000 + (time.time() % 1000),
-            'ETH-USDT-SWAP': 2800 + (time.time() % 100)
-        }.get(inst_id, 1000)
+        Returns:
+            (계약 수, 계산 정보)
+        """
+        inst_info = self.get_instrument_info(inst_id)
+        current_price = self.get_current_price(inst_id)
         
-        test_result = {
-            'order_id': test_order_id,
-            'instrument': inst_id,
-            'side': side,
-            'size': size,
-            'price': simulated_price,
-            'leverage': leverage,
-            'order_type': 'market',
-            'status': 'TEST_FILLED',
-            'timestamp': datetime.now(),
-            'test_mode': True,
-            'notional_value': size * simulated_price,
-            'margin_required': (size * simulated_price) / leverage,
-            'fee': size * simulated_price * 0.0005
+        if not inst_info or not current_price:
+            return 0, {'error': '정보 조회 실패'}
+        
+        ct_val = inst_info['ct_val']
+        contract_value = ct_val * current_price
+        contracts = usdt_amount / contract_value
+        
+        # 최소 단위로 조정
+        lot_size = inst_info['lot_size']
+        contracts = int(contracts / lot_size) * lot_size
+        
+        # 최소 수량 확인
+        min_size = inst_info['min_size']
+        if contracts < min_size:
+            contracts = min_size
+        
+        actual_notional = contracts * ct_val * current_price
+        
+        return contracts, {
+            'current_price': current_price,
+            'ct_val': ct_val,
+            'min_size': min_size,
+            'lot_size': lot_size,
+            'requested_usdt': usdt_amount,
+            'contracts': contracts,
+            'actual_notional': actual_notional
         }
+    
+    # ==================== 잔고 ====================
+    
+    def get_account_balance(self, ccy: str = 'USDT') -> Optional[Dict]:
+        """잔고 조회"""
+        response = make_api_request('GET', '/api/v5/account/balance')
         
-        print(f"🧪 테스트 주문 실행:")
-        print(f"  주문 ID: {test_order_id}")
-        print(f"  상품: {inst_id}")
-        print(f"  방향: {side}")
-        print(f"  수량: {size}")
-        print(f"  가격: ${simulated_price:,.2f}")
-        print(f"  레버리지: {leverage}x")
-        print(f"  명목가치: ${test_result['notional_value']:,.2f}")
-        print(f"  필요증거금: ${test_result['margin_required']:,.2f}")
-        print(f"  수수료: ${test_result['fee']:,.2f}")
+        if response and response.get('code') == '0':
+            for bal in response['data'][0].get('details', []):
+                if bal.get('ccy') == ccy:
+                    return {
+                        'currency': ccy,
+                        'available': float(bal.get('availBal') or 0),
+                        'equity': float(bal.get('eq') or 0),
+                        'frozen': float(bal.get('frozenBal') or 0),
+                    }
+        return None
+    
+    # ==================== 편의 메서드 ====================
+    
+    def buy(self, inst_id: str, size: float, leverage: int = 1) -> Optional[Dict]:
+        """롱 포지션 진입 (매수)"""
+        return self.place_market_order(inst_id, 'buy', size, leverage)
+    
+    def sell(self, inst_id: str, size: float, leverage: int = 1) -> Optional[Dict]:
+        """숏 포지션 진입 (매도)"""
+        return self.place_market_order(inst_id, 'sell', size, leverage)
+    
+    def buy_usdt(self, inst_id: str, usdt_amount: float, leverage: int = 1) -> Optional[Dict]:
+        """USDT 금액으로 롱 포지션 진입"""
+        size, info = self.calculate_order_size(inst_id, usdt_amount)
+        if size > 0:
+            print(f"📊 ${usdt_amount} → {size} 계약 (실제: ${info['actual_notional']:.2f})")
+            return self.buy(inst_id, size, leverage)
+        return None
+    
+    def sell_usdt(self, inst_id: str, usdt_amount: float, leverage: int = 1) -> Optional[Dict]:
+        """USDT 금액으로 숏 포지션 진입"""
+        size, info = self.calculate_order_size(inst_id, usdt_amount)
+        if size > 0:
+            print(f"📊 ${usdt_amount} → {size} 계약 (실제: ${info['actual_notional']:.2f})")
+            return self.sell(inst_id, size, leverage)
+        return None
+    
+    # ==================== 테스트 ====================
+    
+    def test_buy_order(self, inst_id: str = 'BTC-USDT-SWAP', 
+                       usdt_amount: float = 10, leverage: int = 1) -> Dict:
+        """
+        구매 테스트 (실제 거래!)
+        """
+        print(f"\n{'='*60}")
+        print(f"🛒 구매 테스트 (실제 거래)")
+        print(f"{'='*60}")
+        print(f"상품: {inst_id}")
+        print(f"금액: ${usdt_amount}")
+        print(f"레버리지: {leverage}x")
         
-        # 테스트 주문 기록
-        self.order_history.append(test_result)
+        result = self.buy_usdt(inst_id, usdt_amount, leverage)
         
-        return test_result
+        if result:
+            # 체결 확인
+            time.sleep(2)
+            status = self.get_order_status(inst_id, result['order_id'])
+            
+            print(f"\n✅ 구매 성공!")
+            if status:
+                print(f"   상태: {status['status']}")
+                print(f"   체결가: ${status['avg_price']:,.2f}")
+                print(f"   수수료: ${abs(status['fee']):.6f}")
+            
+            return {'success': True, 'order': result, 'status': status}
+        
+        return {'success': False, 'error': '주문 실패'}
+    
+    def test_close_position(self, inst_id: str = 'BTC-USDT-SWAP') -> Dict:
+        """포지션 청산 테스트"""
+        print(f"\n{'='*60}")
+        print(f"📤 청산 테스트")
+        print(f"{'='*60}")
+        
+        result = self.close_position(inst_id)
+        
+        if result:
+            print(f"\n✅ 청산 성공!")
+            return {'success': True, 'order': result}
+        
+        return {'success': False, 'error': '청산 실패'}
 
-    def validate_and_execute_test(self, inst_id, side, size, leverage=1):
-        """검증 후 테스트 거래 실행"""
-        from okx.order_validator import OrderValidator
-        
-        validator = OrderValidator()
-        
-        # 심볼 검증
-        is_valid, error_msg = validator.validate_symbol(inst_id)
-        if not is_valid:
-            return {'success': False, 'error': error_msg}
-        
-        # 테스트 가격 가져오기
-        test_price = {
-            'BTC-USDT-SWAP': 45000,
-            'ETH-USDT-SWAP': 2800
-        }.get(inst_id, 1000)
-        
-        # 주문 크기 검증
-        is_valid, error_msg = validator.validate_order_size(inst_id, size, test_price)
-        if not is_valid:
-            return {'success': False, 'error': error_msg}
-        
-        # 레버리지 검증
-        is_valid, error_msg = validator.validate_leverage(inst_id, leverage)
-        if not is_valid:
-            return {'success': False, 'error': error_msg}
-        
-        # 모든 검증 통과 시 테스트 주문 실행
-        result = self.place_test_order(inst_id, side, size, leverage, test_mode=True)
-        
-        return {'success': True, 'order': result}
 
+# ==================== 테스트 실행 ====================
 
-
-
-
-
-
-
+if __name__ == "__main__":
+    print("=" * 60)
+    print("OrderManager 테스트")
+    print("=" * 60)
+    
+    manager = OrderManager()
+    
+    # 가격 조회
+    price = manager.get_current_price('BTC-USDT-SWAP')
+    if price:
+        print(f"\n💵 BTC 현재가: ${price:,.2f}")
+    
+    # 상품 정보
+    info = manager.get_instrument_info('BTC-USDT-SWAP')
+    if info:
+        print(f"📊 최소 수량: {info['min_size']}")
+        print(f"📊 계약 가치: {info['ct_val']}")
+    
+    # 잔고 확인
+    balance = manager.get_account_balance('USDT')
+    if balance:
+        print(f"💰 USDT 잔고: ${balance['available']:.2f}")
+    
+    # 주문 수량 계산
+    size, calc = manager.calculate_order_size('BTC-USDT-SWAP', 10)
+    print(f"\n📊 $10 USDT → {size} 계약")
+    print(f"   실제 금액: ${calc.get('actual_notional', 0):.2f}")
+    
+    # 포지션 확인
+    positions = manager.get_positions()
+    print(f"\n📊 현재 포지션: {len(positions)}개")
+    for pos in positions:
+        print(f"   {pos['inst_id']} {pos['pos_side']}: {pos['position']}")
+        print(f"   손익: ${pos['upl']:.2f} ({pos['upl_ratio']*100:.2f}%)")
