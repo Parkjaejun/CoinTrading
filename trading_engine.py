@@ -375,21 +375,24 @@ class TradingEngine:
         self.total_signals = 0
         self.executed_trades = 0
         
-        print("🔧 자동매매 엔진 초기화")
+        print("🔧 자동매매 엔진 초기화", flush=True)
     
     def initialize(self):
         """엔진 초기화"""
-        print("=" * 60)
-        print("🚀 자동매매 엔진 초기화 중...")
-        print("=" * 60)
+        import sys
+        
+        print("=" * 60, flush=True)
+        print("🚀 자동매매 엔진 초기화 중...", flush=True)
+        print("=" * 60, flush=True)
+        sys.stdout.flush()
         
         # OrderManager 초기화
         try:
             from okx.order_manager import OrderManager
             self.order_manager = OrderManager()
-            print("✅ OrderManager 연결 완료")
+            print("✅ OrderManager 연결 완료", flush=True)
         except Exception as e:
-            print(f"❌ OrderManager 초기화 실패: {e}")
+            print(f"❌ OrderManager 초기화 실패: {e}", flush=True)
             return False
         
         # 🔥 실제 OKX 잔고 조회
@@ -397,16 +400,16 @@ class TradingEngine:
             balance = self.order_manager.get_account_balance('USDT')
             if balance and balance.get('available', 0) > 0:
                 self.initial_capital = float(balance['available'])
-                print(f"💰 실제 OKX 잔고 로드: ${self.initial_capital:.2f} USDT")
+                print(f"💰 실제 OKX 잔고 로드: ${self.initial_capital:.2f} USDT", flush=True)
             else:
-                print(f"⚠️ 잔고 조회 실패, 설정값 사용: ${self.initial_capital:.2f}")
+                print(f"⚠️ 잔고 조회 실패, 설정값 사용: ${self.initial_capital:.2f}", flush=True)
         except Exception as e:
-            print(f"⚠️ 잔고 조회 오류: {e}, 설정값 사용: ${self.initial_capital:.2f}")
+            print(f"⚠️ 잔고 조회 오류: {e}, 설정값 사용: ${self.initial_capital:.2f}", flush=True)
         
         # 가격 버퍼 초기화
         for symbol in self.symbols:
             self.price_buffers[symbol] = PriceBuffer(maxlen=300)
-            print(f"✅ 가격 버퍼 생성: {symbol}")
+            print(f"✅ 가격 버퍼 생성: {symbol}", flush=True)
         
         # 전략 초기화
         capital_per_strategy = self.initial_capital / (len(self.symbols) * 2)
@@ -450,13 +453,13 @@ class TradingEngine:
             self.strategies[f'long_{symbol}'] = TradingStrategy(
                 symbol, 'long', long_config
             )
-            print(f"✅ 롱 전략 생성: {symbol} (레버리지: {long_config['leverage']}x)")
+            print(f"✅ 롱 전략 생성: {symbol} (레버리지: {long_config['leverage']}x)", flush=True)
             
             # 숏 전략
             self.strategies[f'short_{symbol}'] = TradingStrategy(
                 symbol, 'short', short_config
             )
-            print(f"✅ 숏 전략 생성: {symbol} (레버리지: {short_config['leverage']}x)")
+            print(f"✅ 숏 전략 생성: {symbol} (레버리지: {short_config['leverage']}x)", flush=True)
         
         # 과거 캔들 데이터 로드 (EMA 계산용)
         for symbol in self.symbols:
