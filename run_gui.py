@@ -6,7 +6,7 @@ OKX 자동매매 시스템 GUI 런처 - 수정된 버전
 - 안전한 모듈 로딩
 - 완전한 GUI 실행
 """
-
+import quiet_logger
 import sys
 import os
 import traceback
@@ -27,6 +27,12 @@ print("=========================================================================
 def check_dependencies():
     """필수 의존성 확인"""
     print("🔧 환경 설정 중...")
+    
+    try:
+        from terminal_dashboard import init_dashboard
+        init_dashboard()  # 불필요한 로그 숨김
+    except:
+        pass
     
     # PyQt5 확인
     try:

@@ -85,14 +85,6 @@ except ImportError as e:
     print(f"⚠️ 조건 모니터링 모듈 임포트 실패: {e}")
     CONDITION_MONITORING_AVAILABLE = False
 
-try:
-    from gui.auto_trading_widget import AutoTradingWidget
-    print("✅ AutoTradingWidget 임포트 성공")
-    AUTO_TRADING_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ AutoTradingWidget 임포트 실패: {e}")
-    AUTO_TRADING_AVAILABLE = False
-
 
 class TradingMainWindow(QMainWindow):
     """메인 거래 윈도우 - Signal Lost 지원"""
@@ -196,10 +188,7 @@ class TradingMainWindow(QMainWindow):
         self.create_monitoring_tab()
         
         # ⭐ 테스트 거래 탭 추가 - 이 줄을 추가해야 합니다!
-        #self.create_test_trading_tab()
-        
-        # 🤖 자동매매 탭 추가
-        self.create_auto_trading_tab()
+        self.create_test_trading_tab()
         
         # 하단 상태바
         self.status_bar = QStatusBar()
@@ -1379,68 +1368,6 @@ class TradingMainWindow(QMainWindow):
 
 
     # trading test
-
-    
-    def create_auto_trading_tab(self):
-        """🤖 자동매매 탭 생성"""
-        if AUTO_TRADING_AVAILABLE:
-            try:
-                self.auto_trading_widget = AutoTradingWidget()
-                self.tab_widget.addTab(self.auto_trading_widget, "🤖 자동매매")
-                print("✅ 자동매매 탭 생성 완료")
-            except Exception as e:
-                print(f"❌ 자동매매 탭 생성 실패: {e}")
-                # 대체 위젯
-                fallback = QWidget()
-                layout = QVBoxLayout(fallback)
-                layout.addWidget(QLabel("자동매매 위젯을 로드할 수 없습니다."))
-                layout.addWidget(QLabel(f"오류: {e}"))
-                self.tab_widget.addTab(fallback, "🤖 자동매매")
-        else:
-            # AutoTradingWidget 사용 불가 시 대체 UI
-            fallback_widget = QWidget()
-            layout = QVBoxLayout(fallback_widget)
-            
-            info_label = QLabel("⚠️ 자동매매 위젯을 로드할 수 없습니다.")
-            info_label.setStyleSheet("font-size: 14px; color: #f39c12;")
-            layout.addWidget(info_label)
-            
-            instruction = QLabel(
-                "auto_trading_widget.py 파일을 gui/ 폴더에 복사하세요:\n"
-                "copy auto_trading_widget.py gui\\"
-            )
-            layout.addWidget(instruction)
-            
-            # 대안: CLI 실행 버튼
-            run_btn = QPushButton("🚀 CLI에서 자동매매 실행")
-            run_btn.clicked.connect(self.run_trading_engine_cli)
-            layout.addWidget(run_btn)
-            
-            layout.addStretch()
-            self.tab_widget.addTab(fallback_widget, "🤖 자동매매")
-    
-    def run_trading_engine_cli(self):
-        """CLI에서 자동매매 엔진 실행"""
-        import subprocess
-        import sys
-        
-        reply = QMessageBox.question(
-            self,
-            "자동매매 실행",
-            "새 터미널에서 자동매매 엔진을 실행하시겠습니까?",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
-            try:
-                if sys.platform == 'win32':
-                    subprocess.Popen(['start', 'cmd', '/k', 'python', 'trading_engine.py'], shell=True)
-                else:
-                    subprocess.Popen(['gnome-terminal', '--', 'python', 'trading_engine.py'])
-                QMessageBox.information(self, "실행", "자동매매 엔진이 새 터미널에서 시작됩니다.")
-            except Exception as e:
-                QMessageBox.critical(self, "오류", f"실행 실패: {e}")
-
 
     def create_test_trading_tab(self):
         """BTC 테스트 거래 탭 생성"""
