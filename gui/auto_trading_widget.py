@@ -486,7 +486,9 @@ class AutoTradingWidget(QWidget):
             self.engine.on_trade_callback = self.on_trade
             
             # 시작
-            if self.engine.start():
+            start_result = self.engine.start()
+            
+            if start_result:
                 self.is_running = True
                 self.start_button.setEnabled(False)
                 self.stop_button.setEnabled(True)
@@ -497,18 +499,21 @@ class AutoTradingWidget(QWidget):
                 # 설정 위젯 비활성화
                 self.set_settings_enabled(False)
             else:
-                self.append_log("[오류] 엔진 시작 실패")
-                self.show_error_message("자동매매 엔진 시작에 실패했습니다.")
+                error_msg = "엔진 초기화에 실패했습니다. 터미널 로그를 확인하세요."
+                self.append_log(f"[오류] {error_msg}")
+                self.show_error_message(error_msg)
                 
         except ImportError as e:
-            self.append_log(f"[오류] trading_engine.py 파일을 찾을 수 없습니다: {e}")
-            self.show_error_message(
-                "trading_engine.py 파일이 없습니다.\n\n"
-                "프로젝트 폴더에 trading_engine.py 파일을 복사해주세요."
-            )
+            error_msg = f"trading_engine.py 파일을 찾을 수 없습니다.\n\n프로젝트 폴더에 파일을 복사해주세요.\n\n상세: {e}"
+            self.append_log(f"[오류] ImportError: {e}")
+            self.show_error_message(error_msg)
         except Exception as e:
-            self.append_log(f"[오류] {e}")
-            self.show_error_message(f"자동매매 시작 오류:\n{e}")
+            import traceback
+            error_detail = traceback.format_exc()
+            error_msg = f"자동매매 시작 중 오류가 발생했습니다.\n\n{type(e).__name__}: {e}"
+            self.append_log(f"[오류] {type(e).__name__}: {e}")
+            self.append_log(f"[상세] {error_detail}")
+            self.show_error_message(error_msg)
     
     def stop_trading(self):
         """자동매매 중지"""

@@ -3,6 +3,12 @@
 """
 OKX 자동매매 시스템 GUI 실행
 """
+# 맨 처음에 quiet_logger import (포지션 조회 로그 숨김)
+try:
+    import quiet_logger
+except ImportError:
+    pass  # quiet_logger가 없으면 무시
+
 import sys
 import os
 import traceback

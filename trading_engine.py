@@ -91,8 +91,9 @@ class TradingStrategy:
         self.winning_trades = 0
         self.total_pnl = 0
         
-        # 마지막 EMA 값
+        # 마지막 EMA 값 및 가격
         self.last_ema_values = {}
+        self.last_price = 0
     
     def calculate_emas(self, df: pd.DataFrame) -> Dict[str, float]:
         """EMA 계산"""
@@ -103,6 +104,102 @@ class TradingStrategy:
                 emas[f'ema_{name}'] = ema.iloc[-1]
                 emas[f'prev_ema_{name}'] = ema.iloc[-2] if len(ema) > 1 else ema.iloc[-1]
         return emas
+    
+    def calculate_proximity(self, emas: Dict, current_price: float) -> Dict:
+        """
+        전략 진입 조건 근접도 계산 (%)
+        Returns: {
+            'trend_proximity': float,      # 트렌드 조건 근접도 (0-100%)
+            'entry_proximity': float,      # 진입 신호 근접도 (0-100%)
+            'overall_proximity': float,    # 전체 근접도 (0-100%)
+            'trend_status': str,           # 트렌드 상태 설명
+            'entry_status': str,           # 진입 상태 설명
+        }
+        """
+        result = {
+            'trend_proximity': 0,
+            'entry_proximity': 0,
+            'overall_proximity': 0,
+            'trend_status': '',
+            'entry_status': '',
+        }
+        
+        # 1. 트렌드 근접도 (150 vs 200 EMA)
+        ema_150 = emas.get('ema_trend_fast')
+        ema_200 = emas.get('ema_trend_slow')
+        
+        if ema_150 and ema_200:
+            diff_pct = ((ema_150 - ema_200) / ema_200) * 100
+            
+            if self.strategy_type == 'long':
+                # 롱: 150 > 200 이어야 함
+                if diff_pct > 0:
+                    result['trend_proximity'] = 100  # 조건 충족
+                    result['trend_status'] = f"✅ 상승장 (150>200, +{diff_pct:.2f}%)"
+                else:
+                    # 얼마나 가까운지 (0%에 가까울수록 높음)
+                    result['trend_proximity'] = max(0, 100 + diff_pct * 10)  # -10%면 0%
+                    result['trend_status'] = f"⏳ 대기 (150<200, {diff_pct:.2f}%)"
+            else:
+                # 숏: 150 < 200 이어야 함
+                if diff_pct < 0:
+                    result['trend_proximity'] = 100
+                    result['trend_status'] = f"✅ 하락장 (150<200, {diff_pct:.2f}%)"
+                else:
+                    result['trend_proximity'] = max(0, 100 - diff_pct * 10)
+                    result['trend_status'] = f"⏳ 대기 (150>200, +{diff_pct:.2f}%)"
+        
+        # 2. 진입 신호 근접도 (20 vs 50 EMA)
+        ema_20 = emas.get('ema_entry_fast')
+        ema_50 = emas.get('ema_entry_slow')
+        prev_20 = emas.get('prev_ema_entry_fast')
+        prev_50 = emas.get('prev_ema_entry_slow')
+        
+        if ema_20 and ema_50:
+            entry_diff_pct = ((ema_20 - ema_50) / ema_50) * 100
+            
+            if self.strategy_type == 'long':
+                # 골든크로스 대기: 20이 50 아래에서 위로 올라와야 함
+                if prev_20 and prev_50:
+                    was_below = prev_20 <= prev_50
+                    is_above = ema_20 > ema_50
+                    
+                    if was_below and is_above:
+                        result['entry_proximity'] = 100
+                        result['entry_status'] = f"🎯 골든크로스 발생!"
+                    elif entry_diff_pct < 0:
+                        # 아래에 있음 - 올라오는 중
+                        result['entry_proximity'] = max(0, 100 + entry_diff_pct * 20)
+                        result['entry_status'] = f"📈 상승 대기 ({entry_diff_pct:.2f}%)"
+                    else:
+                        # 이미 위에 있음 - 크로스 놓침
+                        result['entry_proximity'] = 50
+                        result['entry_status'] = f"⏸️ 이미 위 (+{entry_diff_pct:.2f}%)"
+            else:
+                # 데드크로스 대기: 20이 50 위에서 아래로 내려와야 함
+                if prev_20 and prev_50:
+                    was_above = prev_20 >= prev_50
+                    is_below = ema_20 < ema_50
+                    
+                    if was_above and is_below:
+                        result['entry_proximity'] = 100
+                        result['entry_status'] = f"🎯 데드크로스 발생!"
+                    elif entry_diff_pct > 0:
+                        # 위에 있음 - 내려오는 중
+                        result['entry_proximity'] = max(0, 100 - entry_diff_pct * 20)
+                        result['entry_status'] = f"📉 하락 대기 (+{entry_diff_pct:.2f}%)"
+                    else:
+                        # 이미 아래에 있음
+                        result['entry_proximity'] = 50
+                        result['entry_status'] = f"⏸️ 이미 아래 ({entry_diff_pct:.2f}%)"
+        
+        # 3. 전체 근접도 (트렌드 40% + 진입 60%)
+        result['overall_proximity'] = (
+            result['trend_proximity'] * 0.4 + 
+            result['entry_proximity'] * 0.6
+        )
+        
+        return result
     
     def check_trend(self, emas: Dict) -> bool:
         """
@@ -306,6 +403,7 @@ class TradingStrategy:
         # EMA 계산
         emas = self.calculate_emas(df)
         self.last_ema_values = emas
+        self.last_price = current_price  # 현재 가격 저장
         
         # 청산 신호 확인
         should_exit, exit_reason = self.check_exit_signal(emas, current_price)
@@ -320,7 +418,13 @@ class TradingStrategy:
         return None
     
     def get_status(self) -> Dict:
-        """전략 상태 조회"""
+        """전략 상태 조회 (근접도 포함)"""
+        # 근접도 계산 (마지막 EMA 값이 있을 때)
+        proximity = {}
+        if self.last_ema_values and not self.is_position_open:
+            current_price = getattr(self, 'last_price', 0)
+            proximity = self.calculate_proximity(self.last_ema_values, current_price)
+        
         return {
             'symbol': self.symbol,
             'type': self.strategy_type,
@@ -333,7 +437,9 @@ class TradingStrategy:
             'winning_trades': self.winning_trades,
             'win_rate': self.winning_trades / self.total_trades * 100 if self.total_trades > 0 else 0,
             'total_pnl': self.total_pnl,
-            'leverage': self.leverage
+            'leverage': self.leverage,
+            'proximity': proximity,  # 근접도 추가
+            'ema_values': self.last_ema_values  # EMA 값도 추가
         }
 
 
@@ -646,11 +752,21 @@ class TradingEngine:
             if latest_candle:
                 buffer = self.price_buffers[symbol]
                 
-                # 새 캔들이면 추가
+                # 확정된 캔들인지 확인
+                is_confirmed = latest_candle.get('confirm') == '1'
+                
+                # 새 캔들이면 추가 (확정된 것만)
                 if len(buffer) == 0 or latest_candle['timestamp'] > buffer.candles[-1]['timestamp']:
-                    if latest_candle.get('confirm') == '1':  # 확정된 캔들만
+                    if is_confirmed:
                         buffer.add_candle(latest_candle)
-                        print(f"📊 새 캔들 추가: {symbol} @ ${latest_candle['close']:,.2f}")
+                        print(f"📊 새 캔들 추가: {symbol} @ ${latest_candle['close']:,.2f}", flush=True)
+                
+                # 진행 중 캔들의 종가로 마지막 캔들 업데이트 (실시간 반영)
+                elif not is_confirmed and len(buffer) > 0:
+                    # 마지막 캔들의 종가를 현재 가격으로 임시 업데이트
+                    buffer.candles[-1]['close'] = latest_candle['close']
+                    buffer.candles[-1]['high'] = max(buffer.candles[-1]['high'], latest_candle['high'])
+                    buffer.candles[-1]['low'] = min(buffer.candles[-1]['low'], latest_candle['low'])
             
             # DataFrame 변환
             df = self.price_buffers[symbol].to_dataframe()
@@ -734,20 +850,31 @@ class TradingEngine:
         print("🛑 자동매매 엔진 중지됨", flush=True)
     
     def _print_status(self):
-        """상태 출력"""
+        """상태 출력 (근접도 포함)"""
         import sys
         
         runtime = datetime.now() - self.start_time if self.start_time else timedelta(0)
         runtime_str = str(runtime).split('.')[0]  # 마이크로초 제거
         
-        print("\n" + "=" * 60, flush=True)
+        # 현재 가격 가져오기
+        current_prices = {}
+        for symbol in self.symbols:
+            price = self._fetch_current_price(symbol)
+            if price:
+                current_prices[symbol] = price
+        
+        print("\n" + "=" * 70, flush=True)
         print(f"📊 자동매매 상태 - {datetime.now().strftime('%H:%M:%S')}", flush=True)
-        print("=" * 60, flush=True)
+        print("=" * 70, flush=True)
         print(f"⏱️  실행: {runtime_str} | 사이클: {getattr(self, 'cycle_count', 0)}", flush=True)
         print(f"📈 신호: {self.total_signals}개 | 거래: {self.executed_trades}개", flush=True)
         
-        # 각 전략 상태
-        print("-" * 60, flush=True)
+        # 현재 가격 표시
+        for symbol, price in current_prices.items():
+            print(f"💰 {symbol}: ${price:,.2f}", flush=True)
+        
+        # 각 전략 상태 + 근접도
+        print("-" * 70, flush=True)
         for key, strategy in self.strategies.items():
             status = strategy.get_status()
             mode = "🟢실제" if status['is_real_mode'] else "🟡가상"
@@ -755,8 +882,25 @@ class TradingEngine:
             
             name = "LONG " if "long" in key else "SHORT"
             print(f"  {name}: {mode} {pos} | 자본: ${status['real_capital']:.2f} | 손익: ${status['total_pnl']:+.2f}", flush=True)
+            
+            # 근접도 표시 (포지션 없을 때만)
+            if not status['is_position_open']:
+                proximity = status.get('proximity', {})
+                if proximity:
+                    overall = proximity.get('overall_proximity', 0)
+                    trend_status = proximity.get('trend_status', '')
+                    entry_status = proximity.get('entry_status', '')
+                    
+                    # 프로그레스 바
+                    bar_len = 20
+                    filled = int(overall / 100 * bar_len)
+                    bar = '█' * filled + '░' * (bar_len - filled)
+                    
+                    print(f"        📊 진입 근접도: [{bar}] {overall:.1f}%", flush=True)
+                    print(f"           트렌드: {trend_status}", flush=True)
+                    print(f"           진입: {entry_status}", flush=True)
         
-        print("=" * 60, flush=True)
+        print("=" * 70, flush=True)
         sys.stdout.flush()
     
     def start(self):

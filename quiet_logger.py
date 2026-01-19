@@ -29,6 +29,7 @@ def _quiet_print(*args, **kwargs):
         "📊 포지션 조회 시작",
         "📊 포지션 정보 업데이트",
         "instType=SWAP",
+        "포지션 조회 시작 (instType",  # 괄호 버전
     ]
     
     for pattern in hide_patterns:
