@@ -6,24 +6,41 @@ OKX 자동매매 시스템 통합 설정 파일
 """
 
 import os
-import time
+import json
 import hmac
 import hashlib
 import base64
 import requests
+import time
+import threading
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
+from urllib.parse import urlencode
 from dataclasses import dataclass
 
 
 # =================================================================
 # OKX API 인증 정보
 # =================================================================
-API_KEY = os.getenv('OKX_API_KEY', 'your_api_key_here')
-API_SECRET = os.getenv('OKX_API_SECRET', 'your_api_secret_here')
-PASSPHRASE = os.getenv('OKX_PASSPHRASE', 'your_passphrase_here')
+API_KEY = os.getenv('OKX_API_KEY', '56b17443-24b5-4cf6-91e7-90dc87f8dbed')
+API_SECRET = os.getenv('OKX_API_SECRET', '4BB49817B72012ADA616B0634696B8CA')
+PASSPHRASE = os.getenv('OKX_PASSPHRASE', 'Qkrwowns123!@')
 
 # API 서버 정보
 API_BASE_URL = "https://www.okx.com"
+
+
+# =================================================================
+# 연결 설정
+# =================================================================
+CONNECTION_CONFIG = {
+    "request_timeout": 10,
+    "timeout": 10,
+    "max_retries": 3,
+    "retry_count": 3,
+    "retry_delay": 1,
+    "max_connections": 5,
+}
 
 
 # =================================================================
@@ -37,7 +54,12 @@ TRADING_CONFIG = {
     "paper_trading": False,
     "max_capital_per_trade": 0.20,
     "max_daily_trades": 100,
-    "emergency_stop_loss": 0.50
+    "emergency_stop_loss": 0.50,
+    "initial_balance": 10000,
+    "default_leverage": 10,
+    "max_position_size": 1000,
+    "risk_per_trade": 0.02,
+    "max_daily_loss": 0.05,
 }
 
 
@@ -49,12 +71,16 @@ EMA_PERIODS = {
     'trend_slow': 200,
     'entry_fast': 20,
     'entry_slow': 50,
-    'exit_fast': 20,           # Long 청산용
-    'exit_slow': 100,          # Long 청산용
-    'exit_fast_long': 20,      # 하위 호환
-    'exit_slow_long': 100,     # 하위 호환
-    'exit_fast_short': 100,    # 하위 호환 (Short deprecated)
-    'exit_slow_short': 200     # 하위 호환 (Short deprecated)
+    'exit_fast': 20,
+    'exit_slow': 100,
+    'exit_fast_long': 20,
+    'exit_slow_long': 100,
+    'exit_fast_short': 100,
+    'exit_slow_short': 200,
+    # 추가 호환 키
+    "trend_medium": 50,
+    "trend_long": 150,
+    "trend_super": 200,
 }
 
 
@@ -71,16 +97,17 @@ LONG_STRATEGY_CONFIG = {
     'exit_slow': 100,
     
     # 거래 설정
-    'leverage': 10,                  # 레버리지 10배
-    'trailing_stop': 0.10,           # 트레일링 스탑 10%
+    'leverage': 10,
+    'trailing_stop': 0.10,
     
     # 듀얼 모드 설정
-    'stop_loss': 0.20,               # 고점 대비 -20% → VIRTUAL 전환
-    'reentry_gain': 0.30,            # 저점 대비 +30% → REAL 복귀
+    'stop_loss': 0.20,
+    'reentry_gain': 0.30,
     
     # 자본 설정
-    'capital_use_ratio': 0.50,       # 자본의 50% 사용
-    'fee_rate': 0.0005,              # 편도 수수료 0.05%
+    'capital_use_ratio': 0.50,
+    'capital_allocation': 0.5,
+    'fee_rate': 0.0005,
     
     # 하위 호환 (기존 키)
     "trend_ema": [150, 200],
@@ -90,7 +117,6 @@ LONG_STRATEGY_CONFIG = {
     "max_rsi": 70,
 }
 
-# v2 별칭
 LONG_STRATEGY_CONFIG_V2 = LONG_STRATEGY_CONFIG
 
 
@@ -107,10 +133,35 @@ SHORT_STRATEGY_CONFIG = {
     "reentry_gain": 0.20,
     "min_volume_ratio": 1.5,
     "min_rsi": 30,
-    
-    # v2에서 사용하지 않음
+    "capital_allocation": 0.5,
     'deprecated': True,
-    'deprecation_note': 'v2는 Long Only 전략입니다.',
+}
+
+
+# =================================================================
+# 알림 설정
+# =================================================================
+NOTIFICATION_CONFIG = {
+    "enabled": True,
+    "slack": {
+        "enabled": False,
+        "webhook_url": "",
+        "channel": "#trading-alerts",
+        "username": "Trading Bot"
+    },
+    "telegram": {
+        "enabled": False,
+        "bot_token": "",
+        "chat_id": ""
+    },
+    "email": {
+        "enabled": True,
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "sender": "jpark3971@gmail.com",
+        "password": "chfm mtuc zxyk zwrb",
+        "recipient": "jpark3971@gmail.com"
+    }
 }
 
 
@@ -119,13 +170,11 @@ SHORT_STRATEGY_CONFIG = {
 # =================================================================
 @dataclass
 class EmailConfig:
-    """이메일 알림 설정"""
     smtp_server: str = "smtp.gmail.com"
     smtp_port: int = 587
     sender_email: str = ""
     sender_password: str = ""
     recipient_email: str = ""
-    
     notify_on_entry: bool = True
     notify_on_exit: bool = True
     notify_on_mode_switch: bool = True
@@ -150,33 +199,7 @@ DEFAULT_EMAIL_CONFIG = EmailConfig.from_env()
 
 
 # =================================================================
-# 알림 설정 (기존)
-# =================================================================
-NOTIFICATION_CONFIG = {
-    "slack": {
-        "enabled": False,
-        "webhook_url": "",
-        "channel": "#trading-alerts",
-        "username": "Trading Bot"
-    },
-    "telegram": {
-        "enabled": False,
-        "bot_token": "",
-        "chat_id": ""
-    },
-    "email": {
-        "enabled": False,
-        "smtp_server": "smtp.gmail.com",
-        "smtp_port": 587,
-        "sender": "",
-        "password": "",
-        "recipient": ""
-    }
-}
-
-
-# =================================================================
-# 디버깅 설정 (v2)
+# 디버깅 설정
 # =================================================================
 DEBUG_CONFIG = {
     'enable_debug_logging': True,
@@ -225,33 +248,51 @@ GUI_CONFIG = {
 
 
 # =================================================================
+# Rate Limiting
+# =================================================================
+_api_lock = threading.Lock()
+_last_request_time = 0
+_min_request_interval = 0.1
+
+_timestamp_lock = threading.Lock()
+_last_timestamp = ""
+
+
+# =================================================================
 # API 유틸리티 함수
 # =================================================================
 def get_timestamp() -> str:
-    """OKX API용 타임스탬프 생성"""
-    return str(int(time.time() * 1000))
+    """OKX API 표준 타임스탬프 생성 - 유니크 보장"""
+    global _last_timestamp
+    
+    with _timestamp_lock:
+        while True:
+            current_timestamp = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            if current_timestamp != _last_timestamp:
+                _last_timestamp = current_timestamp
+                return current_timestamp
+            time.sleep(0.001)
 
 
 def get_iso_timestamp() -> str:
-    """ISO 형식 타임스탬프"""
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+    """ISO 형식 타임스탬프 (별칭)"""
+    return get_timestamp()
 
 
 def generate_signature(timestamp: str, method: str, request_path: str, body: str = "") -> str:
-    """API 서명 생성"""
+    """OKX API 서명 생성"""
     message = timestamp + method.upper() + request_path + body
-    mac = hmac.new(
-        bytes(API_SECRET, encoding='utf-8'),
-        bytes(message, encoding='utf-8'),
-        digestmod='sha256'
-    )
-    return base64.b64encode(mac.digest()).decode()
+    signature = hmac.new(
+        API_SECRET.encode('utf-8'),
+        message.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    return base64.b64encode(signature).decode('utf-8')
 
 
 def get_headers(method: str, request_path: str, body: str = "") -> Dict[str, str]:
     """API 요청 헤더 생성"""
-    timestamp = get_iso_timestamp()
+    timestamp = get_timestamp()
     signature = generate_signature(timestamp, method, request_path, body)
     
     return {
@@ -263,72 +304,107 @@ def get_headers(method: str, request_path: str, body: str = "") -> Dict[str, str
     }
 
 
+def get_api_headers(method: str = "GET", endpoint: str = "", body: str = "") -> Dict[str, str]:
+    """API 요청 헤더 생성 (별칭)"""
+    return get_headers(method, endpoint, body)
+
+
 def make_api_request(method: str, endpoint: str, params: Dict = None, data: Dict = None) -> Optional[Dict]:
     """
-    OKX API 요청 실행
+    통합 API 요청 함수
     
     Args:
-        method: HTTP 메서드 (GET, POST, DELETE 등)
-        endpoint: API 엔드포인트 (예: /api/v5/account/balance)
-        params: 쿼리 파라미터 (GET 요청)
-        data: 요청 바디 (POST 요청)
+        method: HTTP 메서드 (GET, POST, DELETE)
+        endpoint: API 엔드포인트
+        params: 쿼리 파라미터 (GET)
+        data: 요청 바디 (POST)
     
     Returns:
-        API 응답 딕셔너리 또는 None
+        API 응답 딕셔너리
     """
-    import json
+    base_url = API_BASE_URL + endpoint
+    body = json.dumps(data, separators=(',', ':')) if data else ""
     
-    try:
-        url = f"{API_BASE_URL}{endpoint}"
-        body = ""
-        
-        # POST 요청의 경우 body를 JSON으로 변환
-        if data:
-            body = json.dumps(data)
-        
-        # GET 요청에 쿼리 파라미터 추가
-        if params:
-            query_string = "&".join([f"{k}={v}" for k, v in params.items()])
-            endpoint_with_params = f"{endpoint}?{query_string}"
-            url = f"{API_BASE_URL}{endpoint_with_params}"
-        else:
-            endpoint_with_params = endpoint
-        
-        # 헤더 생성
-        headers = get_headers(method.upper(), endpoint_with_params, body)
-        
-        # 요청 실행
-        if method.upper() == "GET":
-            response = requests.get(url, headers=headers, timeout=10)
-        elif method.upper() == "POST":
-            response = requests.post(url, headers=headers, data=body, timeout=10)
-        elif method.upper() == "DELETE":
-            response = requests.delete(url, headers=headers, timeout=10)
-        else:
-            print(f"❌ 지원하지 않는 HTTP 메서드: {method}")
-            return None
-        
-        # 응답 처리
-        if response.status_code == 200:
-            result = response.json()
-            if result.get('code') == '0':
-                return result
-            else:
-                print(f"❌ API 오류: {result.get('msg', 'Unknown error')}")
-                return result
-        else:
-            print(f"❌ HTTP 오류: {response.status_code}")
-            return None
+    for attempt in range(CONNECTION_CONFIG['max_retries']):
+        try:
+            # 쿼리 스트링 생성
+            query_string = ""
+            if params and method.upper() == 'GET':
+                query_string = urlencode(params)
             
-    except requests.exceptions.Timeout:
-        print("❌ API 요청 타임아웃")
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f"❌ API 요청 오류: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ 예상치 못한 오류: {e}")
-        return None
+            # 서명용 request_path 생성
+            request_path = endpoint
+            if query_string:
+                request_path = endpoint + "?" + query_string
+            
+            # 헤더 생성
+            headers = get_headers(method.upper(), request_path, body)
+            
+            # 요청 실행
+            if method.upper() == 'GET':
+                if params:
+                    response = requests.get(
+                        base_url, 
+                        headers=headers, 
+                        params=params,
+                        timeout=CONNECTION_CONFIG['request_timeout']
+                    )
+                else:
+                    response = requests.get(
+                        base_url, 
+                        headers=headers, 
+                        timeout=CONNECTION_CONFIG['request_timeout']
+                    )
+            elif method.upper() == 'POST':
+                response = requests.post(
+                    base_url, 
+                    headers=headers, 
+                    data=body, 
+                    timeout=CONNECTION_CONFIG['request_timeout']
+                )
+            elif method.upper() == 'DELETE':
+                response = requests.delete(
+                    base_url, 
+                    headers=headers, 
+                    timeout=CONNECTION_CONFIG['request_timeout']
+                )
+            else:
+                print(f"❌ 지원하지 않는 HTTP 메서드: {method}")
+                return None
+            
+            # 응답 처리
+            if response.status_code == 200:
+                return response.json()
+            else:
+                error_msg = f"HTTP 오류 {response.status_code}"
+                try:
+                    error_detail = response.json()
+                    error_msg += f": {error_detail}"
+                except:
+                    error_msg += f": {response.text}"
+                
+                print(f"❌ {error_msg} (시도 {attempt + 1})")
+                
+                if response.status_code == 401:
+                    print("🚨 API 인증 오류 - API 키를 확인하세요!")
+                    break
+                
+                time.sleep(CONNECTION_CONFIG['retry_delay'])
+                
+        except requests.exceptions.Timeout:
+            print(f"❌ 요청 타임아웃 (시도 {attempt + 1})")
+            if attempt < CONNECTION_CONFIG['max_retries'] - 1:
+                time.sleep(CONNECTION_CONFIG['retry_delay'])
+        except requests.exceptions.RequestException as e:
+            print(f"❌ 네트워크 오류: {e} (시도 {attempt + 1})")
+            if attempt < CONNECTION_CONFIG['max_retries'] - 1:
+                time.sleep(CONNECTION_CONFIG['retry_delay'])
+        except Exception as e:
+            print(f"❌ 요청 처리 오류: {e} (시도 {attempt + 1})")
+            if attempt < CONNECTION_CONFIG['max_retries'] - 1:
+                time.sleep(CONNECTION_CONFIG['retry_delay'])
+    
+    return None
 
 
 def get_account_balance() -> Optional[Dict]:
@@ -343,18 +419,7 @@ def get_positions(inst_type: str = "SWAP") -> Optional[Dict]:
 
 def place_order(inst_id: str, td_mode: str, side: str, ord_type: str, 
                 sz: str, px: str = None, reduce_only: bool = False) -> Optional[Dict]:
-    """
-    주문 실행
-    
-    Args:
-        inst_id: 상품 ID (예: BTC-USDT-SWAP)
-        td_mode: 거래 모드 (cross, isolated, cash)
-        side: 주문 방향 (buy, sell)
-        ord_type: 주문 유형 (market, limit)
-        sz: 수량
-        px: 가격 (limit 주문시)
-        reduce_only: 포지션 축소 전용
-    """
+    """주문 실행"""
     data = {
         "instId": inst_id,
         "tdMode": td_mode,
@@ -362,7 +427,6 @@ def place_order(inst_id: str, td_mode: str, side: str, ord_type: str,
         "ordType": ord_type,
         "sz": sz
     }
-    
     if px:
         data["px"] = px
     if reduce_only:
@@ -373,6 +437,8 @@ def place_order(inst_id: str, td_mode: str, side: str, ord_type: str,
 
 def validate_config() -> bool:
     """설정 유효성 검증"""
+    print("🔍 API 설정 검증 중...")
+    
     if not API_KEY or API_KEY == 'your_api_key_here':
         print("❌ API_KEY가 설정되지 않았습니다")
         return False
@@ -382,7 +448,16 @@ def validate_config() -> bool:
     if not PASSPHRASE or PASSPHRASE == 'your_passphrase_here':
         print("❌ PASSPHRASE가 설정되지 않았습니다")
         return False
+    
+    if len(API_KEY) < 20:
+        print(f"❌ API_KEY가 너무 짧습니다: {len(API_KEY)}자")
+        return False
+    if len(API_SECRET) < 20:
+        print(f"❌ API_SECRET이 너무 짧습니다: {len(API_SECRET)}자")
+        return False
+    
     print("✅ API 설정이 유효합니다")
+    print(f"   API_KEY: {API_KEY[:8]}...{API_KEY[-4:]}")
     return True
 
 
@@ -397,20 +472,12 @@ def test_api_connection() -> bool:
         print("✅ Public API 연결 성공")
         
         # Private API 테스트
-        request_path = "/api/v5/account/balance"
-        headers = get_headers("GET", request_path)
-        response = requests.get(f"{API_BASE_URL}{request_path}", headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('code') == '0':
-                print("✅ Private API 인증 성공")
-                return True
-            else:
-                print(f"❌ API 응답 오류: {data.get('msg')}")
-                return False
+        result = make_api_request("GET", "/api/v5/account/balance")
+        if result and result.get('code') == '0':
+            print("✅ Private API 인증 성공")
+            return True
         else:
-            print(f"❌ Private API 연결 실패: {response.status_code}")
+            print(f"❌ Private API 오류: {result}")
             return False
             
     except Exception as e:

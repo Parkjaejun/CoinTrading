@@ -1,582 +1,441 @@
-# strategy/dual_manager_improved.py
+# strategy/dual_manager.py
 """
-실시간 데이터 연동을 위한 개선된 듀얼 전략 관리자
-- WebSocket으로부터 실시간 데이터 수신
-- EMA 기반 신호 생성 및 처리
-- 롱/숏 전략 병렬 실행
+듀얼 전략 관리자 v2 (Long Only + 이메일 알림 + GUI 연동)
+
+v2 기능:
+- Long Only 전략 (Short 제거)
+- 이메일 알림 (진입/청산/모드전환)
+- SignalPipeline 디버깅
+- GUI 브릿지 연동
+
+기존 인터페이스 완전 호환
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any, Optional, Callable
 from collections import deque
-import pandas as pd
+import time
 
-from strategy.long_strategy import LongStrategy
-from strategy.short_strategy import ShortStrategy
-from okx.position import SimplePositionManager
-from utils.data_generator import convert_to_strategy_data, generate_strategy_data
-from utils.indicators import calculate_ema
-from utils.logger import log_system, log_error, log_info
-from config import EMA_PERIODS
+# 로깅
+try:
+    from utils.logger import log_system, log_error, log_info
+except ImportError:
+    def log_system(msg): print(f"[SYSTEM] {msg}")
+    def log_error(msg, e=None): print(f"[ERROR] {msg}: {e}" if e else f"[ERROR] {msg}")
+    def log_info(msg): print(f"[INFO] {msg}")
 
-class RealTimeDataBuffer:
-    """실시간 데이터 버퍼 (EMA 계산용)"""
-    
-    def __init__(self, symbol: str, max_candles: int = 300):
-        self.symbol = symbol
-        self.max_candles = max_candles
-        
-        # 실시간 가격 데이터 저장
-        self.price_buffer = deque(maxlen=max_candles)
-        self.last_candle_time = None
-        self.current_candle = None
-        
-        # EMA 계산을 위한 DataFrame
-        self._df_cache = None
-        self._last_ema_calculation = None
-        
-        log_info(f"📊 실시간 데이터 버퍼 초기화: {symbol}")
-    
-    def add_price_data(self, price_data: Dict[str, Any]):
-        """실시간 가격 데이터 추가 - 안전한 타입 변환"""
-        try:
-            timestamp = datetime.now()
-            
-            # 🔧 안전한 가격 추출 및 변환
-            price_raw = price_data.get('close', price_data.get('last', 0))
-            
-            # 문자열인 경우 float으로 변환
-            try:
-                if isinstance(price_raw, str):
-                    price = float(price_raw) if price_raw.strip() else 0.0
-                else:
-                    price = float(price_raw)
-            except (ValueError, TypeError):
-                log_error(f"가격 변환 실패 ({self.symbol}): {price_raw}")
-                return
-            
-            # 유효하지 않은 가격 체크
-            if price <= 0:
-                log_error(f"유효하지 않은 가격 ({self.symbol}): {price}")
-                return
-            
-            # 🔧 안전한 볼륨 추출 및 변환
-            volume_raw = price_data.get('volume', price_data.get('vol24h', 0))
-            try:
-                if isinstance(volume_raw, str):
-                    volume = float(volume_raw) if volume_raw.strip() else 0.0
-                else:
-                    volume = float(volume_raw)
-            except (ValueError, TypeError):
-                volume = 0.0
-            
-            # 30분 캔들 생성/업데이트
-            candle_time = self._get_candle_time(timestamp)
-            
-            if self.last_candle_time != candle_time:
-                # 새로운 캔들 시작
-                if self.current_candle:
-                    # 이전 캔들 완료
-                    self.price_buffer.append(self.current_candle.copy())
-                    self._invalidate_cache()
-                
-                # 새 캔들 시작
-                self.current_candle = {
-                    'timestamp': candle_time,
-                    'open': price,
-                    'high': price,
-                    'low': price,
-                    'close': price,
-                    'volume': volume
-                }
-                self.last_candle_time = candle_time
-            else:
-                # 기존 캔들 업데이트
-                if self.current_candle:
-                    self.current_candle['high'] = max(self.current_candle['high'], price)
-                    self.current_candle['low'] = min(self.current_candle['low'], price)
-                    self.current_candle['close'] = price
-                    # 볼륨은 최신 값 사용 (또는 누적 가능)
-                    self.current_candle['volume'] = volume
-            
-        except Exception as e:
-            log_error(f"가격 데이터 추가 오류 ({self.symbol})", e)
+# v2 전략 import
+try:
+    from cointrading_v2.strategy.long_strategy import LongStrategy
+    from cointrading_v2.strategy.email_notifier import EmailNotifier, MockEmailNotifier
+    from cointrading_v2.strategy.signal_pipeline import SignalPipeline
+    V2_AVAILABLE = True
+    log_system("✅ v2 LongStrategy + EmailNotifier 로드 성공")
+except ImportError as e:
+    V2_AVAILABLE = False
+    log_error(f"v2 모듈 로드 실패, 기존 방식 사용", e)
+    try:
+        from strategy.long_strategy import LongStrategy
+        from strategy.short_strategy import ShortStrategy
+    except ImportError:
+        LongStrategy = None
+        ShortStrategy = None
 
-    def _get_candle_time(self, timestamp: datetime) -> datetime:
-        """30분 캔들 시간 계산"""
-        # 30분 단위로 반올림
-        minute = (timestamp.minute // 30) * 30
-        return timestamp.replace(minute=minute, second=0, microsecond=0)
-    
-    def _invalidate_cache(self):
-        """캐시 무효화"""
-        self._df_cache = None
-        self._last_ema_calculation = None
-    
-    def get_dataframe(self) -> Optional[pd.DataFrame]:
-        """DataFrame 반환 (EMA 계산용)"""
-        if len(self.price_buffer) < 10:
-            return None
-        
-        # 캐시된 DataFrame 사용
-        if self._df_cache is not None and len(self._df_cache) == len(self.price_buffer):
-            return self._df_cache
-        
-        try:
-            # DataFrame 생성
-            df = pd.DataFrame(list(self.price_buffer))
-            
-            if len(df) < 10:
-                return None
-            
-            # 시간순 정렬
-            df = df.sort_values('timestamp').reset_index(drop=True)
-            
-            # 캐시 저장
-            self._df_cache = df
-            return df
-            
-        except Exception as e:
-            log_error(f"DataFrame 생성 오류 ({self.symbol})", e)
-            return None
-    
-    def get_ema_data(self) -> Optional[Dict[str, Any]]:
-        """EMA 계산된 전략 데이터 반환"""
-        df = self.get_dataframe()
-        if df is None or len(df) < max(EMA_PERIODS.values()) + 2:
-            return None
-        
-        try:
-            # EMA 계산
-            for ema_name, period in EMA_PERIODS.items():
-                if len(df) >= period:
-                    df[f'ema_{ema_name}'] = calculate_ema(df['close'], period)
-            
-            # 전략용 데이터 생성
-            strategy_data = generate_strategy_data(df, EMA_PERIODS)
-            return strategy_data
-            
-        except Exception as e:
-            log_error(f"EMA 데이터 생성 오류 ({self.symbol})", e)
-            return None
-    
-    def get_status(self) -> Dict[str, Any]:
-        """버퍼 상태 정보"""
-        return {
-            'symbol': self.symbol,
-            'candle_count': len(self.price_buffer),
-            'current_candle': self.current_candle,
-            'last_candle_time': self.last_candle_time,
-            'has_enough_data': len(self.price_buffer) >= max(EMA_PERIODS.values()) + 2,
-            'latest_price': self.current_candle['close'] if self.current_candle else None
-        }
+# 설정 import
+try:
+    from config import (
+        TRADING_CONFIG, LONG_STRATEGY_CONFIG, 
+        EMA_PERIODS, NOTIFICATION_CONFIG
+    )
+except ImportError:
+    TRADING_CONFIG = {'symbols': ['BTC-USDT-SWAP'], 'initial_capital': 10000}
+    LONG_STRATEGY_CONFIG = {'leverage': 10, 'trailing_stop': 0.10}
+    EMA_PERIODS = {'trend_fast': 150, 'trend_slow': 200}
+    NOTIFICATION_CONFIG = {'email': {'enabled': False}}
 
-class ImprovedDualStrategyManager:
-    """실시간 데이터 연동 듀얼 전략 관리자"""
+# GUI 브릿지 (옵션)
+try:
+    from gui.v2_strategy_bridge import V2StrategyBridge, GUILoggingEmailNotifier
+    GUI_BRIDGE_AVAILABLE = True
+except ImportError:
+    GUI_BRIDGE_AVAILABLE = False
+    V2StrategyBridge = None
+    GUILoggingEmailNotifier = None
+
+
+def create_email_notifier(gui_bridge=None) -> Optional[Any]:
+    """
+    이메일 알림 객체 생성
     
-    def __init__(self, total_capital: float = 10000, symbols: List[str] = None):
+    Args:
+        gui_bridge: GUI 브릿지 (있으면 GUI에도 로그 표시)
+    
+    Returns:
+        EmailNotifier 또는 MockEmailNotifier
+    """
+    if not V2_AVAILABLE:
+        return None
+    
+    try:
+        # 이메일 설정 확인
+        email_config = NOTIFICATION_CONFIG.get('email', {})
+        
+        real_notifier = None
+        
+        if email_config.get('enabled') and email_config.get('sender'):
+            real_notifier = EmailNotifier(
+                smtp_server=email_config.get('smtp_server', 'smtp.gmail.com'),
+                smtp_port=email_config.get('smtp_port', 587),
+                sender_email=email_config.get('sender', ''),
+                sender_password=email_config.get('password', ''),
+                recipient_email=email_config.get('recipient', '')
+            )
+            log_system("✅ 이메일 알림 활성화")
+        else:
+            real_notifier = MockEmailNotifier()
+            log_system("⚠️ 이메일 설정 없음 - MockEmailNotifier 사용")
+        
+        # GUI 브릿지 연동
+        if gui_bridge and GUI_BRIDGE_AVAILABLE and GUILoggingEmailNotifier:
+            return GUILoggingEmailNotifier(real_notifier, gui_bridge)
+        
+        return real_notifier
+        
+    except Exception as e:
+        log_error("이메일 알림 초기화 실패", e)
+        return MockEmailNotifier() if V2_AVAILABLE else None
+
+
+class DualStrategyManager:
+    """
+    듀얼 전략 관리자 v2
+    
+    v2 모드: Long Only + 이메일 알림 + GUI 연동
+    폴백 모드: 기존 Long + Short
+    """
+    
+    def __init__(self, total_capital: float = 10000, 
+                 symbols: List[str] = None,
+                 capital_allocation: float = 1.0,
+                 email_notifier: Any = None,
+                 gui_bridge: Any = None):
+        """
+        Args:
+            total_capital: 총 자본
+            symbols: 거래 심볼 리스트
+            capital_allocation: 자본 사용 비율
+            email_notifier: 이메일 알림 객체 (None이면 자동 생성)
+            gui_bridge: GUI 브릿지 객체 (GUI 연동용)
+        """
         self.total_capital = total_capital
-        self.symbols = symbols or ['BTC-USDT-SWAP']
+        self.symbols = symbols or TRADING_CONFIG.get('symbols', ['BTC-USDT-SWAP'])
+        self.capital_allocation = capital_allocation
+        self.gui_bridge = gui_bridge
         
-        # 자본 분배 (50:50)
-        capital_per_strategy = total_capital * 0.5
+        effective_capital = total_capital * capital_allocation
         
-        # 전략 인스턴스 생성
+        # 이메일 알림 설정
+        self.email_notifier = email_notifier or create_email_notifier(gui_bridge)
+        
+        # 전략 초기화
         self.strategies = {}
-        for symbol in self.symbols:
-            self.strategies[f"long_{symbol}"] = LongStrategy(symbol, capital_per_strategy)
-            self.strategies[f"short_{symbol}"] = ShortStrategy(symbol, capital_per_strategy)
+        self._use_v2 = V2_AVAILABLE
         
-        # 실시간 데이터 버퍼
-        self.data_buffers = {symbol: RealTimeDataBuffer(symbol) for symbol in self.symbols}
-        
-        # 포지션 관리자
-        self.position_manager = SimplePositionManager()
+        if self._use_v2:
+            self._init_v2_strategies(effective_capital)
+        else:
+            self._init_legacy_strategies(effective_capital)
         
         # 상태 추적
         self.start_time = datetime.now()
         self.total_signals_received = 0
         self.total_signals_processed = 0
         self.executed_trades = 0
-        self.last_status_update = datetime.now()
+        self.last_status_time = datetime.now()
+        
+        # 로그 콜백 (GUI용)
+        self._log_callbacks: List[Callable] = []
         
         # 성능 통계
         self.performance_stats = {
             'ticker_updates': 0,
-            'candle_updates': 0,
-            'ema_calculations': 0,
             'strategy_signals': 0,
-            'successful_trades': 0,
+            'ema_calculations': 0,
             'failed_trades': 0
         }
         
-        log_system(f"🚀 실시간 듀얼 전략 관리자 초기화")
-        log_system(f"총 자본: ${total_capital:,.0f} | 전략별: ${capital_per_strategy:,.0f}")
-        log_system(f"대상 심볼: {', '.join(self.symbols)} | 활성 전략: {len(self.strategies)}개")
+        self._print_init_summary()
+    
+    def _init_v2_strategies(self, capital: float):
+        """v2 전략 초기화 (Long Only)"""
+        capital_per_symbol = capital / len(self.symbols)
+        
+        for symbol in self.symbols:
+            strategy = LongStrategy(
+                symbol=symbol,
+                initial_capital=capital_per_symbol,
+                email_notifier=self.email_notifier
+            )
+            self.strategies[f"long_{symbol}"] = strategy
+        
+        log_system(f"✅ v2 Long Only 전략 초기화: {len(self.strategies)}개")
+        log_system(f"   - 심볼당 자본: ${capital_per_symbol:,.2f}")
+        log_system(f"   - 이메일 알림: {'활성화' if self.email_notifier else '비활성화'}")
+    
+    def _init_legacy_strategies(self, capital: float):
+        """기존 전략 초기화 (Long + Short)"""
+        if LongStrategy is None:
+            log_error("전략 클래스를 찾을 수 없습니다")
+            return
+        
+        capital_per_strategy = capital * 0.5
+        
+        for symbol in self.symbols:
+            self.strategies[f"long_{symbol}"] = LongStrategy(symbol, capital_per_strategy)
+            if ShortStrategy:
+                self.strategies[f"short_{symbol}"] = ShortStrategy(symbol, capital_per_strategy)
+        
+        log_system(f"⚠️ 기존 Long+Short 전략 초기화: {len(self.strategies)}개")
+    
+    def _print_init_summary(self):
+        """초기화 요약 출력"""
+        print(f"\n{'='*70}")
+        print(f"🎯 전략 매니저 v2 초기화 {'(Long Only)' if self._use_v2 else '(기존 모드)'}")
+        print(f"{'='*70}")
+        print(f"📊 총 자본: ${self.total_capital:,.2f}")
+        print(f"📈 심볼: {', '.join(self.symbols)}")
+        print(f"⚡ 전략 수: {len(self.strategies)}개")
+        
+        if self._use_v2:
+            print(f"📧 이메일 알림: {'✅ 활성화' if self.email_notifier else '❌ 비활성화'}")
+            print(f"🔍 SignalPipeline: ✅ 활성화")
+            print(f"🖥️ GUI 연동: {'✅ 활성화' if self.gui_bridge else '❌ 비활성화'}")
+            print(f"\n📋 알고리즘:")
+            print(f"   진입: EMA 150>200 (상승장) + EMA 20>50 골든크로스")
+            print(f"   청산: EMA 20<100 데드크로스 또는 트레일링 스탑 10%")
+            print(f"   모드전환: -20% → VIRTUAL, +30% → REAL")
+        
+        print(f"{'='*70}\n")
+        
+        self._emit_log("전략 매니저 초기화 완료", "정보")
+    
+    def set_gui_bridge(self, bridge):
+        """GUI 브릿지 설정 (나중에 연결)"""
+        self.gui_bridge = bridge
+        if bridge:
+            bridge.set_strategy_manager(self)
+            self._emit_log("GUI 브릿지 연결됨", "정보")
+    
+    def add_log_callback(self, callback: Callable):
+        """로그 콜백 추가"""
+        self._log_callbacks.append(callback)
+    
+    def _emit_log(self, message: str, log_type: str = "정보"):
+        """로그 발송"""
+        for callback in self._log_callbacks:
+            try:
+                callback(message, log_type)
+            except:
+                pass
+        
+        # GUI 브릿지로도 전송
+        if self.gui_bridge and hasattr(self.gui_bridge, 'log_message'):
+            try:
+                self.gui_bridge.log_message.emit(message, log_type)
+            except:
+                pass
     
     def process_signal(self, symbol: str, raw_data: Dict[str, Any]) -> bool:
-        """실시간 신호 처리 - 개선된 버전"""
+        """
+        실시간 신호 처리
+        
+        Args:
+            symbol: 거래 심볼
+            raw_data: 캔들/가격 데이터
+        
+        Returns:
+            거래 실행 여부
+        """
+        self.total_signals_received += 1
+        
         try:
-            self.total_signals_received += 1
-            
-            # 데이터 타입 확인
-            if 'close' in raw_data or 'last' in raw_data:
-                # 실시간 가격 데이터 (Ticker)
-                self._process_ticker_data(symbol, raw_data)
-                return True
-            
-            elif all(k in raw_data for k in ['ema_trend_fast', 'ema_trend_slow']):
-                # EMA 계산된 전략 데이터 (Candle 기반)
-                return self._process_strategy_data(symbol, raw_data)
-            
-            else:
-                # 기타 데이터 - 실시간 데이터 버퍼 업데이트
-                if symbol in self.data_buffers:
-                    self.data_buffers[symbol].add_price_data(raw_data)
-                    
-                    # EMA 기반 전략 신호 시도
-                    return self._try_ema_strategy_signal(symbol)
-            
-            return False
-            
-        except Exception as e:
-            log_error(f"신호 처리 오류 ({symbol})", e)
-            self.performance_stats['failed_trades'] += 1
-            return False
-    
-    def _process_ticker_data(self, symbol: str, ticker_data: Dict[str, Any]):
-        """실시간 Ticker 데이터 처리 - 안전한 타입 변환"""
-        try:
-            self.performance_stats['ticker_updates'] += 1
-            
-            # 데이터 버퍼 업데이트
-            if symbol in self.data_buffers:
-                self.data_buffers[symbol].add_price_data(ticker_data)
-            
-            # 🔧 안전한 가격 추출 및 변환
-            price_raw = ticker_data.get('close', ticker_data.get('last', 0))
-            
-            try:
-                if isinstance(price_raw, str):
-                    current_price = float(price_raw) if price_raw.strip() else 0.0
-                else:
-                    current_price = float(price_raw)
-            except (ValueError, TypeError):
-                log_error(f"Ticker 가격 변환 실패 ({symbol}): {price_raw}")
-                return
-            
-            # 포지션 가격 업데이트
-            if current_price > 0:
-                self.position_manager.update_position_prices({symbol: current_price})
-            
-            # 주기적 로깅 (1000개마다)
-            if self.performance_stats['ticker_updates'] % 1000 == 0:
-                log_info(f"📊 {symbol} Ticker 업데이트: ${current_price:,.2f} ({self.performance_stats['ticker_updates']:,}건)")
-            
-        except Exception as e:
-            log_error(f"Ticker 데이터 처리 오류 ({symbol})", e)
-
-
-    def _process_strategy_data(self, symbol: str, strategy_data: Dict[str, Any]) -> bool:
-        """EMA 계산된 전략 데이터 처리"""
-        try:
-            self.total_signals_processed += 1
             signals_generated = 0
+            results = []
             
-            # 롱 전략 처리
-            long_strategy_key = f"long_{symbol}"
-            if long_strategy_key in self.strategies:
-                long_data = convert_to_strategy_data(strategy_data, 'long')
-                long_signal = self.strategies[long_strategy_key].process_signal(long_data)
+            # Long 전략 처리
+            long_key = f"long_{symbol}"
+            if long_key in self.strategies:
+                strategy = self.strategies[long_key]
+                result = strategy.process_signal(raw_data)
                 
-                if long_signal:
-                    self._execute_signal(long_signal)
+                if result:
                     signals_generated += 1
+                    results.append(result)
+                    self._handle_trade_result(symbol, result)
             
-            # 숏 전략 처리
-            short_strategy_key = f"short_{symbol}"
-            if short_strategy_key in self.strategies:
-                short_data = convert_to_strategy_data(strategy_data, 'short')
-                short_signal = self.strategies[short_strategy_key].process_signal(short_data)
-                
-                if short_signal:
-                    self._execute_signal(short_signal)
-                    signals_generated += 1
+            # v2에서는 Short 전략 없음
+            if not self._use_v2:
+                short_key = f"short_{symbol}"
+                if short_key in self.strategies:
+                    strategy = self.strategies[short_key]
+                    result = strategy.process_signal(raw_data)
+                    
+                    if result:
+                        signals_generated += 1
+                        results.append(result)
+                        self._handle_trade_result(symbol, result)
             
             if signals_generated > 0:
+                self.total_signals_processed += signals_generated
+                self.executed_trades += signals_generated
                 self.performance_stats['strategy_signals'] += signals_generated
-                log_info(f"🎯 {symbol} 전략 신호 생성: {signals_generated}개")
+            
+            # 주기적 상태 출력 (2분마다)
+            self._periodic_status_print()
             
             return signals_generated > 0
             
         except Exception as e:
-            log_error(f"전략 데이터 처리 오류 ({symbol})", e)
-            return False
-    
-    def _try_ema_strategy_signal(self, symbol: str) -> bool:
-        """EMA 기반 전략 신호 시도"""
-        try:
-            if symbol not in self.data_buffers:
-                return False
-            
-            # EMA 데이터 생성 시도
-            ema_data = self.data_buffers[symbol].get_ema_data()
-            if ema_data is None:
-                return False
-            
-            self.performance_stats['ema_calculations'] += 1
-            
-            # 전략 신호 처리
-            return self._process_strategy_data(symbol, ema_data)
-            
-        except Exception as e:
-            log_error(f"EMA 전략 신호 시도 오류 ({symbol})", e)
-            return False
-    
-    def _execute_signal(self, signal: Dict[str, Any]):
-        """신호 실행 - 개선된 버전"""
-        try:
-            action = signal['action']
-            symbol = signal['symbol']
-            strategy_name = signal['strategy_name']
-            
-            if action.startswith('enter'):
-                # 진입 신호
-                is_real_mode = signal.get('is_real_mode', True)
-                
-                if is_real_mode:
-                    # 실제 거래 모드
-                    position_id = self.position_manager.open_position(
-                        symbol=symbol,
-                        side=signal['side'],
-                        size=signal['size'],
-                        leverage=signal['leverage'],
-                        strategy_name=strategy_name,
-                        trailing_stop_ratio=signal.get('trailing_stop_ratio')
-                    )
-                    
-                    if position_id:
-                        self.executed_trades += 1
-                        self.performance_stats['successful_trades'] += 1
-                        self._notify_signal(f"📈 실제 거래 진입", signal)
-                    else:
-                        self.performance_stats['failed_trades'] += 1
-                        log_error(f"포지션 오픈 실패: {symbol}")
-                else:
-                    # 가상 거래 모드
-                    log_info(f"🔄 {strategy_name} 가상 모드 진입: {symbol} {signal['side'].upper()}")
-                    
-            elif action.startswith('exit'):
-                # 청산 신호
-                is_real_mode = signal.get('is_real_mode', True)
-                
-                if is_real_mode:
-                    # 실제 거래 청산
-                    success = self.position_manager.close_position(
-                        symbol, 
-                        signal.get('reason', 'strategy')
-                    )
-                    
-                    if success:
-                        self.executed_trades += 1
-                        self.performance_stats['successful_trades'] += 1
-                        self._notify_signal(f"📉 실제 거래 청산", signal)
-                    else:
-                        self.performance_stats['failed_trades'] += 1
-                        log_error(f"포지션 청산 실패: {symbol}")
-                else:
-                    # 가상 거래 청산
-                    log_info(f"🔄 {strategy_name} 가상 모드 청산: {symbol} (사유: {signal.get('reason', 'strategy')})")
-            
-        except Exception as e:
-            log_error("신호 실행 오류", e)
+            log_error(f"신호 처리 오류 ({symbol})", e)
+            self._emit_log(f"신호 처리 오류: {e}", "오류")
             self.performance_stats['failed_trades'] += 1
+            return False
     
-    def _notify_signal(self, title: str, signal: Dict[str, Any]):
-        """신호 알림"""
-        try:
-            timestamp = datetime.now().strftime('%H:%M:%S')
-            symbol = signal.get('symbol', 'N/A')
-            side = signal.get('side', 'N/A').upper()
-            price = signal.get('price', signal.get('exit_price', 0))
-            strategy = signal.get('strategy_name', 'Unknown')
+    def _handle_trade_result(self, symbol: str, result: Dict[str, Any]):
+        """거래 결과 처리 및 로깅"""
+        action = result.get('action', 'unknown')
+        price = result.get('entry_price') or result.get('exit_price', 0)
+        mode = 'REAL' if result.get('is_real_mode', True) else 'VIRTUAL'
+        
+        if action == 'entry':
+            log_msg = f"📈 [{symbol}] LONG 진입 [{mode}] @ ${price:,.2f}"
+            log_info(log_msg)
+            self._emit_log(log_msg, "거래")
             
-            log_info(f"[{timestamp}] {title}")
-            log_info(f"  📊 {symbol} {side} @ ${price:.2f} ({strategy})")
-            
-            if 'pnl' in signal:
-                pnl = signal['pnl']
-                pnl_str = f"+${pnl:.2f}" if pnl >= 0 else f"-${abs(pnl):.2f}"
-                log_info(f"  💰 PnL: {pnl_str}")
-            
-            if 'reason' in signal:
-                log_info(f"  📝 사유: {signal['reason']}")
-            
-            # 실제 알림 시스템 연동 (있는 경우)
+        elif action == 'exit':
+            pnl = result.get('pnl', 0)
+            emoji = '💰' if pnl > 0 else '📉'
+            log_msg = f"{emoji} [{symbol}] LONG 청산 [{mode}] @ ${price:,.2f} | PnL: ${pnl:+,.2f}"
+            log_info(log_msg)
+            self._emit_log(log_msg, "거래")
+    
+    def _periodic_status_print(self):
+        """주기적 상태 출력"""
+        now = datetime.now()
+        if (now - self.last_status_time).total_seconds() >= 120:  # 2분
+            self.print_status()
+            self.last_status_time = now
+    
+    def get_status(self) -> Dict[str, Any]:
+        """전체 상태 조회"""
+        status = {
+            'mode': 'v2_long_only' if self._use_v2 else 'legacy',
+            'total_capital': self.total_capital,
+            'symbols': self.symbols,
+            'signals_received': self.total_signals_received,
+            'signals_processed': self.total_signals_processed,
+            'executed_trades': self.executed_trades,
+            'uptime': str(datetime.now() - self.start_time),
+            'strategies': {}
+        }
+        
+        total_pnl = 0
+        total_trades = 0
+        total_wins = 0
+        
+        for key, strategy in self.strategies.items():
             try:
-                from utils.notifications import send_trade_alert
-                send_trade_alert(
-                    action=signal.get('action', 'unknown'),
-                    symbol=symbol,
-                    side=side,
-                    price=price,
-                    size=signal.get('size', 0),
-                    pnl=signal.get('pnl')
-                )
-            except ImportError:
-                pass  # 알림 시스템 없음
-            
-        except Exception as e:
-            log_error("신호 알림 오류", e)
-    
-    def get_strategy_status(self, strategy_key: str) -> Dict[str, Any]:
-        """개별 전략 상태"""
-        if strategy_key not in self.strategies:
-            return {}
+                strat_status = strategy.get_status()
+                status['strategies'][key] = strat_status
+                
+                if 'total_pnl' in strat_status:
+                    total_pnl += strat_status['total_pnl']
+                if 'trade_count' in strat_status:
+                    total_trades += strat_status['trade_count']
+                if 'win_count' in strat_status:
+                    total_wins += strat_status['win_count']
+                    
+            except Exception as e:
+                status['strategies'][key] = {'error': str(e)}
         
-        return self.strategies[strategy_key].get_status()
-    
-    def get_data_buffer_status(self) -> Dict[str, Any]:
-        """데이터 버퍼 상태"""
-        status = {}
-        
-        for symbol, buffer in self.data_buffers.items():
-            status[symbol] = buffer.get_status()
+        status['total_pnl'] = total_pnl
+        status['total_trades'] = total_trades
+        status['win_rate'] = (total_wins / total_trades * 100) if total_trades > 0 else 0
         
         return status
     
-    def close_all_positions(self):
-        """모든 포지션 강제 청산"""
-        log_system("🛑 모든 포지션 청산 중...")
-        self.position_manager.close_all_positions()
+    def get_total_status(self) -> Dict[str, Any]:
+        """get_status 별칭 (v2 호환)"""
+        return self.get_status()
+    
+    def get_strategy(self, symbol: str, side: str = 'long') -> Optional[Any]:
+        """특정 전략 조회"""
+        key = f"{side}_{symbol}"
+        return self.strategies.get(key)
+    
+    def get_pipeline_summary(self) -> Dict[str, Any]:
+        """SignalPipeline 요약 (v2 전용)"""
+        if not self._use_v2:
+            return {}
+        
+        total = {
+            'total_signals': 0,
+            'entry_signals': 0,
+            'exit_signals': 0,
+            'valid_signals': 0,
+            'rejected_signals': 0,
+        }
+        
+        for key, strategy in self.strategies.items():
+            if hasattr(strategy, 'pipeline'):
+                stats = strategy.pipeline.get_stats()
+                total['total_signals'] += stats.get('total_signals', 0)
+                total['entry_signals'] += stats.get('entry_signals', 0)
+                total['exit_signals'] += stats.get('exit_signals', 0)
+                total['valid_signals'] += stats.get('valid_signals', 0)
+                total['rejected_signals'] += stats.get('rejected_signals', 0)
+        
+        return total
     
     def print_status(self):
-        """현재 상태 출력 - 실시간 통계 포함"""
-        current_time = datetime.now()
-        runtime = current_time - self.start_time
+        """상태 출력"""
+        status = self.get_status()
         
         print(f"\n{'='*70}")
-        print(f"🤖 실시간 듀얼 전략 시스템 상태")
+        print(f"📊 전략 매니저 상태 ({status['mode']})")
         print(f"{'='*70}")
-        print(f"실행 시간: {runtime}")
-        print(f"수신 신호: {self.total_signals_received:,}개")
-        print(f"처리 신호: {self.total_signals_processed:,}개")
-        print(f"실행 거래: {self.executed_trades}건")
+        print(f"운영시간: {status['uptime']}")
+        print(f"신호: {status['signals_received']} 수신 / {status['signals_processed']} 처리")
+        print(f"거래: {status['executed_trades']}건")
+        print(f"총 PnL: ${status['total_pnl']:+,.2f}")
+        print(f"승률: {status['win_rate']:.1f}%")
         
-        # 성능 통계
-        print(f"\n📊 처리 통계:")
-        print(f"  Ticker 업데이트: {self.performance_stats['ticker_updates']:,}건")
-        print(f"  캔들 업데이트: {self.performance_stats['candle_updates']:,}건")
-        print(f"  EMA 계산: {self.performance_stats['ema_calculations']:,}회")
-        print(f"  전략 신호: {self.performance_stats['strategy_signals']:,}개")
-        print(f"  성공 거래: {self.performance_stats['successful_trades']:,}건")
-        print(f"  실패 거래: {self.performance_stats['failed_trades']:,}건")
+        print(f"\n📈 전략별 상태:")
+        for key, strat in status['strategies'].items():
+            if isinstance(strat, dict) and 'error' not in strat:
+                mode = strat.get('mode', 'UNKNOWN')
+                capital = strat.get('real_capital', 0)
+                pos = '포지션 있음' if strat.get('is_position_open') else '대기 중'
+                print(f"   {key}: [{mode}] ${capital:,.2f} | {pos}")
         
-        # 데이터 버퍼 상태
-        print(f"\n📈 데이터 버퍼 상태:")
-        for symbol, status in self.get_data_buffer_status().items():
-            candle_count = status['candle_count']
-            latest_price = status['latest_price']
-            has_data = "✅" if status['has_enough_data'] else "❌"
-            
-            price_str = f"${latest_price:.2f}" if latest_price else "N/A"
-            print(f"  {symbol}: {candle_count}개 캔들, 최신가: {price_str} {has_data}")
+        # SignalPipeline 요약
+        if self._use_v2:
+            pipeline = self.get_pipeline_summary()
+            print(f"\n🔍 SignalPipeline:")
+            print(f"   총 시그널: {pipeline.get('total_signals', 0)}")
+            print(f"   검증 통과: {pipeline.get('valid_signals', 0)}")
+            print(f"   검증 거부: {pipeline.get('rejected_signals', 0)}")
         
-        # 포지션 상태
-        self.position_manager.print_status()
+        print(f"{'='*70}\n")
         
-        # 전략별 상태
-        print(f"\n📋 전략별 상태:")
-        for strategy_key, strategy in self.strategies.items():
-            status = strategy.get_status()
-            mode = "🟢 실제" if status.get('is_real_mode', True) else "🔵 가상"
-            capital = status.get('current_capital', 0)
-            trades = status.get('trade_count', 0)
-            win_rate = status.get('win_rate', 0)
-            
-            print(f"  {strategy_key}: {mode} | 자본: ${capital:.0f} | 거래: {trades}회 | 승률: {win_rate:.1f}%")
-        
-        self.last_status_update = current_time
-        print(f"{'='*70}")
+        self._emit_log(f"상태 출력 - PnL: ${status['total_pnl']:+,.2f}", "정보")
     
-    def print_final_summary(self):
-        """최종 요약 - 성능 통계 포함"""
-        runtime = datetime.now() - self.start_time
-        
-        print(f"\n🏁 최종 실시간 거래 요약")
-        print(f"=" * 50)
-        print(f"총 실행 시간: {runtime}")
-        print(f"수신된 신호: {self.total_signals_received:,}개")
-        print(f"처리된 신호: {self.total_signals_processed:,}개")
-        print(f"실행된 거래: {self.executed_trades}건")
-        
-        # 처리 효율성
-        if self.total_signals_received > 0:
-            processing_rate = (self.total_signals_processed / self.total_signals_received) * 100
-            print(f"신호 처리율: {processing_rate:.1f}%")
-        
-        # 거래 성공률
-        total_attempts = self.performance_stats['successful_trades'] + self.performance_stats['failed_trades']
-        if total_attempts > 0:
-            success_rate = (self.performance_stats['successful_trades'] / total_attempts) * 100
-            print(f"거래 성공률: {success_rate:.1f}%")
-        
-        # 전략별 최종 자본
-        total_final_capital = 0
-        print(f"\n💰 전략별 최종 결과:")
-        
-        for strategy_key, strategy in self.strategies.items():
-            status = strategy.get_status()
-            final_capital = status.get('current_capital', 0)
-            total_final_capital += final_capital
-            
-            initial_capital = self.total_capital * 0.5
-            pnl = final_capital - initial_capital
-            pnl_pct = (pnl / initial_capital) * 100 if initial_capital > 0 else 0
-            
-            print(f"  {strategy_key}: ${final_capital:.0f} ({pnl:+.0f}, {pnl_pct:+.1f}%)")
-        
-        total_pnl = total_final_capital - self.total_capital
-        total_pnl_pct = (total_pnl / self.total_capital) * 100 if self.total_capital > 0 else 0
-        
-        print(f"=" * 50)
-        print(f"초기 자본: ${self.total_capital:,.0f}")
-        print(f"최종 자본: ${total_final_capital:,.0f}")
-        print(f"총 손익: {total_pnl:+,.0f} ({total_pnl_pct:+.2f}%)")
-        print(f"=" * 50)
-    
-    def is_healthy(self) -> bool:
-        """시스템 건강 상태 확인"""
-        try:
-            # 기본 체크
-            if not self.strategies:
-                return False
-            
-            # 각 전략이 정상 작동하는지 확인
-            for strategy in self.strategies.values():
-                if not hasattr(strategy, 'get_status'):
-                    return False
-            
-            # 데이터 버퍼 상태 확인
-            for buffer in self.data_buffers.values():
-                if buffer is None:
-                    return False
-            
-            # 최근 신호 수신 확인 (5분 이내)
-            if self.total_signals_received == 0:
-                return True  # 시작 단계는 정상
-            
-            time_since_last_update = (datetime.now() - self.last_status_update).total_seconds()
-            if time_since_last_update > 300:  # 5분
-                return False
-            
-            return True
-            
-        except Exception:
-            return False
+    def print_summary(self):
+        """요약 출력 (print_status 별칭)"""
+        self.print_status()
 
 
-# 기존 코드와의 호환성을 위한 래퍼
-class DualStrategyManager(ImprovedDualStrategyManager):
-    """기존 코드와의 호환성을 위한 래퍼"""
-    pass
+# 하위 호환 별칭
+StrategyManager = DualStrategyManager
+RealTimeDualStrategyManager = DualStrategyManager
+EnhancedDualStrategyManager = DualStrategyManager

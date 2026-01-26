@@ -28,6 +28,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
 from PyQt5.QtGui import QFont, QColor, QPalette, QIcon, QPixmap
 
+try:
+    from gui.v2_integration_patch import integrate_v2_monitoring
+    V2_INTEGRATION_AVAILABLE = True
+except ImportError:
+    V2_INTEGRATION_AVAILABLE = False
 
 try:
     import pyqtgraph as pg
@@ -205,6 +210,10 @@ class TradingMainWindow(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("시스템 초기화 중...")
+
+        if V2_INTEGRATION_AVAILABLE:
+            integrate_v2_monitoring(self)
+            print("✅ v2 전략 모니터링 탭 추가됨")
     
     def setup_condition_monitoring(self):
         """조건 모니터링 시스템 설정"""
