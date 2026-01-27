@@ -1,1946 +1,593 @@
 # gui/main_window.py
 """
-완전한 OKX 자동매매 GUI 메인 윈도우 - Signal Lost 처리
-- 더미 데이터 완전 제거
-- API 연결 실패 시 "Signal Lost" 표시
-- 실제 데이터만 표시
+OKX 자동매매 시스템 - 간소화된 메인 윈도우
+
+구조:
+- 상단 바: 잔고, BTC 가격, 연결 상태
+- 2개 탭: 대시보드, 자동매매
+- 대시보드: 실시간 차트 + 포지션 정보
+- 자동매매: 제어 + 진입 평가 + 로그
+
+변경 사항:
+- ETH 비활성화 (BTC만 거래/표시)
+- 설정 탭 제거 (자동매매 위젯 내 통합)
+- 포지션 탭 제거 (대시보드에 통합)
+- 모니터링/테스트/디버깅 탭 제거
 """
 
 import sys
-import os
-import time
-import json
-import traceback
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from pathlib import Path
-from PyQt5.QtWidgets import QMessageBox
-
+from datetime import datetime
+from typing import Dict, Optional, Any
 
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QTabWidget, QLabel, QPushButton, QTextEdit, QGroupBox, QTableWidget,
-    QTableWidgetItem, QGridLayout, QFormLayout, QLineEdit, QSpinBox,
-    QDoubleSpinBox, QCheckBox, QComboBox, QProgressBar, QStatusBar,
-    QSplitter, QHeaderView, QMessageBox, QFileDialog, QSlider,
-    QSystemTrayIcon, QMenu, QAction, QFrame
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QTabWidget, QLabel, QFrame, QGroupBox, QGridLayout,
+    QTableWidget, QTableWidgetItem, QHeaderView,
+    QMessageBox, QStatusBar, QSplitter, QPushButton
 )
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
-from PyQt5.QtGui import QFont, QColor, QPalette, QIcon, QPixmap
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QFont, QColor
 
+# 컴포넌트 import
 try:
-    from gui.v2_integration_patch import integrate_v2_monitoring
-    V2_INTEGRATION_AVAILABLE = True
+    from gui.auto_trading_widget import AutoTradingWidget
+    AUTO_TRADING_AVAILABLE = True
 except ImportError:
-    V2_INTEGRATION_AVAILABLE = False
+    AUTO_TRADING_AVAILABLE = False
+    print("⚠️ AutoTradingWidget 사용 불가")
 
 try:
-    import pyqtgraph as pg
-    pg.setConfigOption('background', '#2b2b2b')
-    pg.setConfigOption('foreground', 'w')
-    PYQTGRAPH_AVAILABLE = True
+    from gui.widgets import PriceChartWidget
+    CHART_AVAILABLE = True
 except ImportError:
-    PYQTGRAPH_AVAILABLE = False
-
-# 프로젝트 모듈들 - 단계별 임포트로 에러 방지
-try:
-    from gui.balance_manager import GUIBalanceManager
-    print("✅ GUIBalanceManager 임포트 성공")
-except ImportError as e:
-    print(f"⚠️ GUIBalanceManager 임포트 실패: {e}")
-    GUIBalanceManager = None
-
-try:
-    from gui.widgets import (
-        PriceChartWidget, PositionTableWidget, TradingControlWidget,
-        SystemMonitorWidget, LogDisplayWidget
-    )
-    print("✅ GUI 위젯들 임포트 성공")
-except ImportError as e:
-    print(f"⚠️ GUI 위젯 임포트 실패: {e}")
-    PriceChartWidget = None
-    PositionTableWidget = None
-    TradingControlWidget = None
-    SystemMonitorWidget = None
-    LogDisplayWidget = None
+    try:
+        from gui.price_chart_widget import PriceChartWidget
+        CHART_AVAILABLE = True
+    except ImportError:
+        CHART_AVAILABLE = False
+        print("⚠️ PriceChartWidget 사용 불가")
 
 try:
     from gui.data_thread import TradingDataThread
-    print("✅ TradingDataThread 임포트 성공")
-    TRADING_DATA_THREAD_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ TradingDataThread 임포트 실패: {e}")
-    TRADING_DATA_THREAD_AVAILABLE = False
+    DATA_THREAD_AVAILABLE = True
+except ImportError:
+    DATA_THREAD_AVAILABLE = False
+    print("⚠️ TradingDataThread 사용 불가")
 
 try:
     from okx.account_manager import AccountManager
-    print("✅ AccountManager 임포트 성공")
     ACCOUNT_MANAGER_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ AccountManager 임포트 실패: {e}")
+except ImportError:
     ACCOUNT_MANAGER_AVAILABLE = False
 
 
-try:
-    from monitoring.condition_monitor import ConditionMonitor
-    from gui.condition_widgets import ConditionMonitoringWidget
-    print("✅ 조건 모니터링 모듈 임포트 성공")
-    CONDITION_MONITORING_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ 조건 모니터링 모듈 임포트 실패: {e}")
-    CONDITION_MONITORING_AVAILABLE = False
-
-try:
-    from gui.auto_trading_widget import AutoTradingWidget
-    print("✅ AutoTradingWidget 임포트 성공")
-    AUTO_TRADING_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ AutoTradingWidget 임포트 실패: {e}")
-    AUTO_TRADING_AVAILABLE = False
+# 다크 테마
+DARK_THEME = """
+    QMainWindow {
+        background-color: #1e1e1e;
+        color: #ffffff;
+    }
+    QWidget {
+        background-color: #1e1e1e;
+        color: #ffffff;
+    }
+    QTabWidget::pane {
+        border: 1px solid #3a3a3a;
+        background-color: #2b2b2b;
+    }
+    QTabBar::tab {
+        background-color: #3a3a3a;
+        color: #ffffff;
+        padding: 10px 20px;
+        margin-right: 2px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        font-size: 13px;
+    }
+    QTabBar::tab:selected {
+        background-color: #0078d4;
+    }
+    QGroupBox {
+        font-weight: bold;
+        border: 1px solid #3a3a3a;
+        border-radius: 5px;
+        margin-top: 10px;
+        padding-top: 10px;
+    }
+    QGroupBox::title {
+        subcontrol-origin: margin;
+        left: 10px;
+        padding: 0 5px;
+    }
+    QTableWidget {
+        background-color: #2b2b2b;
+        gridline-color: #3a3a3a;
+        border: none;
+    }
+    QHeaderView::section {
+        background-color: #3a3a3a;
+        padding: 5px;
+        border: none;
+    }
+    QPushButton {
+        background-color: #0078d4;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+    }
+    QPushButton:hover {
+        background-color: #106ebe;
+    }
+    QPushButton:disabled {
+        background-color: #555555;
+        color: #888888;
+    }
+    QLabel {
+        color: #ffffff;
+    }
+"""
 
 
 class TradingMainWindow(QMainWindow):
-    """메인 거래 윈도우 - Signal Lost 지원"""
+    """간소화된 메인 윈도우"""
+    
+    # 시그널
+    balance_updated = pyqtSignal(float)
+    price_updated = pyqtSignal(str, float)
     
     def __init__(self):
         super().__init__()
-        self.data_thread = None
-        self.latest_prices = {}
+        
+        # 상태 변수
+        self.current_balance = 0.0
+        self.current_btc_price = 0.0
+        self.is_connected = False
         self.positions = []
-        self.balance_data = {}
         
-        # Signal Lost 상태
-        self.signal_lost = False
+        # 거래 대상 (BTC만)
+        self.trading_symbol = 'BTC-USDT-SWAP'
         
-        # 조건 모니터링 시스템
-        self.condition_monitor = None
-        self.condition_widget = None
-        
-        self.setup_window()
+        # UI 설정
         self.setup_ui()
-        self.setup_connections()
-        self.setup_condition_monitoring()  # 새로 추가
-        self.start_data_collection()
-
-
-        print("🖥️ GUI 메인 윈도우 초기화 완료")
-    
-
-    def setup_window(self):
-        """윈도우 기본 설정"""
-        self.setWindowTitle("OKX 자동매매 시스템 - No Dummy Data")
-        self.setGeometry(100, 100, 1600, 1000)
+        self.setStyleSheet(DARK_THEME)
         
-        # 다크 테마 설정
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1e1e1e;
-                color: #ffffff;
-            }
-            QTabWidget::pane {
-                border: 1px solid #3a3a3a;
-                background-color: #2b2b2b;
-            }
-            QTabBar::tab {
-                background-color: #3a3a3a;
-                color: #ffffff;
-                padding: 8px 16px;
-                margin-right: 2px;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-            }
-            QTabBar::tab:selected {
-                background-color: #0078d4;
-            }
-            QLabel {
-                color: #ffffff;
-            }
-            QPushButton {
-                background-color: #0078d4;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #106ebe;
-            }
-            QTableWidget {
-                background-color: #2b2b2b;
-                color: #ffffff;
-                gridline-color: #3a3a3a;
-            }
-            QHeaderView::section {
-                background-color: #3a3a3a;
-                color: #ffffff;
-                padding: 4px;
-                border: 1px solid #2b2b2b;
-            }
-        """)
+        # 데이터 스레드 시작
+        self.setup_data_thread()
+        
+        # 타이머
+        self.setup_timers()
     
     def setup_ui(self):
-        """UI 구성"""
+        """UI 설정"""
+        self.setWindowTitle("OKX 자동매매 시스템 v2")
+        self.setGeometry(100, 100, 1400, 900)
+        self.setMinimumSize(1200, 700)
+        
+        # 중앙 위젯
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # 메인 레이아웃
-        main_layout = QVBoxLayout()
-        central_widget.setLayout(main_layout)
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         
-        # 상단 상태바
-        self.create_status_bar(main_layout)
+        # 1. 상단 상태바
+        self.create_top_status_bar(main_layout)
         
-        # 탭 위젯
+        # 2. 탭 위젯 (2개만)
         self.tab_widget = QTabWidget()
-        main_layout.addWidget(self.tab_widget)
+        self.tab_widget.setFont(QFont("Arial", 11))
         
-        # 탭들 생성
+        # 대시보드 탭
         self.create_dashboard_tab()
-        self.create_positions_tab()
-        self.create_settings_tab()
-        self.create_monitoring_tab()
         
-        # ⭐ 테스트 거래 탭 추가 - 이 줄을 추가해야 합니다!
-        #self.create_test_trading_tab()
-        
-        # 🤖 자동매매 탭 추가
+        # 자동매매 탭
         self.create_auto_trading_tab()
+        
+        main_layout.addWidget(self.tab_widget)
         
         # 하단 상태바
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("시스템 초기화 중...")
-
-        if V2_INTEGRATION_AVAILABLE:
-            integrate_v2_monitoring(self)
-            print("✅ v2 전략 모니터링 탭 추가됨")
+        self.status_bar.showMessage("시스템 준비 완료")
     
-    def setup_condition_monitoring(self):
-        """조건 모니터링 시스템 설정"""
-        if CONDITION_MONITORING_AVAILABLE:
-            try:
-                self.condition_monitor = ConditionMonitor()
-                
-                # 자동 체크 카운터 초기화
-                self._auto_check_count = 0
-                self._auto_check_error_logged = False
-                
-                print("✅ 조건 모니터링 시스템 초기화 완료")
-                print(f"🔄 자동 체크 상태: {'활성화' if self.condition_monitor.monitoring_active else '비활성화'}")
-            except Exception as e:
-                print(f"⚠️ 조건 모니터링 시스템 초기화 실패: {e}")
-                self.condition_monitor = None
-        else:
-            print("⚠️ 조건 모니터링 모듈을 사용할 수 없습니다")
-
-    def create_status_bar(self, layout):
-        """상단 상태바 생성"""
+    def create_top_status_bar(self, layout):
+        """상단 상태바 - 잔고, BTC 가격, 연결 상태"""
         status_frame = QFrame()
         status_frame.setFrameStyle(QFrame.StyledPanel)
-        status_frame.setMaximumHeight(60)
+        status_frame.setMaximumHeight(50)
+        status_frame.setStyleSheet("""
+            QFrame {
+                background-color: #252526;
+                border: 1px solid #3a3a3a;
+                border-radius: 5px;
+            }
+        """)
         
-        status_layout = QHBoxLayout()
-        status_frame.setLayout(status_layout)
+        status_layout = QHBoxLayout(status_frame)
+        status_layout.setContentsMargins(15, 5, 15, 5)
         
-        # 시간 표시
+        # 시간
         self.time_label = QLabel("🕒 --:--:--")
         self.time_label.setFont(QFont("Arial", 11))
-        
-        # API 연결 상태
-        self.api_status_label = QLabel("🔴 API 연결 대기")
-        self.api_status_label.setFont(QFont("Arial", 11, QFont.Bold))
-        
-        # 잔고 표시
-        self.balance_label = QLabel("잔고: $--")
-        self.balance_label.setFont(QFont("Arial", 11))
-        
-        # Signal Lost 표시
-        self.signal_status_label = QLabel("📡 연결 중...")
-        self.signal_status_label.setFont(QFont("Arial", 11, QFont.Bold))
-        
         status_layout.addWidget(self.time_label)
+        
+        status_layout.addSpacing(30)
+        
+        # 잔고
+        balance_label = QLabel("💰 잔고:")
+        balance_label.setFont(QFont("Arial", 11))
+        status_layout.addWidget(balance_label)
+        
+        self.balance_display = QLabel("$0.00")
+        self.balance_display.setFont(QFont("Arial", 14, QFont.Bold))
+        self.balance_display.setStyleSheet("color: #4ec9b0;")
+        status_layout.addWidget(self.balance_display)
+        
+        status_layout.addSpacing(30)
+        
+        # BTC 가격
+        btc_label = QLabel("₿ BTC:")
+        btc_label.setFont(QFont("Arial", 11))
+        status_layout.addWidget(btc_label)
+        
+        self.btc_price_display = QLabel("$0.00")
+        self.btc_price_display.setFont(QFont("Arial", 14, QFont.Bold))
+        self.btc_price_display.setStyleSheet("color: #f39c12;")
+        status_layout.addWidget(self.btc_price_display)
+        
         status_layout.addStretch()
-        status_layout.addWidget(self.signal_status_label)
-        status_layout.addStretch()
-        status_layout.addWidget(self.api_status_label)
-        status_layout.addStretch()
-        status_layout.addWidget(self.balance_label)
+        
+        # 연결 상태
+        self.connection_indicator = QLabel("●")
+        self.connection_indicator.setFont(QFont("Arial", 16))
+        self.connection_indicator.setStyleSheet("color: #888888;")
+        status_layout.addWidget(self.connection_indicator)
+        
+        self.connection_label = QLabel("연결 중...")
+        self.connection_label.setFont(QFont("Arial", 11))
+        status_layout.addWidget(self.connection_label)
         
         layout.addWidget(status_frame)
+    
+    def create_dashboard_tab(self):
+        """대시보드 탭 - 차트 + 포지션 정보"""
+        dashboard_widget = QWidget()
+        layout = QHBoxLayout(dashboard_widget)
+        layout.setSpacing(10)
         
+        # 왼쪽: 실시간 차트 (70%)
+        chart_group = QGroupBox("📈 BTC 실시간 차트")
+        chart_layout = QVBoxLayout(chart_group)
+        
+        if CHART_AVAILABLE:
+            self.price_chart = PriceChartWidget()
+            chart_layout.addWidget(self.price_chart)
+        else:
+            # 차트 없을 때 대체 표시
+            chart_placeholder = QLabel("차트 위젯 로드 실패\n\n가격 데이터는 상단에서 확인하세요")
+            chart_placeholder.setAlignment(Qt.AlignCenter)
+            chart_placeholder.setStyleSheet("color: #888888; font-size: 14px;")
+            chart_layout.addWidget(chart_placeholder)
+        
+        # 오른쪽: 정보 패널 (30%)
+        info_panel = QWidget()
+        info_layout = QVBoxLayout(info_panel)
+        info_layout.setSpacing(10)
+        
+        # 계좌 정보
+        account_group = QGroupBox("💰 계좌 정보")
+        account_layout = QGridLayout(account_group)
+        
+        account_layout.addWidget(QLabel("총 자산:"), 0, 0)
+        self.total_equity_label = QLabel("$0.00")
+        self.total_equity_label.setFont(QFont("Arial", 16, QFont.Bold))
+        self.total_equity_label.setStyleSheet("color: #4ec9b0;")
+        account_layout.addWidget(self.total_equity_label, 0, 1)
+        
+        account_layout.addWidget(QLabel("사용 가능:"), 1, 0)
+        self.available_label = QLabel("$0.00")
+        account_layout.addWidget(self.available_label, 1, 1)
+        
+        account_layout.addWidget(QLabel("미실현 손익:"), 2, 0)
+        self.unrealized_pnl_label = QLabel("$0.00")
+        account_layout.addWidget(self.unrealized_pnl_label, 2, 1)
+        
+        info_layout.addWidget(account_group)
+        
+        # 포지션 정보
+        position_group = QGroupBox("📊 현재 포지션")
+        position_layout = QVBoxLayout(position_group)
+        
+        self.position_table = QTableWidget()
+        self.position_table.setColumnCount(5)
+        self.position_table.setHorizontalHeaderLabels([
+            "방향", "수량", "진입가", "현재가", "손익"
+        ])
+        self.position_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.position_table.setMaximumHeight(150)
+        self.position_table.setRowCount(0)
+        position_layout.addWidget(self.position_table)
+        
+        # 포지션 없을 때 메시지
+        self.no_position_label = QLabel("포지션 없음")
+        self.no_position_label.setAlignment(Qt.AlignCenter)
+        self.no_position_label.setStyleSheet("color: #888888;")
+        position_layout.addWidget(self.no_position_label)
+        
+        info_layout.addWidget(position_group)
+        
+        # 시장 정보
+        market_group = QGroupBox("📉 시장 정보")
+        market_layout = QGridLayout(market_group)
+        
+        market_layout.addWidget(QLabel("24h 고가:"), 0, 0)
+        self.high_24h_label = QLabel("$--")
+        self.high_24h_label.setStyleSheet("color: #27ae60;")
+        market_layout.addWidget(self.high_24h_label, 0, 1)
+        
+        market_layout.addWidget(QLabel("24h 저가:"), 1, 0)
+        self.low_24h_label = QLabel("$--")
+        self.low_24h_label.setStyleSheet("color: #e74c3c;")
+        market_layout.addWidget(self.low_24h_label, 1, 1)
+        
+        market_layout.addWidget(QLabel("24h 변동:"), 2, 0)
+        self.change_24h_label = QLabel("--%")
+        market_layout.addWidget(self.change_24h_label, 2, 1)
+        
+        info_layout.addWidget(market_group)
+        
+        info_layout.addStretch()
+        
+        # 레이아웃 비율 설정
+        layout.addWidget(chart_group, 7)
+        layout.addWidget(info_panel, 3)
+        
+        self.tab_widget.addTab(dashboard_widget, "📊 대시보드")
+    
+    def create_auto_trading_tab(self):
+        """자동매매 탭"""
+        if AUTO_TRADING_AVAILABLE:
+            self.auto_trading_widget = AutoTradingWidget()
+            self.tab_widget.addTab(self.auto_trading_widget, "🤖 자동매매")
+        else:
+            # 대체 위젯
+            placeholder = QWidget()
+            layout = QVBoxLayout(placeholder)
+            label = QLabel("자동매매 위젯을 로드할 수 없습니다.\n\ngui/auto_trading_widget.py 파일을 확인하세요.")
+            label.setAlignment(Qt.AlignCenter)
+            label.setStyleSheet("color: #888888; font-size: 14px;")
+            layout.addWidget(label)
+            self.auto_trading_widget = None
+            self.tab_widget.addTab(placeholder, "🤖 자동매매")
+    
+    def setup_data_thread(self):
+        """데이터 스레드 설정"""
+        self.data_thread = None
+        
+        if DATA_THREAD_AVAILABLE:
+            try:
+                # AccountManager 생성
+                account_manager = None
+                if ACCOUNT_MANAGER_AVAILABLE:
+                    account_manager = AccountManager(verbose=False)
+                
+                self.data_thread = TradingDataThread(account_manager)
+                
+                # BTC만 감시하도록 설정
+                self.data_thread.symbols = ['BTC-USDT-SWAP']
+                
+                # 시그널 연결
+                self.data_thread.price_updated.connect(self.on_price_updated)
+                self.data_thread.balance_updated.connect(self.on_balance_updated)
+                self.data_thread.positions_updated.connect(self.on_positions_updated)
+                self.data_thread.connection_changed.connect(self.on_connection_changed)
+                self.data_thread.signal_lost.connect(self.on_signal_lost)
+                self.data_thread.error_occurred.connect(self.on_error)
+                
+                # 스레드 시작
+                self.data_thread.start()
+                
+            except Exception as e:
+                print(f"⚠️ 데이터 스레드 초기화 실패: {e}")
+    
+    def setup_timers(self):
+        """타이머 설정"""
         # 시계 타이머
         self.clock_timer = QTimer()
         self.clock_timer.timeout.connect(self.update_clock)
         self.clock_timer.start(1000)
     
-    def create_dashboard_tab(self):
-        """대시보드 탭 생성"""
-        dashboard_widget = QWidget()
-        layout = QHBoxLayout()
-        dashboard_widget.setLayout(layout)
-        
-        # 왼쪽: 차트
-        chart_group = QGroupBox("📈 실시간 가격 차트")
-        chart_layout = QVBoxLayout()
-        chart_group.setLayout(chart_layout)
-        
-        if PriceChartWidget:
-            self.price_chart = PriceChartWidget()
-            chart_layout.addWidget(self.price_chart)
-        else:
-            no_chart_label = QLabel("차트 위젯을 사용할 수 없습니다")
-            no_chart_label.setAlignment(Qt.AlignCenter)
-            chart_layout.addWidget(no_chart_label)
-        
-        # 오른쪽: 정보 패널
-        info_panel = QWidget()
-        info_layout = QVBoxLayout()
-        info_panel.setLayout(info_layout)
-        
-        # 잔고 정보
-        balance_group = QGroupBox("💰 계좌 정보")
-        balance_layout = QGridLayout()
-        balance_group.setLayout(balance_layout)
-        
-        self.total_balance_label = QLabel("$--")
-        self.total_balance_label.setFont(QFont("Arial", 16, QFont.Bold))
-        self.total_balance_label.setStyleSheet("color: #00ff00")
-        
-        self.available_balance_label = QLabel("사용 가능: $--")
-        self.margin_balance_label = QLabel("증거금: $--")
-        self.unrealized_pnl_label = QLabel("미실현손익: $--")
-        
-        balance_layout.addWidget(QLabel("총 자산:"), 0, 0)
-        balance_layout.addWidget(self.total_balance_label, 0, 1)
-        balance_layout.addWidget(self.available_balance_label, 1, 0, 1, 2)
-        balance_layout.addWidget(self.margin_balance_label, 2, 0, 1, 2)
-        balance_layout.addWidget(self.unrealized_pnl_label, 3, 0, 1, 2)
-        
-        # 포지션 요약
-        position_group = QGroupBox("📊 포지션 요약")
-        position_layout = QVBoxLayout()
-        position_group.setLayout(position_layout)
-        
-        if PositionTableWidget:
-            self.position_table = PositionTableWidget()
-            position_layout.addWidget(self.position_table)
-        else:
-            position_layout.addWidget(QLabel("포지션 테이블을 사용할 수 없습니다"))
-        
-        info_layout.addWidget(balance_group)
-        info_layout.addWidget(position_group)
-        info_layout.addStretch()
-        
-        # 레이아웃 구성
-        layout.addWidget(chart_group, 2)
-        layout.addWidget(info_panel, 1)
-        
-        self.tab_widget.addTab(dashboard_widget, "📊 대시보드")
-    
-    def create_positions_tab(self):
-        """포지션 관리 탭 생성"""
-        positions_widget = QWidget()
-        layout = QVBoxLayout()
-        positions_widget.setLayout(layout)
-        
-        # 포지션 테이블
-        positions_group = QGroupBox("📋 활성 포지션")
-        positions_layout = QVBoxLayout()
-        positions_group.setLayout(positions_layout)
-        
-        self.detailed_positions_table = QTableWidget()
-        self.detailed_positions_table.setColumnCount(7)
-        self.detailed_positions_table.setHorizontalHeaderLabels([
-            "심볼", "방향", "크기", "진입가", "현재가", "미실현손익", "수익률"
-        ])
-        
-        header = self.detailed_positions_table.horizontalHeader()
-        header.setStretchLastSection(True)
-        
-        positions_layout.addWidget(self.detailed_positions_table)
-        
-        # 제어 버튼
-        control_group = QGroupBox("🎮 포지션 제어")
-        control_layout = QHBoxLayout()
-        control_group.setLayout(control_layout)
-        
-        self.close_all_btn = QPushButton("전체 청산")
-        self.close_all_btn.setStyleSheet("background-color: #dc3545")
-        self.close_all_btn.clicked.connect(self.close_all_positions)
-        
-        self.close_long_btn = QPushButton("롱 청산")
-        self.close_long_btn.setStyleSheet("background-color: #fd7e14")
-        
-        self.close_short_btn = QPushButton("숏 청산")
-        self.close_short_btn.setStyleSheet("background-color: #fd7e14")
-        
-        control_layout.addWidget(self.close_all_btn)
-        control_layout.addWidget(self.close_long_btn)
-        control_layout.addWidget(self.close_short_btn)
-        control_layout.addStretch()
-        
-        layout.addWidget(positions_group)
-        layout.addWidget(control_group)
-        
-        self.tab_widget.addTab(positions_widget, "💼 포지션")
-    
-    def create_settings_tab(self):
-        """설정 탭 생성"""
-        settings_widget = QWidget()
-        layout = QVBoxLayout()
-        settings_widget.setLayout(layout)
-        
-        # API 설정
-        api_group = QGroupBox("🔐 API 설정")
-        api_layout = QFormLayout()
-        api_group.setLayout(api_layout)
-        
-        self.api_key_edit = QLineEdit()
-        self.api_key_edit.setEchoMode(QLineEdit.Password)
-        self.api_secret_edit = QLineEdit()
-        self.api_secret_edit.setEchoMode(QLineEdit.Password)
-        self.passphrase_edit = QLineEdit()
-        self.passphrase_edit.setEchoMode(QLineEdit.Password)
-        
-        api_layout.addRow("API 키:", self.api_key_edit)
-        api_layout.addRow("Secret:", self.api_secret_edit)
-        api_layout.addRow("Passphrase:", self.passphrase_edit)
-        
-        test_api_btn = QPushButton("API 연결 테스트")
-        test_api_btn.clicked.connect(self.test_api_connection)
-        api_layout.addRow("", test_api_btn)
-        
-        # 거래 설정
-        trading_group = QGroupBox("📈 거래 설정")
-        trading_layout = QFormLayout()
-        trading_group.setLayout(trading_layout)
-        
-        self.leverage_spin = QSpinBox()
-        self.leverage_spin.setRange(1, 100)
-        self.leverage_spin.setValue(10)
-        
-        self.position_size_spin = QDoubleSpinBox()
-        self.position_size_spin.setRange(1, 10000)
-        self.position_size_spin.setValue(100)
-        self.position_size_spin.setSuffix(" USDT")
-        
-        trading_layout.addRow("레버리지:", self.leverage_spin)
-        trading_layout.addRow("포지션 크기:", self.position_size_spin)
-        
-        layout.addWidget(api_group)
-        layout.addWidget(trading_group)
-        layout.addStretch()
-        
-        self.tab_widget.addTab(settings_widget, "⚙️ 설정")
-    
-    def create_monitoring_tab(self):
-        """모니터링 탭 생성 - 조건 모니터링 추가"""
-        monitoring_widget = QWidget()
-        layout = QVBoxLayout()
-        monitoring_widget.setLayout(layout)
-        
-        # 탭 위젯 생성 (모니터링 내 서브탭)
-        monitoring_tabs = QTabWidget()
-        
-        # 1. 시스템 로그 탭 (기존)
-        system_log_tab = QWidget()
-        system_layout = QVBoxLayout()
-        system_log_tab.setLayout(system_layout)
-        
-        # 로그 표시
-        log_group = QGroupBox("📝 시스템 로그")
-        log_layout = QVBoxLayout()
-        log_group.setLayout(log_layout)
-        
-        if LogDisplayWidget:
-            self.log_display = LogDisplayWidget()
-            log_layout.addWidget(self.log_display)
-        else:
-            self.log_display = QTextEdit()
-            self.log_display.setReadOnly(True)
-            self.log_display.setMaximumHeight(200)
-            log_layout.addWidget(self.log_display)
-        
-        # 시스템 상태
-        system_group = QGroupBox("🖥️ 시스템 상태")
-        system_layout_inner = QGridLayout()
-        system_group.setLayout(system_layout_inner)
-        
-        if SystemMonitorWidget:
-            self.system_monitor = SystemMonitorWidget()
-            system_layout_inner.addWidget(self.system_monitor, 0, 0, 1, 2)
-        else:
-            system_layout_inner.addWidget(QLabel("시스템 모니터를 사용할 수 없습니다"), 0, 0)
-        
-        system_layout.addWidget(log_group)
-        system_layout.addWidget(system_group)
-        
-        # 2. 조건 모니터링 탭 (새로 추가)
-        condition_tab = QWidget()
-        condition_layout = QVBoxLayout()
-        condition_tab.setLayout(condition_layout)
-        
-        if CONDITION_MONITORING_AVAILABLE:
-            self.condition_widget = ConditionMonitoringWidget()
-            
-            # 조건 모니터 연결
-            if self.condition_monitor:
-                self.condition_widget.set_condition_monitor(self.condition_monitor)
-            
-            condition_layout.addWidget(self.condition_widget)
-            
-            # 제어 패널 추가
-            control_group = QGroupBox("🎮 모니터링 제어")
-            control_layout = QHBoxLayout()
-            control_group.setLayout(control_layout)
-            
-            # 모니터링 시작/중지 버튼
-            self.monitoring_toggle_btn = QPushButton("모니터링 중지")
-            self.monitoring_toggle_btn.setStyleSheet("background-color: #dc3545")
-            self.monitoring_toggle_btn.clicked.connect(self.toggle_condition_monitoring)
-            
-            # 기존 제어 버튼들에 추가:
-            auto_check_btn = QPushButton("자동 체크 활성화")
-            auto_check_btn.clicked.connect(self.force_enable_auto_check)
-
-            status_check_btn = QPushButton("상태 확인")  
-            status_check_btn.clicked.connect(self.check_auto_monitoring_status)
-
-            control_layout.addWidget(auto_check_btn)
-            control_layout.addWidget(status_check_btn)
-            
-            # 조건 수동 체크 버튼  
-            manual_check_btn = QPushButton("수동 체크")
-            manual_check_btn.clicked.connect(self.manual_condition_check)
-            
-            # 로그 내보내기 버튼
-            export_log_btn = QPushButton("로그 내보내기")
-            export_log_btn.clicked.connect(self.export_condition_logs)
-            
-            control_layout.addWidget(self.monitoring_toggle_btn)
-            control_layout.addWidget(manual_check_btn)
-            control_layout.addWidget(export_log_btn)
-            control_layout.addStretch()
-            
-            condition_layout.addWidget(control_group)
-        else:
-            # 조건 모니터링을 사용할 수 없는 경우
-            unavailable_label = QLabel("조건 모니터링 모듈을 사용할 수 없습니다.\n"
-                                    "monitoring/condition_monitor.py 파일을 확인하세요.")
-            unavailable_label.setAlignment(Qt.AlignCenter)
-            unavailable_label.setStyleSheet("color: #ff6666; font-size: 14px;")
-            condition_layout.addWidget(unavailable_label)
-        
-        # 탭에 추가
-        monitoring_tabs.addTab(system_log_tab, "🖥️ 시스템")
-        monitoring_tabs.addTab(condition_tab, "🔍 조건 분석")
-        
-        layout.addWidget(monitoring_tabs)
-        
-        self.tab_widget.addTab(monitoring_widget, "📡 모니터링")
-
-    def setup_connections(self):
-        """시그널 연결 설정"""
-        pass
-    
-    def start_data_collection(self):
-        """데이터 수집 시작"""
-        if TRADING_DATA_THREAD_AVAILABLE and ACCOUNT_MANAGER_AVAILABLE:
-            try:
-                # AccountManager 생성
-                account_manager = AccountManager() if ACCOUNT_MANAGER_AVAILABLE else None
-                
-                # 데이터 스레드 생성 및 시작
-                self.data_thread = TradingDataThread(account_manager)
-                
-                # 시그널 연결
-                self.data_thread.balance_updated.connect(self.update_balance_display)
-                self.data_thread.price_updated.connect(self.update_price_display)
-                self.data_thread.positions_updated.connect(self.update_positions_display)
-                self.data_thread.connection_changed.connect(self.update_connection_status)
-                self.data_thread.signal_lost.connect(self.handle_signal_lost)  # Signal Lost 처리
-                self.data_thread.error_occurred.connect(self.handle_error)
-                
-                self.data_thread.start()
-                print("🔄 TradingDataThread 시작됨")
-                
-                # 초기 API 상태 설정
-                if account_manager:
-                    self.api_status_label.setText("🟡 API 연결 중...")
-                    self.api_status_label.setStyleSheet("color: #ffaa00")
-                else:
-                    self.api_status_label.setText("🔴 API 사용 불가")
-                    self.api_status_label.setStyleSheet("color: #ff6666")
-                
-            except Exception as e:
-                print(f"⚠️ 데이터 스레드 시작 실패: {e}")
-                self.api_status_label.setText("🔴 데이터 스레드 실패")
-                self.api_status_label.setStyleSheet("color: #ff6666")
-                self.handle_signal_lost()
-        else:
-            print("⚠️ TradingDataThread 또는 AccountManager를 사용할 수 없습니다")
-            self.api_status_label.setText("🔴 모듈 없음")
-            self.api_status_label.setStyleSheet("color: #ff6666")
-            self.handle_signal_lost()
-    
-    def handle_signal_lost(self):
-        """Signal Lost 처리"""
-        self.signal_lost = True
-        
-        # Signal Lost 상태 표시
-        self.signal_status_label.setText("🚨 SIGNAL LOST")
-        self.signal_status_label.setStyleSheet("color: #ff0000; font-weight: bold;")
-        
-        # 모든 데이터 표시를 Signal Lost로 변경
-        self.balance_label.setText("잔고: SIGNAL LOST")
-        self.balance_label.setStyleSheet("color: #ff0000")
-        
-        self.total_balance_label.setText("SIGNAL LOST")
-        self.total_balance_label.setStyleSheet("color: #ff0000")
-        
-        self.available_balance_label.setText("사용 가능: SIGNAL LOST")
-        self.margin_balance_label.setText("증거금: SIGNAL LOST")
-        self.unrealized_pnl_label.setText("미실현손익: SIGNAL LOST")
-        
-        # 차트를 Signal Lost로 표시
-        if hasattr(self, 'price_chart') and hasattr(self.price_chart, 'show_signal_lost'):
-            self.price_chart.show_signal_lost()
-        
-        # 포지션 테이블 초기화
-        if hasattr(self, 'detailed_positions_table'):
-            self.detailed_positions_table.setRowCount(0)
-        
-        # 로그 추가
-        if hasattr(self, 'log_display') and hasattr(self.log_display, 'add_log'):
-            self.log_display.add_log("🚨 SIGNAL LOST - API 연결 지속 실패")
-        
-        print("🚨 GUI에 Signal Lost 상태 표시됨")
-    
-    def update_connection_status(self, connected):
-        """API 연결 상태 업데이트"""
-        if connected:
-            self.signal_lost = False
-            self.api_status_label.setText("🟢 API 연결됨")
-            self.api_status_label.setStyleSheet("color: #00ff00")
-            self.signal_status_label.setText("📡 연결됨")
-            self.signal_status_label.setStyleSheet("color: #00ff00")
-        else:
-            if not self.signal_lost:  # Signal Lost 이벤트에서 별도 처리
-                self.api_status_label.setText("🔴 API 연결 끊어짐")
-                self.api_status_label.setStyleSheet("color: #ff6666")
-                self.signal_status_label.setText("📡 연결 끊어짐")
-                self.signal_status_label.setStyleSheet("color: #ff6666")
-    
     def update_clock(self):
         """시계 업데이트"""
-        try:
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.time_label.setText(f"🕒 {current_time}")
-        except Exception as e:
-            print(f"시계 업데이트 오류: {e}")
+        now = datetime.now().strftime("%H:%M:%S")
+        self.time_label.setText(f"🕒 {now}")
     
-    def update_balance_display(self, balance_data):
-        """잔고 표시 업데이트 - 실제 데이터만"""
-        try:
-            if balance_data and not self.signal_lost:
-                usdt_balance = balance_data.get('usdt_balance', 0)
-                total_equity = balance_data.get('total_equity', 0)
-                available_balance = balance_data.get('available_balance', 0)
-                unrealized_pnl = balance_data.get('unrealized_pnl', 0)
+    # =========================================================
+    # 데이터 업데이트 핸들러
+    # =========================================================
+    
+    def on_price_updated(self, symbol: str, price: float, info: dict):
+        """가격 업데이트"""
+        if symbol != 'BTC-USDT-SWAP':
+            return  # BTC만 처리
+        
+        self.current_btc_price = price
+        self.btc_price_display.setText(f"${price:,.2f}")
+        
+        # 시장 정보 업데이트
+        high_24h = info.get('high24h', 0)
+        low_24h = info.get('low24h', 0)
+        
+        if high_24h > 0:
+            self.high_24h_label.setText(f"${high_24h:,.2f}")
+        if low_24h > 0:
+            self.low_24h_label.setText(f"${low_24h:,.2f}")
+        
+        # 변동률 계산
+        if high_24h > 0 and low_24h > 0:
+            change_pct = ((price - low_24h) / low_24h) * 100
+            color = "#27ae60" if change_pct >= 0 else "#e74c3c"
+            self.change_24h_label.setText(f"{change_pct:+.2f}%")
+            self.change_24h_label.setStyleSheet(f"color: {color};")
+        
+        # 차트 업데이트
+        if CHART_AVAILABLE and hasattr(self, 'price_chart'):
+            self.price_chart.update_price(symbol, price, info)
+        
+        # 자동매매 위젯에 가격 전달
+        if self.auto_trading_widget and hasattr(self.auto_trading_widget, 'btc_price_label'):
+            self.auto_trading_widget.btc_price_label.setText(f"${price:,.2f}")
+    
+    def on_balance_updated(self, balance_data: dict):
+        """잔고 업데이트"""
+        total_equity = balance_data.get('total_equity', 0)
+        available = balance_data.get('available_balance', 0)
+        
+        self.current_balance = available
+        
+        # 상단 바 업데이트
+        self.balance_display.setText(f"${available:,.2f}")
+        
+        # 대시보드 업데이트
+        self.total_equity_label.setText(f"${total_equity:,.2f}")
+        self.available_label.setText(f"${available:,.2f}")
+        
+        # 자동매매 위젯에 잔고 전달
+        if self.auto_trading_widget and hasattr(self.auto_trading_widget, 'on_balance_updated'):
+            self.auto_trading_widget.on_balance_updated(available)
+    
+    def on_positions_updated(self, positions: list):
+        """포지션 업데이트"""
+        self.positions = positions
+        
+        # 테이블 업데이트
+        self.position_table.setRowCount(0)
+        
+        # BTC 포지션만 필터링
+        btc_positions = [p for p in positions if 'BTC' in p.get('instId', '')]
+        
+        total_pnl = 0
+        
+        if btc_positions:
+            self.no_position_label.hide()
+            self.position_table.show()
+            
+            for pos in btc_positions:
+                row = self.position_table.rowCount()
+                self.position_table.insertRow(row)
                 
-                self.balance_label.setText(f"잔고: ${usdt_balance:,.2f}")
-                self.balance_label.setStyleSheet("color: #00ff00")
-                
-                self.total_balance_label.setText(f"${total_equity:,.2f}")
-                self.total_balance_label.setStyleSheet("color: #00ff00")
-                
-                self.available_balance_label.setText(f"사용 가능: ${available_balance:,.2f}")
-                self.unrealized_pnl_label.setText(f"미실현손익: ${unrealized_pnl:+,.2f}")
-                
-                # 미실현손익 색상 설정
-                if unrealized_pnl > 0:
-                    self.unrealized_pnl_label.setStyleSheet("color: #00ff00")
-                elif unrealized_pnl < 0:
-                    self.unrealized_pnl_label.setStyleSheet("color: #ff0000")
+                # 방향
+                pos_side = pos.get('posSide', 'net')
+                pos_size = float(pos.get('pos', 0))
+                if pos_side == 'net':
+                    direction = "롱" if pos_size > 0 else "숏"
                 else:
-                    self.unrealized_pnl_label.setStyleSheet("color: #ffffff")
+                    direction = "롱" if pos_side == 'long' else "숏"
                 
-                # 로그 추가
-                if hasattr(self, 'log_display') and hasattr(self.log_display, 'add_log'):
-                    self.log_display.add_log(f"잔고 업데이트: ${usdt_balance:,.2f}")
-            
-        except Exception as e:
-            print(f"잔고 표시 업데이트 오류: {e}")
-    
-    def update_price_display(self, symbol, price, price_info):
-        """가격 표시 업데이트 - 조건 모니터링 추가"""
-        try:
-            if not self.signal_lost:
-                self.latest_prices[symbol] = price
+                direction_item = QTableWidgetItem(direction)
+                direction_item.setForeground(QColor("#27ae60" if "롱" in direction else "#e74c3c"))
+                self.position_table.setItem(row, 0, direction_item)
                 
-                # 기존 차트 업데이트
-                if hasattr(self, 'price_chart') and hasattr(self.price_chart, 'update_price'):
-                    self.price_chart.update_price(symbol, price, price_info)
+                # 수량
+                self.position_table.setItem(row, 1, QTableWidgetItem(f"{abs(pos_size):.4f}"))
                 
-                # 조건 모니터링 자동 체크 (매번 실행)
-                if (self.condition_monitor and 
-                    hasattr(self.condition_monitor, 'monitoring_active') and
-                    self.condition_monitor.monitoring_active):
-                    
-                    # 가격 데이터에 EMA 정보 추가 (더미 데이터로 테스트)
-                    enhanced_price_info = self._generate_enhanced_price_data(symbol, price, price_info)
-                    
-                    # 조건 체크 실행
-                    try:
-                        condition_result = self.condition_monitor.check_conditions(
-                            symbol, enhanced_price_info, None
-                        )
-                        
-                        if condition_result and self.condition_widget:
-                            self.condition_widget.handle_condition_change(condition_result)
-                            
-                            # 자동 체크 로깅 (매 10회마다 한 번)
-                            check_count = getattr(self, '_auto_check_count', 0) + 1
-                            self._auto_check_count = check_count
-                            
-                            if check_count % 10 == 0:  # 10번째마다 로깅
-                                self.condition_widget.add_condition_log(
-                                    f"자동 체크 #{check_count} 완료", "정보"
-                                )
-                    
-                    except Exception as e:
-                        # 자동 체크 오류 로깅 (처음 1번만)
-                        if not hasattr(self, '_auto_check_error_logged'):
-                            self._auto_check_error_logged = True
-                            if self.condition_widget:
-                                self.condition_widget.add_condition_log(
-                                    f"자동 체크 오류: {e}", "오류"
-                                )
+                # 진입가
+                avg_price = float(pos.get('avgPx', 0))
+                self.position_table.setItem(row, 2, QTableWidgetItem(f"${avg_price:,.2f}"))
                 
-                # 기존 로그 추가 (10초마다 한 번만)
-                if hasattr(self, 'log_display') and hasattr(self.log_display, 'add_log'):
-                    if int(time.time()) % 10 == 0:
-                        change_pct = price_info.get('change_24h', 0) if price_info else 0
-                        self.log_display.add_log(f"가격 업데이트: {symbol} = ${price:,.2f} ({change_pct:+.2f}%)")
+                # 현재가
+                self.position_table.setItem(row, 3, QTableWidgetItem(f"${self.current_btc_price:,.2f}"))
                 
-        except Exception as e:
-            print(f"가격 표시 업데이트 오류: {e}")
-
-    def _generate_enhanced_price_data(self, symbol, price, price_info):
-        """실제 가격 데이터를 기반으로 EMA 데이터 생성"""
-        import random
-        
-        # 실제 가격 기반으로 EMA 값들 계산 (더 현실적인 값)
-        base_price = float(price)
-        
-        # EMA 값들을 실제 가격 근처로 설정
-        # 일반적으로 EMA 150 > EMA 200 이면 상승 추세
-        trend_multiplier = 1 + random.uniform(-0.01, 0.01)  # ±1% 범위
-        
-        return {
-            'close': base_price,
-            'ema_trend_fast': base_price * (0.998 + random.uniform(-0.002, 0.002)),  # EMA 150
-            'ema_trend_slow': base_price * (0.996 + random.uniform(-0.002, 0.002)),  # EMA 200  
-            'curr_entry_fast': base_price * (1.0005 + random.uniform(-0.001, 0.001)), # EMA 20
-            'curr_entry_slow': base_price * (0.9995 + random.uniform(-0.001, 0.001)), # EMA 50
-            'curr_exit_slow': base_price * (0.997 + random.uniform(-0.002, 0.002)),   # EMA 100
-            'volume': random.uniform(1000000, 5000000),
-            'change_24h': price_info.get('change_24h', 0) if price_info else random.uniform(-2, 2),
-            'symbol': symbol,
-            'timestamp': time.time()
-        }
-
-    # 추가 메소드: 자동 체크 강제 활성화
-    def force_enable_auto_check(self):
-        """자동 체크 강제 활성화 (디버깅 강화)"""
-        if self.condition_monitor:
-            self.condition_monitor.monitoring_active = True
-            if self.condition_widget:
-                self.condition_widget.add_condition_log("자동 체크 강제 활성화됨", "정보")
-            print("🔄 자동 체크 강제 활성화됨")
-            
-            # 디버거에도 로그 추가
+                # 손익
+                upl = float(pos.get('upl', 0))
+                total_pnl += upl
+                pnl_item = QTableWidgetItem(f"${upl:+,.2f}")
+                pnl_item.setForeground(QColor("#27ae60" if upl >= 0 else "#e74c3c"))
+                self.position_table.setItem(row, 4, pnl_item)
         else:
-            print("❌ 조건 모니터 객체 없음")
-
-    # 추가 메소드: 자동 체크 상태 확인
-    def check_auto_monitoring_status(self):
-        """자동 체크 상태 확인 (디버깅 강화)"""
-        if self.condition_monitor:
-            status = "활성화" if self.condition_monitor.monitoring_active else "비활성화"
-            if self.condition_widget:
-                self.condition_widget.add_condition_log(f"자동 모니터링 상태: {status}", "정보")
-            
-                
-            print(f"🔍 자동 모니터링 상태: {status}")
-
-    def update_positions_display(self, positions):
-        """포지션 표시 업데이트 - 실제 데이터만"""
-        try:
-            if not self.signal_lost:
-                self.positions = positions
-                
-                # 포지션 테이블 업데이트
-                if hasattr(self, 'position_table') and hasattr(self.position_table, 'update_positions'):
-                    self.position_table.update_positions(positions)
-                
-                # 상세 포지션 테이블 업데이트
-                self.update_detailed_positions_table(positions)
-                
-                # 로그 추가
-                if hasattr(self, 'log_display') and hasattr(self.log_display, 'add_log'):
-                    if positions and len(positions) > 0:
-                        total_upl = sum(float(pos.get('upl', 0)) for pos in positions)
-                        self.log_display.add_log(f"포지션 업데이트: {len(positions)}개 포지션, 총 PnL: ${total_upl:+.2f}")
-                
-        except Exception as e:
-            print(f"포지션 표시 업데이트 오류: {e}")
-    
-    def update_detailed_positions_table(self, positions):
-        """상세 포지션 테이블 업데이트"""
-        try:
-            if self.signal_lost:
-                return
-                
-            self.detailed_positions_table.setRowCount(len(positions))
-            
-            for i, position in enumerate(positions):
-                # 기본 정보
-                symbol = position.get('instId', '')
-                side = position.get('posSide', '')
-                size = position.get('pos', '0')
-                entry_price = float(position.get('avgPx', 0))
-                current_price = self.latest_prices.get(symbol, entry_price)
-                upl = float(position.get('upl', 0))
-                upl_ratio = float(position.get('uplRatio', 0)) * 100
-                
-                # 테이블 아이템 설정
-                self.detailed_positions_table.setItem(i, 0, QTableWidgetItem(symbol))
-                self.detailed_positions_table.setItem(i, 1, QTableWidgetItem(side.upper()))
-                self.detailed_positions_table.setItem(i, 2, QTableWidgetItem(f"{float(size):.6f}"))
-                self.detailed_positions_table.setItem(i, 3, QTableWidgetItem(f"${entry_price:.2f}"))
-                self.detailed_positions_table.setItem(i, 4, QTableWidgetItem(f"${current_price:.2f}"))
-                
-                # PnL 색상 설정
-                upl_item = QTableWidgetItem(f"${upl:+.2f}")
-                ratio_item = QTableWidgetItem(f"{upl_ratio:+.2f}%")
-                
-                if upl > 0:
-                    upl_item.setForeground(QColor("#00ff00"))
-                    ratio_item.setForeground(QColor("#00ff00"))
-                elif upl < 0:
-                    upl_item.setForeground(QColor("#ff0000"))
-                    ratio_item.setForeground(QColor("#ff0000"))
-                
-                self.detailed_positions_table.setItem(i, 5, upl_item)
-                self.detailed_positions_table.setItem(i, 6, ratio_item)
-                
-        except Exception as e:
-            print(f"상세 포지션 테이블 업데이트 오류: {e}")
-    
-    def handle_error(self, error_msg):
-        """에러 처리"""
-        if hasattr(self, 'log_display') and hasattr(self.log_display, 'add_log'):
-            self.log_display.add_log(f"❌ 오류: {error_msg}")
-        print(f"GUI 오류: {error_msg}")
-    
-    def test_api_connection(self):
-        """API 연결 테스트"""
-        try:
-            if self.data_thread and hasattr(self.data_thread, 'reconnect'):
-                self.data_thread.reconnect()
-                if hasattr(self, 'log_display'):
-                    self.log_display.add_log("API 재연결 시도...")
-            else:
-                QMessageBox.information(self, "알림", "데이터 스레드가 실행 중이지 않습니다.")
-        except Exception as e:
-            QMessageBox.critical(self, "오류", f"API 테스트 실패: {e}")
-    
-    def close_all_positions(self):
-        """모든 포지션 청산"""
-        reply = QMessageBox.question(
-            self, "확인", 
-            "모든 포지션을 청산하시겠습니까?",
-            QMessageBox.Yes | QMessageBox.No
-        )
+            self.position_table.hide()
+            self.no_position_label.show()
         
-        if reply == QMessageBox.Yes:
-            if hasattr(self, 'log_display'):
-                self.log_display.add_log("모든 포지션 청산 요청...")
-            # 실제 청산 로직 구현 필요
+        # 미실현 손익 업데이트
+        pnl_color = "#27ae60" if total_pnl >= 0 else "#e74c3c"
+        self.unrealized_pnl_label.setText(f"${total_pnl:+,.2f}")
+        self.unrealized_pnl_label.setStyleSheet(f"color: {pnl_color};")
+    
+    def on_connection_changed(self, connected: bool):
+        """연결 상태 변경"""
+        self.is_connected = connected
+        
+        if connected:
+            self.connection_indicator.setStyleSheet("color: #27ae60;")
+            self.connection_label.setText("연결됨")
+            self.status_bar.showMessage("API 연결 완료")
+        else:
+            self.connection_indicator.setStyleSheet("color: #e74c3c;")
+            self.connection_label.setText("연결 끊김")
+            self.status_bar.showMessage("API 연결 실패")
+    
+    def on_signal_lost(self):
+        """Signal Lost"""
+        self.connection_indicator.setStyleSheet("color: #e74c3c;")
+        self.connection_label.setText("SIGNAL LOST")
+        self.status_bar.showMessage("⚠️ API 연결 끊김 - 데이터 갱신 중단")
+        
+        QMessageBox.warning(
+            self,
+            "연결 경고",
+            "API 연결이 끊어졌습니다.\n\n자동으로 재연결을 시도합니다."
+        )
+    
+    def on_error(self, error_msg: str):
+        """에러 발생"""
+        self.status_bar.showMessage(f"오류: {error_msg}")
+    
+    # =========================================================
+    # 종료 처리
+    # =========================================================
     
     def closeEvent(self, event):
-        """윈도우 종료 시 처리 - 디버거 정리 추가"""
-        # 디버거 정리
-        
-        # 조건 모니터링 정리
-        if self.condition_monitor:
-            try:
-                self.condition_monitor.stop_monitoring()
-            except:
-                pass
-        
-        # 기존 정리 작업
-        if self.data_thread and self.data_thread.isRunning():
-            self.data_thread.stop()
-            self.data_thread.wait(3000)  # 최대 3초 대기
-        
-        event.accept()
-        print("🔚 GUI 윈도우 종료됨")      
-
-    def toggle_condition_monitoring(self):
-            """조건 모니터링 시작/중지 토글"""
-            if not self.condition_monitor:
-                return
-            
-            if self.condition_monitor.monitoring_active:
-                # 모니터링 중지
-                self.condition_monitor.stop_monitoring()
-                self.monitoring_toggle_btn.setText("모니터링 시작")
-                self.monitoring_toggle_btn.setStyleSheet("background-color: #28a745")
-                
-                if self.condition_widget:
-                    self.condition_widget.add_condition_log("조건 모니터링이 중지되었습니다", "경고")
-            else:
-                # 모니터링 시작
-                self.condition_monitor.monitoring_active = True
-                self.monitoring_toggle_btn.setText("모니터링 중지")
-                self.monitoring_toggle_btn.setStyleSheet("background-color: #dc3545")
-                
-                if self.condition_widget:
-                    self.condition_widget.add_condition_log("조건 모니터링이 시작되었습니다", "정보")
-        
-    def manual_condition_check(self):
-        """수동 조건 체크 (위젯 업데이트 강화)"""
-        
-        if not self.condition_monitor:
-            if self.condition_widget:
-                self.condition_widget.add_condition_log("조건 모니터 객체 없음", "오류")
-            return
-        
-        try:
-            import random
-            symbol = "BTC-USDT-SWAP"
-            
-            # 실제 가격 데이터 사용
-            if symbol in self.latest_prices:
-                price_data = self._generate_enhanced_price_data(
-                    symbol, self.latest_prices[symbol], {}
-                )
-                if self.condition_widget:
-                    self.condition_widget.add_condition_log(
-                        f"실제 가격 데이터 사용: ${self.latest_prices[symbol]:,.2f}", "정보"
-                    )
-            else:
-                price_data = {
-                    'close': 45000 + random.uniform(-1000, 1000),
-                    'ema_trend_fast': 44550,
-                    'ema_trend_slow': 44100,
-                    'curr_entry_fast': 45045,
-                    'curr_entry_slow': 44955,
-                    'curr_exit_slow': 44865
-                }
-                if self.condition_widget:
-                    self.condition_widget.add_condition_log("더미 데이터 사용", "경고")
-            
-            # 조건 체크 실행
-            condition_result = self.condition_monitor.check_conditions(
-                symbol, price_data, None
-            )
-            
-            # *** 중요: 위젯 업데이트 강제 실행 ***
-            if self.condition_widget and hasattr(self.condition_widget, 'stats_widget'):
-                current_checks = self.condition_monitor.counters.get('total_checks', 0)
-                
-                # 실제 가동시간 계산
-                if hasattr(self.condition_monitor, 'start_time'):
-                    current_time = time.time()
-                    actual_uptime = (current_time - self.condition_monitor.start_time) / 60
-                else:
-                    actual_uptime = 0
-                    
-                stats = {
-                    'total_checks': current_checks,
-                    'uptime_minutes': actual_uptime,  # 올바른 가동시간
-                    'trend_distribution': {
-                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
-                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
-                        'sideways': 0
-                    },
-                    'signal_counts': {
-                        'golden_cross': self.condition_monitor.counters.get('long_signals', 0),
-                        'dead_cross': self.condition_monitor.counters.get('short_signals', 0)
-                    }
-                }
-                
-                # 직접 업데이트
-                self.condition_widget.stats_widget.update_stats(stats)
-                print(f"📊 위젯 업데이트됨: {current_checks}회, 가동시간: {actual_uptime:.1f}분")
-            
-            if condition_result and self.condition_widget:
-                self.condition_widget.handle_condition_change(condition_result)
-                self.condition_widget.add_condition_log("수동 체크 완료", "정보")
-            else:
-                if self.condition_widget:
-                    self.condition_widget.add_condition_log("조건 체크 결과 없음", "경고")
-            
-        except Exception as e:
-            if self.condition_widget:
-                self.condition_widget.add_condition_log(f"수동 체크 오류: {e}", "오류")
-            print(f"수동 체크 오류: {e}")
-
-    def export_condition_logs(self):
-            """조건 로그 내보내기"""
-            if not self.condition_widget:
-                return
-            
-            try:
-                from PyQt5.QtWidgets import QFileDialog
-                
-                # 파일 저장 대화상자
-                file_path, _ = QFileDialog.getSaveFileName(
-                    self, "조건 로그 저장", 
-                    f"condition_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    "텍스트 파일 (*.txt)"
-                )
-                
-                if file_path:
-                    # 로그 텍스트 가져오기
-                    log_content = self.condition_widget.log_widget.log_text.toPlainText()
-                    
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(f"# OKX 자동매매 시스템 - 조건 모니터링 로그\n")
-                        f.write(f"# 생성 시간: {datetime.now()}\n")
-                        f.write(f"# =" * 50 + "\n\n")
-                        f.write(log_content)
-                    
-                    self.condition_widget.add_condition_log(f"로그 저장 완료: {file_path}", "정보")
-            
-            except Exception as e:
-                if self.condition_widget:
-                    self.condition_widget.add_condition_log(f"로그 저장 오류: {e}", "오류")
-
-    # 조건 모니터링용 더미 데이터 생성 함수 (테스트용)
-    def generate_test_condition_data(symbol: str = "BTC-USDT-SWAP") -> Dict[str, Any]:
-        """테스트용 조건 데이터 생성"""
-        import random
-        
-        base_price = 45000 + random.uniform(-1000, 1000)
-        
-        return {
-            'close': base_price,
-            'ema_trend_fast': base_price * (1 + random.uniform(-0.02, 0.02)),  # EMA 150
-            'ema_trend_slow': base_price * (1 + random.uniform(-0.03, 0.01)),  # EMA 200
-            'curr_entry_fast': base_price * (1 + random.uniform(-0.005, 0.005)),  # EMA 20
-            'curr_entry_slow': base_price * (1 + random.uniform(-0.01, 0.01)),   # EMA 50
-            'curr_exit_slow': base_price * (1 + random.uniform(-0.015, 0.005)),  # EMA 100
-            'volume': random.uniform(1000000, 5000000),
-            'change_24h': random.uniform(-5, 5)
-        }
-
-    def force_widget_connection(self):
-        """조건 위젯과 모니터 강제 연결"""
-        try:
-            if not self.condition_monitor or not self.condition_widget:
-                print("❌ 조건 모니터 또는 위젯이 없음")
-                return False
-            
-            # 1. 위젯에 모니터 연결
-            self.condition_widget.set_condition_monitor(self.condition_monitor)
-            
-            # 2. 강제로 통계 업데이트
-            if hasattr(self.condition_monitor, 'counters'):
-                stats = {
-                    'total_checks': self.condition_monitor.counters.get('total_checks', 0),
-                    'uptime_minutes': 1,  # 최소 1분으로 설정
-                    'trend_distribution': {
-                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
-                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
-                        'sideways': 0
-                    },
-                    'signal_counts': {
-                        'golden_cross': self.condition_monitor.counters.get('long_signals', 0),
-                        'dead_cross': self.condition_monitor.counters.get('short_signals', 0)
-                    },
-                    'mode_distribution': {
-                        'virtual': self.condition_monitor.counters.get('virtual_mode_strategies', 0),
-                        'real': self.condition_monitor.counters.get('real_mode_strategies', 0)
-                    },
-                    'switch_opportunities': 0
-                }
-                
-                # 3. 위젯 업데이트 강제 실행
-                if hasattr(self.condition_widget, 'stats_widget'):
-                    self.condition_widget.stats_widget.update_stats(stats)
-                    print(f"✅ 위젯 강제 업데이트: 총 체크 {stats['total_checks']}회")
-                
-                # 4. 로그 추가
-                if hasattr(self.condition_widget, 'add_condition_log'):
-                    self.condition_widget.add_condition_log("위젯 연결 강제 수정됨", "정보")
-                
-                return True
-            
-        except Exception as e:
-            print(f"❌ 위젯 연결 강제 수정 실패: {e}")
-            return False
-
-    def start_auto_monitoring_loop(self):
-        """자동 모니터링 루프 강제 시작"""
-        try:
-            if not self.condition_monitor:
-                return
-            
-            # 모니터링 활성화
-            self.condition_monitor.monitoring_active = True
-            
-            # 업데이트 타이머 생성
-            if not hasattr(self, 'condition_update_timer'):
-                self.condition_update_timer = QTimer()
-                self.condition_update_timer.timeout.connect(self.force_condition_update)
-                
-            # 5초마다 강제 업데이트
-            self.condition_update_timer.start(5000)
-            
-            print("✅ 자동 모니터링 루프 시작됨")
-            
-            if self.condition_widget:
-                self.condition_widget.add_condition_log("자동 모니터링 루프 시작", "정보")
-                
-        except Exception as e:
-            print(f"❌ 자동 모니터링 루프 시작 실패: {e}")
-
-    def force_condition_update(self):
-        """조건 강제 업데이트"""
-        try:
-            if not self.condition_monitor or not self.condition_widget:
-                return
-            
-            # 1. 테스트 데이터 생성
-            import random
-            symbol = "BTC-USDT-SWAP"
-            
-            if symbol in self.latest_prices:
-                price_data = self._generate_enhanced_price_data(
-                    symbol, self.latest_prices[symbol], {}
-                )
-            else:
-                price_data = {
-                    'close': 45000 + random.uniform(-1000, 1000),
-                    'ema_trend_fast': 44550,
-                    'ema_trend_slow': 44100,
-                    'curr_entry_fast': 45045,
-                    'curr_entry_slow': 44955,
-                    'curr_exit_slow': 44865,
-                    'volume': 2000000,
-                    'timestamp': time.time()
-                }
-            
-            # 2. 조건 체크 실행
-            condition_result = self.condition_monitor.check_conditions(
-                symbol, price_data, None
-            )
-            
-            # 3. 카운터 강제 증가
-            self.condition_monitor.counters['total_checks'] += 1
-            
-            # 4. 위젯 업데이트
-            if hasattr(self.condition_widget, 'stats_widget'):
-                stats = {
-                    'total_checks': self.condition_monitor.counters.get('total_checks', 0),
-                    'uptime_minutes': time.time() / 60,  # 현재 가동시간
-                    'trend_distribution': {
-                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
-                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
-                        'sideways': 0
-                    }
-                }
-                self.condition_widget.stats_widget.update_stats(stats)
-            
-            # 5. 로그 업데이트 (10회마다)
-            total_checks = self.condition_monitor.counters.get('total_checks', 0)
-            if total_checks % 10 == 0:
-                self.condition_widget.add_condition_log(
-                    f"자동 업데이트 #{total_checks} 완료", "정보"
-                )
-            
-        except Exception as e:
-            print(f"❌ 조건 강제 업데이트 실패: {e}")
-
-    def force_condition_widget_sync(self):
-        """조건 위젯과 모니터 강제 동기화 - 수정된 가동시간"""
-        try:
-            print("🔄 조건 위젯 강제 동기화 시작...")
-            
-            if not self.condition_monitor:
-                print("❌ 조건 모니터 없음")
-                return False
-                
-            if not self.condition_widget:
-                print("❌ 조건 위젯 없음")
-                return False
-            
-            # 1. 모니터 활성화
-            self.condition_monitor.monitoring_active = True
-            
-            # 2. 시작 시간이 없으면 현재 시간으로 설정
-            if not hasattr(self.condition_monitor, 'start_time'):
-                self.condition_monitor.start_time = time.time()
-            
-            # 3. 실제 가동시간 계산
-            current_time = time.time()
-            actual_uptime_minutes = (current_time - self.condition_monitor.start_time) / 60
-            
-            # 4. 카운터 설정
-            if self.condition_monitor.counters['total_checks'] == 0:
-                self.condition_monitor.counters['total_checks'] = 1  # 최소값
-            
-            # 5. 위젯 업데이트
-            if hasattr(self.condition_widget, 'stats_widget'):
-                stats = {
-                    'total_checks': self.condition_monitor.counters['total_checks'],
-                    'uptime_minutes': actual_uptime_minutes,  # 올바른 가동시간
-                    'trend_distribution': {
-                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
-                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
-                        'sideways': 0
-                    },
-                    'signal_counts': {
-                        'golden_cross': 0,
-                        'dead_cross': 0
-                    },
-                    'mode_distribution': {
-                        'virtual': 0,
-                        'real': 0
-                    },
-                    'switch_opportunities': 0
-                }
-                
-                print(f"📊 위젯 업데이트: {stats['total_checks']}회, 가동시간: {actual_uptime_minutes:.1f}분")
-                self.condition_widget.stats_widget.update_stats(stats)
-                
-            # 6. 로그 메시지 추가
-            if hasattr(self.condition_widget, 'add_condition_log'):
-                self.condition_widget.add_condition_log("가동시간 계산 수정됨", "정보")
-                
-            print("✅ 조건 위젯 강제 동기화 완료")
-            return True
-            
-        except Exception as e:
-            print(f"❌ 조건 위젯 동기화 실패: {e}")
-            return False
-
-    def _periodic_sync(self):
-        """주기적 동기화 - 수정된 가동시간"""
-        try:
-            if not self.condition_monitor or not self.condition_widget:
-                return
-                
-            # 카운터 자동 증가
-            self.condition_monitor.counters['total_checks'] += 1
-            
-            # 실제 가동시간 계산
-            if hasattr(self.condition_monitor, 'start_time'):
-                current_time = time.time()
-                actual_uptime_minutes = (current_time - self.condition_monitor.start_time) / 60
-            else:
-                actual_uptime_minutes = 0
-            
-            # 위젯 업데이트
-            if hasattr(self.condition_widget, 'stats_widget'):
-                stats = {
-                    'total_checks': self.condition_monitor.counters['total_checks'],
-                    'uptime_minutes': actual_uptime_minutes,  # 올바른 가동시간
-                    'trend_distribution': {
-                        'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
-                        'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
-                        'sideways': 0
-                    }
-                }
-                self.condition_widget.stats_widget.update_stats(stats)
-                
-        except Exception as e:
-            print(f"주기적 동기화 오류: {e}")
-
-    def sync_debugger_to_main_gui(self):
-        """디버거의 데이터를 메인 GUI로 강제 동기화"""
-        try:
-            print("🔄 디버거 → 메인 GUI 동기화 시작...")
-            
-            if not hasattr(self, 'debugger') or not self.debugger:
-                print("❌ 디버거 없음")
-                return False
-                
-            if not self.condition_monitor or not self.condition_widget:
-                print("❌ 조건 모니터 또는 위젯 없음")
-                return False
-            
-            # 1. 디버거의 메인 윈도우에서 조건 모니터 데이터 가져오기
-            debugger_main_window = self.debugger.main_window
-            if debugger_main_window and hasattr(debugger_main_window, 'condition_monitor'):
-                debugger_monitor = debugger_main_window.condition_monitor
-                
-                if debugger_monitor and hasattr(debugger_monitor, 'counters'):
-                    print("📊 디버거 카운터 발견:")
-                    for key, value in debugger_monitor.counters.items():
-                        print(f"   {key}: {value}")
-                    
-                    # 2. 메인 GUI의 조건 모니터에 데이터 복사
-                    self.condition_monitor.counters.update(debugger_monitor.counters)
-                    
-                    # 3. 시작 시간도 복사 (있다면)
-                    if hasattr(debugger_monitor, 'start_time'):
-                        self.condition_monitor.start_time = debugger_monitor.start_time
-                    else:
-                        self.condition_monitor.start_time = time.time() - 300  # 5분 전으로 설정
-                    
-                    # 4. 모니터링 활성화 상태 복사
-                    if hasattr(debugger_monitor, 'monitoring_active'):
-                        self.condition_monitor.monitoring_active = debugger_monitor.monitoring_active
-                    
-                    print("✅ 디버거 데이터 복사 완료")
-            
-            # 5. 위젯 강제 업데이트
-            current_time = time.time()
-            actual_uptime_minutes = (current_time - self.condition_monitor.start_time) / 60
-            
-            stats = {
-                'total_checks': self.condition_monitor.counters.get('total_checks', 0),
-                'uptime_minutes': actual_uptime_minutes,
-                'trend_distribution': {
-                    'uptrend': self.condition_monitor.counters.get('trend_uptrend', 0),
-                    'downtrend': self.condition_monitor.counters.get('trend_downtrend', 0),
-                    'sideways': self.condition_monitor.counters.get('trend_sideways', 0)
-                },
-                'signal_counts': {
-                    'golden_cross': self.condition_monitor.counters.get('long_signals', 0),
-                    'dead_cross': self.condition_monitor.counters.get('short_signals', 0)
-                },
-                'mode_distribution': {
-                    'virtual': self.condition_monitor.counters.get('virtual_mode_strategies', 0),
-                    'real': self.condition_monitor.counters.get('real_mode_strategies', 0)
-                },
-                'switch_opportunities': self.condition_monitor.counters.get('switch_opportunities', 0)
-            }
-            
-            # 6. 위젯 업데이트 실행
-            if hasattr(self.condition_widget, 'stats_widget'):
-                self.condition_widget.stats_widget.update_stats(stats)
-                print(f"📊 메인 GUI 업데이트: {stats['total_checks']}회, 가동시간: {actual_uptime_minutes:.1f}분")
-            
-            # 7. 로그 추가
-            if hasattr(self.condition_widget, 'add_condition_log'):
-                self.condition_widget.add_condition_log(
-                    f"디버거 동기화: 체크 {stats['total_checks']}회 복사됨", "정보"
-                )
-            
-            print("✅ 디버거 → 메인 GUI 동기화 완료")
-            return True
-            
-        except Exception as e:
-            print(f"❌ 동기화 실패: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-
-    def start_continuous_sync(self):
-        """지속적 동기화 시작"""
-        try:
-            if not hasattr(self, '_sync_timer'):
-                self._sync_timer = QTimer()
-                self._sync_timer.timeout.connect(self.sync_debugger_to_main_gui)
-                
-            # 5초마다 동기화
-            self._sync_timer.start(5000)
-            print("🔄 지속적 동기화 시작 (5초 간격)")
-            
-            if self.condition_widget:
-                self.condition_widget.add_condition_log("지속적 동기화 시작됨", "정보")
-                
-        except Exception as e:
-            print(f"❌ 지속적 동기화 시작 실패: {e}")
-
-    def manual_sync_from_debugger(self):
-        """수동으로 디버거에서 동기화"""
-        result = self.sync_debugger_to_main_gui()
-        if result:
-            print("✅ 수동 동기화 성공")
-            if self.condition_widget:
-                self.condition_widget.add_condition_log("수동 동기화 완료", "정보")
-        else:
-            print("❌ 수동 동기화 실패")
-            if self.condition_widget:
-                self.condition_widget.add_condition_log("수동 동기화 실패", "오류")
-
-    # GUI에 동기화 버튼 추가용 코드 (create_monitoring_tab에 추가)
-    def add_sync_button_to_monitoring_tab(self):
-        """모니터링 탭에 동기화 버튼 추가"""
-        # 기존 제어 패널에 버튼 추가
-        if hasattr(self, 'condition_widget') and self.condition_widget:
-            # 동기화 버튼 생성
-            sync_btn = QPushButton("🔄 디버거 동기화")
-            sync_btn.setStyleSheet("background-color: #17a2b8; color: white;")
-            sync_btn.clicked.connect(self.manual_sync_from_debugger)
-            
-            # 기존 제어 패널에 추가 (수정 필요할 수 있음)
-            # self.control_layout.addWidget(sync_btn)  # 실제 레이아웃에 맞게 수정
-            
-            print("✅ 동기화 버튼 추가됨")
-
-
-    # trading test
-
-    
-    def create_auto_trading_tab(self):
-        """🤖 자동매매 탭 생성"""
-        if AUTO_TRADING_AVAILABLE:
-            try:
-                self.auto_trading_widget = AutoTradingWidget()
-                self.tab_widget.addTab(self.auto_trading_widget, "🤖 자동매매")
-                print("✅ 자동매매 탭 생성 완료")
-            except Exception as e:
-                print(f"❌ 자동매매 탭 생성 실패: {e}")
-                # 대체 위젯
-                fallback = QWidget()
-                layout = QVBoxLayout(fallback)
-                layout.addWidget(QLabel("자동매매 위젯을 로드할 수 없습니다."))
-                layout.addWidget(QLabel(f"오류: {e}"))
-                self.tab_widget.addTab(fallback, "🤖 자동매매")
-        else:
-            # AutoTradingWidget 사용 불가 시 대체 UI
-            fallback_widget = QWidget()
-            layout = QVBoxLayout(fallback_widget)
-            
-            info_label = QLabel("⚠️ 자동매매 위젯을 로드할 수 없습니다.")
-            info_label.setStyleSheet("font-size: 14px; color: #f39c12;")
-            layout.addWidget(info_label)
-            
-            instruction = QLabel(
-                "auto_trading_widget.py 파일을 gui/ 폴더에 복사하세요:\n"
-                "copy auto_trading_widget.py gui\\"
-            )
-            layout.addWidget(instruction)
-            
-            # 대안: CLI 실행 버튼
-            run_btn = QPushButton("🚀 CLI에서 자동매매 실행")
-            run_btn.clicked.connect(self.run_trading_engine_cli)
-            layout.addWidget(run_btn)
-            
-            layout.addStretch()
-            self.tab_widget.addTab(fallback_widget, "🤖 자동매매")
-    
-    def run_trading_engine_cli(self):
-        """CLI에서 자동매매 엔진 실행"""
-        import subprocess
-        import sys
-        
-        reply = QMessageBox.question(
-            self,
-            "자동매매 실행",
-            "새 터미널에서 자동매매 엔진을 실행하시겠습니까?",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
-            try:
-                if sys.platform == 'win32':
-                    subprocess.Popen(['start', 'cmd', '/k', 'python', 'trading_engine.py'], shell=True)
-                else:
-                    subprocess.Popen(['gnome-terminal', '--', 'python', 'trading_engine.py'])
-                QMessageBox.information(self, "실행", "자동매매 엔진이 새 터미널에서 시작됩니다.")
-            except Exception as e:
-                QMessageBox.critical(self, "오류", f"실행 실패: {e}")
-
-
-    def create_test_trading_tab(self):
-        """BTC 테스트 거래 탭 생성"""
-        test_tab = QWidget()
-        test_layout = QVBoxLayout()
-        test_tab.setLayout(test_layout)
-        
-        # 테스트 거래 그룹
-        test_group = QGroupBox("🧪 BTC 거래 테스트")
-        test_group_layout = QVBoxLayout()
-        
-        # 테스트 모드 토글
-        self.test_mode_checkbox = QCheckBox("테스트 모드 활성화")
-        self.test_mode_checkbox.setChecked(True)
-        test_group_layout.addWidget(self.test_mode_checkbox)
-        
-        # 거래 설정
-        settings_layout = QGridLayout()
-        
-        # 심볼 선택
-        settings_layout.addWidget(QLabel("거래 심볼:"), 0, 0)
-        self.test_symbol_combo = QComboBox()
-        self.test_symbol_combo.addItems(["BTC-USDT-SWAP", "ETH-USDT-SWAP"])
-        settings_layout.addWidget(self.test_symbol_combo, 0, 1)
-        
-        # 거래 수량
-        settings_layout.addWidget(QLabel("거래 수량:"), 1, 0)
-        self.test_size_spin = QDoubleSpinBox()
-        self.test_size_spin.setMinimum(0.001)
-        self.test_size_spin.setMaximum(1.0)
-        self.test_size_spin.setSingleStep(0.001)
-        self.test_size_spin.setValue(0.001)
-        self.test_size_spin.setDecimals(4)
-        settings_layout.addWidget(self.test_size_spin, 1, 1)
-        
-        # 레버리지
-        settings_layout.addWidget(QLabel("레버리지:"), 2, 0)
-        self.test_leverage_spin = QSpinBox()
-        self.test_leverage_spin.setMinimum(1)
-        self.test_leverage_spin.setMaximum(10)
-        self.test_leverage_spin.setValue(1)
-        settings_layout.addWidget(self.test_leverage_spin, 2, 1)
-        
-        test_group_layout.addLayout(settings_layout)
-        
-        # 거래 버튼
-        button_layout = QHBoxLayout()
-        
-        self.test_buy_btn = QPushButton("📈 테스트 매수")
-        self.test_buy_btn.clicked.connect(lambda: self.execute_test_trade("buy"))
-        self.test_buy_btn.setStyleSheet("background-color: #4CAF50;")
-        button_layout.addWidget(self.test_buy_btn)
-        
-        self.test_sell_btn = QPushButton("📉 테스트 매도")
-        self.test_sell_btn.clicked.connect(lambda: self.execute_test_trade("sell"))
-        self.test_sell_btn.setStyleSheet("background-color: #f44336;")
-        button_layout.addWidget(self.test_sell_btn)
-        
-        self.test_close_btn = QPushButton("❌ 포지션 종료")
-        self.test_close_btn.clicked.connect(self.close_test_position)
-        button_layout.addWidget(self.test_close_btn)
-        
-        test_group_layout.addLayout(button_layout)
-        test_group.setLayout(test_group_layout)
-        
-        # 테스트 결과 표시
-        result_group = QGroupBox("📊 테스트 결과")
-        result_layout = QVBoxLayout()
-        
-        self.test_result_text = QTextEdit()
-        self.test_result_text.setReadOnly(True)
-        self.test_result_text.setMaximumHeight(300)
-        result_layout.addWidget(self.test_result_text)
-        
-        result_group.setLayout(result_layout)
-        
-        test_layout.addWidget(test_group)
-        test_layout.addWidget(result_group)
-        test_layout.addStretch()
-        
-        self.tab_widget.addTab(test_tab, "🧪 거래 테스트")
-
-    def execute_test_trade(self, side: str):
-        """실제 거래 실행 - 디버깅 강화 버전"""
-        try:
-            from okx.order_manager import OrderManager
-            from okx.order_validator import OrderValidator
-            
-            symbol = self.test_symbol_combo.currentText()
-            size = self.test_size_spin.value()
-            leverage = self.test_leverage_spin.value()
-            
-            # 테스트 모드 체크
-            is_test_mode = self.test_mode_checkbox.isChecked()
-            
-            # 로그 시작
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.test_result_text.append(f"\n{'='*50}")
-            self.test_result_text.append(f"⏰ {timestamp}")
-            
-            # 실제 거래 확인
-            if not is_test_mode:
+        """윈도우 종료"""
+        # 자동매매 중지 확인
+        if self.auto_trading_widget and hasattr(self.auto_trading_widget, 'is_running'):
+            if self.auto_trading_widget.is_running:
                 reply = QMessageBox.question(
-                    self, 
-                    "⚠️ 실제 거래 확인", 
-                    f"실제 자금으로 거래를 실행합니다!\n\n"
-                    f"심볼: {symbol}\n"
-                    f"방향: {'매수' if side == 'buy' else '매도'}\n"
-                    f"수량: {size} BTC\n"
-                    f"레버리지: {leverage}x\n\n"
-                    f"정말 실행하시겠습니까?",
-                    QMessageBox.Yes | QMessageBox.No
+                    self,
+                    "종료 확인",
+                    "자동매매가 실행 중입니다.\n\n정말 종료하시겠습니까?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
                 )
                 if reply == QMessageBox.No:
-                    self.test_result_text.append("❌ 사용자가 거래를 취소했습니다.")
+                    event.ignore()
                     return
-            
-            # 가격 가져오기 - 타임아웃 추가
-            self.test_result_text.append("🔄 가격 조회 중...")
-            QApplication.processEvents()  # UI 업데이트
-            
-            current_price = None
-            
-            # 1차 시도: WebSocket 데이터
-            if hasattr(self, 'latest_prices') and self.latest_prices:
-                self.test_result_text.append("  WebSocket 데이터 확인...")
-                QApplication.processEvents()
                 
-                if isinstance(self.latest_prices, dict) and symbol in self.latest_prices:
-                    price_data = self.latest_prices[symbol]
-                    if isinstance(price_data, dict):
-                        current_price = price_data.get('last') or price_data.get('close')
-                    elif isinstance(price_data, (float, int)):
-                        current_price = float(price_data)
-                        
-                if current_price:
-                    self.test_result_text.append(f"  ✅ WebSocket 가격: ${current_price:,.2f}")
-            
-            # 2차 시도: API 호출
-            if not current_price:
-                self.test_result_text.append("  API 직접 호출...")
-                QApplication.processEvents()
-                
-                try:
-                    from okx.market_data import MarketDataManager
-                    market = MarketDataManager()
-                    ticker = market.get_ticker(symbol)
-                    
-                    if ticker and 'last' in ticker:
-                        current_price = float(ticker['last'])
-                        self.test_result_text.append(f"  ✅ API 가격: ${current_price:,.2f}")
-                except Exception as e:
-                    self.test_result_text.append(f"  ❌ API 호출 실패: {str(e)}")
-            
-            # 3차: 기본값 사용
-            if not current_price:
-                current_price = 45000 if 'BTC' in symbol else 2800
-                self.test_result_text.append(f"  ⚠️ 기본 가격 사용: ${current_price:,.2f}")
-            
-            # 거래 검증
-            self.test_result_text.append("📋 거래 검증 중...")
-            QApplication.processEvents()
-            
-            validator = OrderValidator()
-            is_valid, error_msg = validator.validate_order_size(symbol, size, current_price)
-            
-            if not is_valid:
-                self.test_result_text.append(f"❌ 거래 검증 실패: {error_msg}")
-                return
-            
-            self.test_result_text.append("✅ 거래 검증 통과")
-            
-            # 거래 정보 표시
-            if is_test_mode:
-                self.test_result_text.append(f"\n🧪 **테스트 거래 시뮬레이션**")
-            else:
-                self.test_result_text.append(f"\n💰 **실제 거래 실행**")
-            
-            self.test_result_text.append(f"  심볼: {symbol}")
-            self.test_result_text.append(f"  방향: {'매수 🟢' if side == 'buy' else '매도 🔴'}")
-            self.test_result_text.append(f"  수량: {size} BTC")
-            self.test_result_text.append(f"  레버리지: {leverage}x")
-            self.test_result_text.append(f"  현재가: ${current_price:,.2f}")
-            
-            # 계산
-            notional_value = size * current_price
-            margin_required = notional_value / leverage
-            fee = notional_value * 0.0005
-            
-            self.test_result_text.append(f"  명목 가치: ${notional_value:,.2f}")
-            self.test_result_text.append(f"  필요 증거금: ${margin_required:,.2f}")
-            self.test_result_text.append(f"  예상 수수료: ${fee:,.2f}")
-            
-            if is_test_mode:
-                # 시뮬레이션 모드
-                self.test_result_text.append(f"\n📊 예상 손익 (레버리지 {leverage}x):")
-                for change_pct in [0.5, 1, 2, -0.5, -1, -2]:
-                    future_price = current_price * (1 + change_pct/100)
-                    if side == "buy":
-                        pnl = (future_price - current_price) * size * leverage
-                    else:
-                        pnl = (current_price - future_price) * size * leverage
-                    
-                    color = "🟢" if pnl > 0 else "🔴"
-                    self.test_result_text.append(f"    {color} {change_pct:+.1f}%: ${pnl:+,.2f}")
-                
-                self.test_result_text.append(f"\n✅ 시뮬레이션 완료")
-            else:
-                # 실제 거래 실행
-                self.test_result_text.append(f"\n🚀 주문 전송 중...")
-                QApplication.processEvents()
-                
-                order_manager = OrderManager()
-                
-                try:
-                    result = order_manager.place_market_order(
-                        inst_id=symbol,
-                        side=side,
-                        size=size,
-                        leverage=leverage,
-                        position_side="net",
-                        trade_mode="cross"
-                    )
-                    
-                    if result:
-                        self.test_result_text.append(f"✅ 주문 전송 성공!")
-                        self.test_result_text.append(f"  주문 ID: {result.get('order_id')}")
-                        
-                        # 2초 후 체결 확인
-                        QTimer.singleShot(2000, lambda: self._check_order_status_safe(symbol, result.get('order_id')))
-                    else:
-                        self.test_result_text.append(f"❌ 주문 실패 - API 응답 없음")
-                        
-                except Exception as e:
-                    self.test_result_text.append(f"❌ 주문 오류: {str(e)}")
-                    import traceback
-                    self.test_result_text.append(f"상세: {traceback.format_exc()}")
-            
-        except Exception as e:
-            self.test_result_text.append(f"\n❌ 전체 오류 발생!")
-            self.test_result_text.append(f"  오류: {str(e)}")
-            import traceback
-            self.test_result_text.append(f"  상세:\n{traceback.format_exc()}")
+                # 자동매매 중지
+                self.auto_trading_widget.stop_trading()
         
-        finally:
-            # 스크롤 맨 아래로
-            self.test_result_text.verticalScrollBar().setValue(
-                self.test_result_text.verticalScrollBar().maximum()
-            )
-
-    def _execute_real_trade(self, symbol, side, size, leverage, current_price):
-        """실제 거래 실행"""
-        from okx.order_manager import OrderManager
+        # 데이터 스레드 중지
+        if self.data_thread:
+            self.data_thread.stop()
+            self.data_thread.wait(3000)
         
-        self.test_result_text.append(f"💰 **실제 거래 실행**")
-        self.test_result_text.append(f"  심볼: {symbol}")
-        self.test_result_text.append(f"  방향: {'매수 🟢' if side == 'buy' else '매도 🔴'}")
-        self.test_result_text.append(f"  수량: {size} BTC")
-        self.test_result_text.append(f"  레버리지: {leverage}x")
-        self.test_result_text.append(f"  현재가: ${current_price:,.2f}")
-        
-        # 예상 비용 계산
-        notional_value = size * current_price
-        margin_required = notional_value / leverage
-        fee = notional_value * 0.0005
-        
-        self.test_result_text.append(f"  필요 증거금: ${margin_required:,.2f}")
-        self.test_result_text.append(f"  예상 수수료: ${fee:,.2f}")
-        
-        self.test_result_text.append(f"\n🚀 주문 전송 중...")
-        QApplication.processEvents()
-        
-        # 실제 주문 실행
-        order_manager = OrderManager()
-        
-        try:
-            # OKX API로 실제 주문 전송
-            result = order_manager.place_market_order(
-                inst_id=symbol,
-                side=side,
-                size=size,
-                leverage=leverage,
-                position_side="net",
-                trade_mode="cross"
-            )
-            
-            if result and result.get('order_id'):
-                self.test_result_text.append(f"✅ **주문 전송 성공!**")
-                self.test_result_text.append(f"  주문 ID: {result.get('order_id')}")
-                self.test_result_text.append(f"  상태: {result.get('status')}")
-                
-                # 실시간 체결 확인 (2초 후)
-                QTimer.singleShot(2000, lambda: self._check_real_order_status(
-                    symbol, result.get('order_id'), size, current_price, side
-                ))
-                
-                # 주문 내역 저장
-                self._save_trade_log(result)
-                
-            else:
-                self.test_result_text.append(f"❌ 주문 실패!")
-                self.test_result_text.append(f"  서버 응답을 확인하세요")
-                
-        except Exception as e:
-            self.test_result_text.append(f"❌ **주문 오류!**")
-            self.test_result_text.append(f"  오류: {str(e)}")
-            import traceback
-            traceback.print_exc()
-        
-        # 스크롤 맨 아래로
-        self.test_result_text.verticalScrollBar().setValue(
-            self.test_result_text.verticalScrollBar().maximum()
-        )
-
-    def _check_real_order_status(self, symbol, order_id, size, entry_price, side):
-        """실제 주문 체결 상태 확인"""
-        from okx.order_manager import OrderManager
-        
-        self.test_result_text.append(f"\n📋 체결 상태 확인 중...")
-        QApplication.processEvents()
-        
-        order_manager = OrderManager()
-        status_info = order_manager.get_order_status(symbol, order_id)
-        
-        if status_info:
-            filled_size = float(status_info.get('filled_size', 0))
-            avg_price = float(status_info.get('avg_price', 0))
-            fee_paid = float(status_info.get('fee', 0))
-            status = status_info.get('status')
-            
-            self.test_result_text.append(f"\n✅ **체결 확인**")
-            self.test_result_text.append(f"  상태: {status}")
-            self.test_result_text.append(f"  체결 수량: {filled_size} / {size}")
-            self.test_result_text.append(f"  평균 체결가: ${avg_price:,.2f}")
-            self.test_result_text.append(f"  실제 수수료: ${abs(fee_paid):,.4f}")
-            
-            if status == 'filled':
-                # 완전 체결
-                slippage = ((avg_price - entry_price) / entry_price) * 100
-                self.test_result_text.append(f"  슬리피지: {slippage:+.3f}%")
-                
-                # 포지션 정보 업데이트
-                self._update_position_info(symbol, side, filled_size, avg_price)
-                
-                self.test_result_text.append(f"\n🎉 **거래 완료!**")
-                self.test_result_text.append(f"  포지션이 생성되었습니다.")
-                
-            elif status == 'partially_filled':
-                self.test_result_text.append(f"⚠️ 부분 체결됨")
-            else:
-                self.test_result_text.append(f"⏳ 미체결 상태")
-        else:
-            self.test_result_text.append(f"❌ 체결 상태 확인 실패")
-        
-        # 스크롤 맨 아래로
-        self.test_result_text.verticalScrollBar().setValue(
-            self.test_result_text.verticalScrollBar().maximum()
-        )
-
-    def _check_order_status_safe(self, symbol, order_id):
-        """안전한 주문 상태 확인"""
-        try:
-            if not order_id:
-                self.test_result_text.append("❌ 주문 ID가 없습니다")
-                return
-            
-            from okx.order_manager import OrderManager
-            
-            self.test_result_text.append(f"\n📋 체결 확인 중...")
-            order_manager = OrderManager()
-            status = order_manager.get_order_status(symbol, order_id)
-            
-            if status:
-                self.test_result_text.append(f"  상태: {status.get('status')}")
-                self.test_result_text.append(f"  체결가: ${float(status.get('avg_price', 0)):,.2f}")
-                self.test_result_text.append(f"  체결 수량: {status.get('filled_size')}")
-                self.test_result_text.append(f"  수수료: ${float(status.get('fee', 0)):,.4f}")
-            else:
-                self.test_result_text.append("❌ 체결 상태 조회 실패")
-                
-        except Exception as e:
-            self.test_result_text.append(f"❌ 체결 확인 오류: {str(e)}")
-        
-        finally:
-            self.test_result_text.verticalScrollBar().setValue(
-                self.test_result_text.verticalScrollBar().maximum()
-            )
-
-    def get_current_market_price(self, symbol):
-        """현재 시장가 가져오기"""
-        # 1. WebSocket 실시간 가격
-        if hasattr(self, 'latest_prices') and symbol in self.latest_prices:
-            price_data = self.latest_prices[symbol]
-            if isinstance(price_data, dict):
-                return price_data.get('last') or price_data.get('close')
-            elif isinstance(price_data, (float, int)):
-                return float(price_data)
-        
-        # 2. API 직접 호출
-        try:
-            from okx.market_data import MarketDataManager
-            market = MarketDataManager()
-            ticker = market.get_ticker(symbol)
-            if ticker and 'last' in ticker:
-                return float(ticker['last'])
-        except:
-            pass
-        
-        # 3. 기본값
-        return 45000 if 'BTC' in symbol else 2800
-
-    def _save_trade_log(self, order_result):
-        """거래 로그 저장"""
-        import json
-        from pathlib import Path
-        
-        log_dir = Path("logs/trades")
-        log_dir.mkdir(parents=True, exist_ok=True)
-        
-        log_file = log_dir / f"trades_{datetime.now().strftime('%Y%m%d')}.json"
-        
-        trade_log = {
-            'timestamp': datetime.now().isoformat(),
-            'order_id': order_result.get('order_id'),
-            'symbol': order_result.get('instrument'),
-            'side': order_result.get('side'),
-            'size': order_result.get('size'),
-            'leverage': order_result.get('leverage'),
-            'status': order_result.get('status')
-        }
-        
-        # 기존 로그 읽기
-        logs = []
-        if log_file.exists():
-            with open(log_file, 'r') as f:
-                logs = json.load(f)
-        
-        # 새 로그 추가
-        logs.append(trade_log)
-        
-        # 저장
-        with open(log_file, 'w') as f:
-            json.dump(logs, f, indent=2)
-
-    def _update_position_info(self, symbol, side, size, price):
-        """포지션 정보 업데이트"""
-        self.test_result_text.append(f"\n📊 포지션 업데이트:")
-        self.test_result_text.append(f"  심볼: {symbol}")
-        self.test_result_text.append(f"  방향: {side}")
-        self.test_result_text.append(f"  수량: {size}")
-        self.test_result_text.append(f"  진입가: ${price:,.2f}")
-
-    def close_test_position(self):
-        """테스트 포지션 종료"""
-        symbol = self.test_symbol_combo.currentText()
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        self.test_result_text.append(f"\n{'='*50}")
-        self.test_result_text.append(f"⏰ {timestamp}")
-        self.test_result_text.append(f"❌ 포지션 종료: {symbol}")
-        self.test_result_text.append(f"  테스트 모드에서 포지션이 종료되었습니다.")
-        
-        # 스크롤을 맨 아래로
-        self.test_result_text.verticalScrollBar().setValue(
-            self.test_result_text.verticalScrollBar().maximum()
-        ) 
+        event.accept()
+        print("🔚 프로그램 종료")
 
 
-# 메인 함수
-def main():
-    """GUI 애플리케이션 실행"""
+def run_app():
+    """애플리케이션 실행"""
+    from PyQt5.QtWidgets import QApplication
+    
     app = QApplication(sys.argv)
+    app.setStyle('Fusion')
     
-    # 애플리케이션 정보 설정
-    app.setApplicationName("OKX 자동매매 시스템")
-    app.setApplicationVersion("2.0")
-    app.setOrganizationName("Trading Bot Team")
+    window = TradingMainWindow()
+    window.show()
     
-    try:
-        # 메인 윈도우 생성
-        print("✅ 계좌 관리자 초기화 완료")
-        window = TradingMainWindow()
-        window.show()
-        
-        # 애플리케이션 실행
-        return app.exec_()
-        
-    except Exception as e:
-        print(f"GUI 애플리케이션 시작 실패: {e}")
-        traceback.print_exc()
-        return 1
+    sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    run_app()
