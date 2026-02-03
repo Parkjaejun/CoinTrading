@@ -1,8 +1,8 @@
-# gui/backtest_widget.py
+# backtest_gui/backtest_widget.py
 """
 메인 백테스트 탭 위젯
+- Long Only / Long+Short 선택 가능
 - 모든 하위 위젯 통합
-- 백테스트 워크플로우 관리
 """
 
 import os
@@ -14,28 +14,32 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QPushButton, QLabel, QSpinBox, QDoubleSpinBox,
     QDateEdit, QProgressBar, QFrame, QFileDialog,
-    QMessageBox, QGroupBox, QCheckBox, QComboBox
+    QMessageBox, QGroupBox, QCheckBox, QComboBox,
+    QRadioButton, QButtonGroup
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QDate
 from PyQt5.QtGui import QFont
 
 # 상위 디렉토리 추가
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_current_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 from backtest.data_fetcher import DataFetcher
 from backtest.backtest_engine import BacktestEngine, Params, BacktestResult
 from backtest.result_analyzer import ResultAnalyzer
 
-from gui.chart_widget import BacktestChartWidget
-from gui.trade_table_widget import TradeTableWidget
-from gui.stats_widget import StatsWidget
+from backtest_gui.chart_widget import BacktestChartWidget
+from backtest_gui.trade_table_widget import TradeTableWidget
+from backtest_gui.stats_widget import StatsWidget
 
 
 class BacktestWorker(QThread):
     """백테스트 작업 스레드"""
     
-    progress = pyqtSignal(int, int, str)  # current, total, message
-    finished = pyqtSignal(object)  # BacktestResult
+    progress = pyqtSignal(int, int, str)
+    finished = pyqtSignal(object)
     error = pyqtSignal(str)
     
     def __init__(self, engine: BacktestEngine, df, parent=None):
@@ -58,7 +62,7 @@ class DataFetchWorker(QThread):
     """데이터 수집 작업 스레드"""
     
     progress = pyqtSignal(int, int, str)
-    finished = pyqtSignal(object)  # DataFrame
+    finished = pyqtSignal(object)
     error = pyqtSignal(str)
     
     def __init__(self, fetcher: DataFetcher, symbol: str, 
@@ -99,7 +103,6 @@ class BacktestWidget(QWidget):
         self._connect_signals()
     
     def _setup_ui(self):
-        """UI 구성"""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
@@ -113,47 +116,79 @@ class BacktestWidget(QWidget):
                 border-radius: 5px;
             }
         """)
-        settings_layout = QHBoxLayout(settings_frame)
+        settings_layout = QVBoxLayout(settings_frame)
         settings_layout.setContentsMargins(15, 10, 15, 10)
         
-        # 기간 설정
-        settings_layout.addWidget(QLabel("기간:"))
+        # 첫째 줄: 기간, 자본
+        row1_layout = QHBoxLayout()
         
+        row1_layout.addWidget(QLabel("기간:"))
         self.start_date = QDateEdit()
         self.start_date.setCalendarPopup(True)
         self.start_date.setDate(QDate(2026, 1, 1))
         self.start_date.setStyleSheet("background-color: #3a3a3a; color: white; padding: 5px;")
-        settings_layout.addWidget(self.start_date)
+        row1_layout.addWidget(self.start_date)
         
-        settings_layout.addWidget(QLabel("~"))
+        row1_layout.addWidget(QLabel("~"))
         
         self.end_date = QDateEdit()
         self.end_date.setCalendarPopup(True)
         self.end_date.setDate(QDate(2026, 1, 31))
         self.end_date.setStyleSheet("background-color: #3a3a3a; color: white; padding: 5px;")
-        settings_layout.addWidget(self.end_date)
+        row1_layout.addWidget(self.end_date)
         
-        settings_layout.addSpacing(20)
+        row1_layout.addSpacing(20)
         
-        # 초기 자본
-        settings_layout.addWidget(QLabel("초기자본:"))
+        row1_layout.addWidget(QLabel("초기자본:"))
         self.initial_capital = QDoubleSpinBox()
         self.initial_capital.setRange(100, 10000000)
         self.initial_capital.setValue(10000)
         self.initial_capital.setPrefix("$")
         self.initial_capital.setDecimals(0)
         self.initial_capital.setStyleSheet("background-color: #3a3a3a; color: white; padding: 5px;")
-        settings_layout.addWidget(self.initial_capital)
+        row1_layout.addWidget(self.initial_capital)
         
-        settings_layout.addSpacing(20)
+        row1_layout.addStretch()
+        settings_layout.addLayout(row1_layout)
         
-        # Long Only 체크박스
-        self.long_only_check = QCheckBox("Long Only")
-        self.long_only_check.setChecked(True)
-        self.long_only_check.setStyleSheet("color: white;")
-        settings_layout.addWidget(self.long_only_check)
+        # 둘째 줄: 전략 모드 선택
+        row2_layout = QHBoxLayout()
         
-        settings_layout.addStretch()
+        row2_layout.addWidget(QLabel("전략 모드:"))
+        
+        # 라디오 버튼 그룹
+        self.strategy_mode_group = QButtonGroup(self)
+        
+        self.long_only_radio = QRadioButton("Long Only")
+        self.long_only_radio.setChecked(True)
+        self.long_only_radio.setStyleSheet("color: #00ff88;")
+        self.strategy_mode_group.addButton(self.long_only_radio, 0)
+        row2_layout.addWidget(self.long_only_radio)
+        
+        self.long_short_radio = QRadioButton("Long + Short")
+        self.long_short_radio.setStyleSheet("color: #ffaa00;")
+        self.strategy_mode_group.addButton(self.long_short_radio, 1)
+        row2_layout.addWidget(self.long_short_radio)
+        
+        row2_layout.addSpacing(30)
+        
+        # 레버리지 설정
+        row2_layout.addWidget(QLabel("롱 레버리지:"))
+        self.leverage_long = QSpinBox()
+        self.leverage_long.setRange(1, 100)
+        self.leverage_long.setValue(10)
+        self.leverage_long.setStyleSheet("background-color: #3a3a3a; color: white; padding: 3px;")
+        row2_layout.addWidget(self.leverage_long)
+        
+        row2_layout.addWidget(QLabel("숏 레버리지:"))
+        self.leverage_short = QSpinBox()
+        self.leverage_short.setRange(1, 100)
+        self.leverage_short.setValue(3)
+        self.leverage_short.setStyleSheet("background-color: #3a3a3a; color: white; padding: 3px;")
+        self.leverage_short.setEnabled(False)  # Long Only일 때 비활성화
+        row2_layout.addWidget(self.leverage_short)
+        
+        row2_layout.addStretch()
         
         # 버튼들
         self.load_csv_btn = QPushButton("📂 CSV 로드")
@@ -164,11 +199,9 @@ class BacktestWidget(QWidget):
                 padding: 8px 15px;
                 border-radius: 4px;
             }
-            QPushButton:hover {
-                background-color: #666666;
-            }
+            QPushButton:hover { background-color: #666666; }
         """)
-        settings_layout.addWidget(self.load_csv_btn)
+        row2_layout.addWidget(self.load_csv_btn)
         
         self.fetch_btn = QPushButton("📥 데이터 가져오기")
         self.fetch_btn.setStyleSheet("""
@@ -178,11 +211,9 @@ class BacktestWidget(QWidget):
                 padding: 8px 15px;
                 border-radius: 4px;
             }
-            QPushButton:hover {
-                background-color: #106ebe;
-            }
+            QPushButton:hover { background-color: #106ebe; }
         """)
-        settings_layout.addWidget(self.fetch_btn)
+        row2_layout.addWidget(self.fetch_btn)
         
         self.run_btn = QPushButton("▶️ 시뮬레이션 실행")
         self.run_btn.setEnabled(False)
@@ -193,15 +224,15 @@ class BacktestWidget(QWidget):
                 padding: 8px 15px;
                 border-radius: 4px;
             }
-            QPushButton:hover {
-                background-color: #00cc66;
-            }
+            QPushButton:hover { background-color: #00cc66; }
             QPushButton:disabled {
                 background-color: #555555;
                 color: #888888;
             }
         """)
-        settings_layout.addWidget(self.run_btn)
+        row2_layout.addWidget(self.run_btn)
+        
+        settings_layout.addLayout(row2_layout)
         
         main_layout.addWidget(settings_frame)
         
@@ -231,14 +262,12 @@ class BacktestWidget(QWidget):
         self.status_label.setStyleSheet("color: #888888;")
         main_layout.addWidget(self.status_label)
         
-        # === 메인 스플리터 (차트 / 결과) ===
+        # === 메인 스플리터 ===
         main_splitter = QSplitter(Qt.Vertical)
         
-        # 차트 위젯
         self.chart_widget = BacktestChartWidget()
         main_splitter.addWidget(self.chart_widget)
         
-        # 하단 스플리터 (테이블 / 통계)
         bottom_splitter = QSplitter(Qt.Horizontal)
         
         self.trade_table = TradeTableWidget()
@@ -256,14 +285,20 @@ class BacktestWidget(QWidget):
         main_layout.addWidget(main_splitter, 1)
     
     def _connect_signals(self):
-        """시그널 연결"""
         self.load_csv_btn.clicked.connect(self._on_load_csv)
         self.fetch_btn.clicked.connect(self._on_fetch_data)
         self.run_btn.clicked.connect(self._on_run_backtest)
         self.trade_table.trade_selected.connect(self._on_trade_selected)
+        
+        # 전략 모드 변경 시 숏 레버리지 활성화/비활성화
+        self.long_only_radio.toggled.connect(self._on_strategy_mode_changed)
+    
+    def _on_strategy_mode_changed(self, checked):
+        """전략 모드 변경"""
+        # Long Only 선택 시 숏 레버리지 비활성화
+        self.leverage_short.setEnabled(not checked)
     
     def _on_load_csv(self):
-        """CSV 파일 로드"""
         filepath, _ = QFileDialog.getOpenFileName(
             self, "CSV 파일 선택", "", "CSV Files (*.csv);;All Files (*)"
         )
@@ -278,7 +313,6 @@ class BacktestWidget(QWidget):
             self.status_label.setText(f"로드 완료: {len(self.df):,}개 캔들")
             self.run_btn.setEnabled(True)
             
-            # 차트에 데이터 표시
             self._update_chart_data()
             
         except Exception as e:
@@ -286,7 +320,6 @@ class BacktestWidget(QWidget):
             self.status_label.setText("CSV 로드 실패")
     
     def _on_fetch_data(self):
-        """데이터 가져오기"""
         start = self.start_date.date().toPyDate()
         end = self.end_date.date().toPyDate()
         
@@ -307,48 +340,50 @@ class BacktestWidget(QWidget):
         self.fetch_worker.start()
     
     def _on_fetch_progress(self, current, total, message):
-        """데이터 수집 진행률"""
-        self.progress_bar.setMaximum(total)
+        self.progress_bar.setMaximum(max(total, 1))
         self.progress_bar.setValue(current)
         self.status_label.setText(message)
     
     def _on_fetch_finished(self, df):
-        """데이터 수집 완료"""
         self.df = df
         self.progress_bar.setVisible(False)
         self.fetch_btn.setEnabled(True)
         self.run_btn.setEnabled(True)
         
         self.status_label.setText(f"데이터 로드 완료: {len(df):,}개 캔들")
-        
-        # 차트에 데이터 표시
         self._update_chart_data()
     
     def _on_fetch_error(self, error_msg):
-        """데이터 수집 오류"""
         self.progress_bar.setVisible(False)
         self.fetch_btn.setEnabled(True)
         self.status_label.setText(f"오류: {error_msg}")
         QMessageBox.critical(self, "오류", f"데이터 가져오기 실패:\n{error_msg}")
     
     def _on_run_backtest(self):
-        """백테스트 실행"""
         if self.df is None:
             QMessageBox.warning(self, "경고", "먼저 데이터를 로드하세요.")
             return
         
         # 파라미터 설정
-        params = Params(long_only=self.long_only_check.isChecked())
+        is_long_only = self.long_only_radio.isChecked()
+        
+        params = Params(
+            long_only=is_long_only,
+            leverage_long=float(self.leverage_long.value()),
+            leverage_short=float(self.leverage_short.value()),
+        )
         
         engine = BacktestEngine(
             params=params,
             initial_capital=self.initial_capital.value()
         )
         
+        mode_str = "Long Only" if is_long_only else "Long + Short"
+        self.status_label.setText(f"백테스트 실행 중... ({mode_str})")
+        
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         self.run_btn.setEnabled(False)
-        self.status_label.setText("백테스트 실행 중...")
         
         self.backtest_worker = BacktestWorker(engine, self.df)
         self.backtest_worker.progress.connect(self._on_backtest_progress)
@@ -357,41 +392,35 @@ class BacktestWidget(QWidget):
         self.backtest_worker.start()
     
     def _on_backtest_progress(self, current, total, message):
-        """백테스트 진행률"""
-        self.progress_bar.setMaximum(total)
+        self.progress_bar.setMaximum(max(total, 1))
         self.progress_bar.setValue(current)
         self.status_label.setText(message)
     
     def _on_backtest_finished(self, result: BacktestResult):
-        """백테스트 완료"""
         self.result = result
         self.progress_bar.setVisible(False)
         self.run_btn.setEnabled(True)
         
-        # 결과 표시
         self._display_results()
         
+        mode_str = "Long Only" if self.long_only_radio.isChecked() else "Long + Short"
         self.status_label.setText(
-            f"백테스트 완료: {result.total_trades}건 거래, "
+            f"백테스트 완료 ({mode_str}): {result.total_trades}건 거래, "
             f"REAL ROI: {result.real_roi:+.2f}%"
         )
     
     def _on_backtest_error(self, error_msg):
-        """백테스트 오류"""
         self.progress_bar.setVisible(False)
         self.run_btn.setEnabled(True)
         self.status_label.setText(f"오류: {error_msg}")
         QMessageBox.critical(self, "오류", f"백테스트 실패:\n{error_msg}")
     
     def _update_chart_data(self):
-        """차트 데이터 업데이트"""
         if self.df is None:
             return
-        
         self.chart_widget.set_data(self.df)
     
     def _display_results(self):
-        """결과 표시"""
         if self.result is None:
             return
         
@@ -425,13 +454,11 @@ class BacktestWidget(QWidget):
         )
     
     def _on_trade_selected(self, trade_idx: int):
-        """거래 선택 시 차트 하이라이트"""
         if self.result is None or trade_idx >= len(self.result.trades):
             return
         
         trade = self.result.trades[trade_idx]
         
-        # 차트 하이라이트
         self.chart_widget.highlight_trade(
             trade.entry_time,
             trade.exit_time,
@@ -440,7 +467,6 @@ class BacktestWidget(QWidget):
             trade.side
         )
         
-        # 해당 구간으로 줌
         self.chart_widget.zoom_to_range(
             trade.entry_time,
             trade.exit_time,

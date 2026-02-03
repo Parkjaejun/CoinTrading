@@ -8,13 +8,15 @@
 import sys
 import os
 
-# 경로 설정
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 경로 설정 - backtest_project 폴더를 path에 추가
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
 from PyQt5.QtCore import Qt
 
-from gui.backtest_widget import BacktestWidget
+from backtest_gui.backtest_widget import BacktestWidget
 
 
 # 다크 테마 스타일시트
@@ -180,7 +182,7 @@ def create_backtest_tab() -> BacktestWidget:
     기존 GUI에 통합하기 위한 탭 위젯 생성
     
     사용법:
-        from main import create_backtest_tab
+        from backtest_project.main import create_backtest_tab
         
         # MainWindow의 setup_ui()에서:
         backtest_tab = create_backtest_tab()

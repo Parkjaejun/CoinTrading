@@ -28,20 +28,6 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QColor
 
-# 백테스트 위젯 import
-try:
-    import sys
-    import os
-    backtest_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backtest_project')
-    if backtest_path not in sys.path:
-        sys.path.insert(0, backtest_path)
-    from main import create_backtest_tab
-    BACKTEST_AVAILABLE = True
-    print("✅ 백테스트 위젯 로드 성공")
-except ImportError as e:
-    BACKTEST_AVAILABLE = False
-    print(f"⚠️ 백테스트 위젯 로드 실패: {e}")
-
 # 컴포넌트 import
 try:
     from gui.auto_trading_widget import AutoTradingWidget
@@ -198,7 +184,6 @@ class TradingMainWindow(QMainWindow):
         
         # 자동매매 탭
         self.create_auto_trading_tab()
-        self.create_backtest_tab()  # 백테스트 탭
         
         main_layout.addWidget(self.tab_widget)
         
@@ -266,35 +251,6 @@ class TradingMainWindow(QMainWindow):
         
         layout.addWidget(status_frame)
     
-    def create_backtest_tab(self):
-        """백테스트/알고리즘 검증 탭 생성"""
-        try:
-            if BACKTEST_AVAILABLE:
-                backtest_widget = create_backtest_tab()
-                self.tab_widget.addTab(backtest_widget, "🧪 알고리즘 검증")
-                print("✅ 백테스트 탭 추가됨")
-            else:
-                # 대체 위젯
-                from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
-                fallback = QWidget()
-                layout = QVBoxLayout(fallback)
-                
-                info_label = QLabel("⚠️ 백테스트 위젯을 로드할 수 없습니다.")
-                info_label.setStyleSheet("font-size: 14px; color: #f39c12;")
-                layout.addWidget(info_label)
-                
-                instruction = QLabel(
-                    "backtest_project 폴더를 프로젝트 루트에 복사하세요:\n"
-                    "D:\\Project\\CoinTrading\\backtest_project\\"
-                )
-                layout.addWidget(instruction)
-                layout.addStretch()
-                
-                self.tab_widget.addTab(fallback, "🧪 알고리즘 검증")
-        except Exception as e:
-            print(f"❌ 백테스트 탭 생성 실패: {e}")
-
-
     def create_dashboard_tab(self):
         """대시보드 탭 - 차트 + 포지션 정보"""
         dashboard_widget = QWidget()
