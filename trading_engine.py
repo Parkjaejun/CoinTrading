@@ -1,20 +1,14 @@
 # trading_engine.py
 """
-멀티 타임프레임 자동매매 엔진 - 로그 정리 버전
+멀티 타임프레임 자동매매 엔진 - 전략 모드 선택 기능 추가 버전
 
-수정 사항:
-- 불필요한 반복 로그 제거:
-  - 운영 사이클 시작/완료
-  - 가격 업데이트 성공
-  - 포지션 조회 성공
-  - EMA DEBUG 정보
-  - 진입 근접도 반복 출력
-- 중요 로그만 유지:
-  - 엔진 시작/중지
-  - 신호 발생 (진입/청산)
-  - 주문 실행 결과
-  - 에러
-  - 1분마다 간략한 상태 (선택적)
+변경 사항:
+- strategy_mode 속성 추가 ("long_only" 또는 "long_short")
+- set_strategy_mode() 메서드 추가
+- 전략 생성 시 모드에 따른 활성화 제어
+- 메인 루프에서 비활성화된 전략 스킵
+
+수정된 부분은 ⭐ 표시
 """
 
 import time
@@ -67,6 +61,9 @@ class MultiTimeframeStrategy:
         self.symbol = symbol
         self.strategy_type = strategy_type  # 'long' or 'short'
         
+        # ⭐ 전략 활성화 상태 추가
+        self.is_active = True
+        
         # 자본 관리
         self.initial_capital = config.get('initial_capital', 1000)
         self.real_capital = self.initial_capital
@@ -77,51 +74,46 @@ class MultiTimeframeStrategy:
         self.peak_capital = self.initial_capital
         self.trough_capital = self.initial_capital
         
-        # 전환 임계값
+        # 전환 임계값 (롱/숏 차별화)
         if strategy_type == 'long':
             self.drawdown_threshold = 0.20  # 20% 손실시 가상
             self.recovery_threshold = 0.30  # 30% 회복시 실제
-            self.leverage = config.get('long_leverage', 10)
-            self.trailing_stop_pct = config.get('long_trailing_stop', 0.10)
-        else:
-            self.drawdown_threshold = 0.10
-            self.recovery_threshold = 0.20
-            self.leverage = config.get('short_leverage', 3)
-            self.trailing_stop_pct = config.get('short_trailing_stop', 0.02)
+            self.leverage = config.get('leverage', 10)
+            self.trailing_stop = config.get('trailing_stop', 0.10)
+        else:  # short
+            self.drawdown_threshold = 0.10  # 10% 손실시 가상
+            self.recovery_threshold = 0.20  # 20% 회복시 실제
+            self.leverage = config.get('leverage', 3)
+            self.trailing_stop = config.get('trailing_stop', 0.02)
         
         # 포지션 상태
         self.is_position_open = False
         self.entry_price = 0
         self.position_size = 0
-        self.highest_price = 0
-        self.lowest_price = float('inf')
+        self.peak_price = 0
         
-        # EMA 데이터
-        self.last_ema_30m = {}
-        self.last_ema_1m = {}
-        self.prev_ema_30m = {}
-        self.prev_ema_1m = {}
-        
-        # 현재가
-        self.last_price = 0
-        
-        # 통계
+        # 거래 통계
         self.total_trades = 0
         self.winning_trades = 0
         self.total_pnl = 0
+        
+        # EMA 캐시
+        self.last_ema_30m = {}
+        self.last_ema_1m = {}
+        self.last_price = 0
     
     def update_30m_emas(self, df: pd.DataFrame):
         """30분봉 EMA 업데이트"""
         if df is None or len(df) < 200:
             return
         
-        self.prev_ema_30m = self.last_ema_30m.copy()
-        
         close = df['close']
         self.last_ema_30m = {
-            'ema_100': close.ewm(span=100, adjust=False).mean().iloc[-1],
-            'ema_150': close.ewm(span=150, adjust=False).mean().iloc[-1],
-            'ema_200': close.ewm(span=200, adjust=False).mean().iloc[-1],
+            'ema20': close.ewm(span=20).mean().iloc[-1],
+            'ema50': close.ewm(span=50).mean().iloc[-1],
+            'ema100': close.ewm(span=100).mean().iloc[-1],
+            'ema150': close.ewm(span=150).mean().iloc[-1],
+            'ema200': close.ewm(span=200).mean().iloc[-1],
         }
     
     def update_1m_emas(self, df: pd.DataFrame):
@@ -129,141 +121,132 @@ class MultiTimeframeStrategy:
         if df is None or len(df) < 100:
             return
         
-        self.prev_ema_1m = self.last_ema_1m.copy()
-        
         close = df['close']
         self.last_ema_1m = {
-            'ema_20': close.ewm(span=20, adjust=False).mean().iloc[-1],
-            'ema_50': close.ewm(span=50, adjust=False).mean().iloc[-1],
-            'ema_100': close.ewm(span=100, adjust=False).mean().iloc[-1],
+            'ema20': close.ewm(span=20).mean().iloc[-1],
+            'ema50': close.ewm(span=50).mean().iloc[-1],
+            'ema100': close.ewm(span=100).mean().iloc[-1],
         }
     
-    def check_entry_signal(self) -> tuple:
-        """
-        진입 신호 확인
-        Returns: (should_enter, status_message)
-        """
-        if self.is_position_open:
-            return False, "[보유중]"
+    def check_trend_condition(self, price: float = None) -> bool:
+        """트렌드 조건 확인 (30분봉)"""
+        if not self.last_ema_30m:
+            return False
         
-        ema150 = self.last_ema_30m.get('ema_150')
-        ema200 = self.last_ema_30m.get('ema_200')
-        ema20 = self.last_ema_1m.get('ema_20')
-        ema50 = self.last_ema_1m.get('ema_50')
-        prev_20 = self.prev_ema_1m.get('ema_20')
-        prev_50 = self.prev_ema_1m.get('ema_50')
-        
-        if not all([ema150, ema200, ema20, ema50]):
-            return False, "[데이터부족]"
-        
-        diff_pct = ((ema20 - ema50) / ema50) * 100 if ema50 else 0
+        ema150 = self.last_ema_30m.get('ema150', 0)
+        ema200 = self.last_ema_30m.get('ema200', 0)
         
         if self.strategy_type == 'long':
-            # 롱: 30분봉 150>200 + 1분봉 20 상향돌파 50
-            trend_ok = ema150 > ema200
-            
-            if not trend_ok:
-                return False, "[트렌드X]"
-            
-            was_below = prev_20 and prev_50 and prev_20 <= prev_50
-            is_above = ema20 > ema50
-            crossover = was_below and is_above
-            near_cross = ema20 >= ema50 * 0.99
-            
-            if crossover or near_cross:
-                return True, "[진입OK]"
-            else:
-                return False, f"[대기]"
-        
-        else:  # short
-            trend_ok = ema150 < ema200
-            
-            if not trend_ok:
-                return False, "[트렌드X]"
-            
-            was_above = prev_20 and prev_50 and prev_20 >= prev_50
-            is_below = ema20 < ema50
-            crossover = was_above and is_below
-            
-            if crossover:
-                return True, "[진입OK]"
-            else:
-                return False, "[대기]"
+            return ema150 > ema200  # 상승 트렌드
+        else:
+            return ema150 < ema200  # 하락 트렌드
     
-    def check_exit_signal(self, current_price: float) -> tuple:
+    def check_entry_signal(self) -> tuple:
+        """진입 신호 확인"""
+        # ⭐ 비활성화된 전략은 진입 불가
+        if not self.is_active:
+            return False, "strategy_inactive"
+        
+        if self.is_position_open:
+            return False, "position_open"
+        
+        if not self.check_trend_condition():
+            return False, "trend_not_ok"
+        
+        if not self.last_ema_1m:
+            return False, "no_1m_data"
+        
+        ema20 = self.last_ema_1m.get('ema20', 0)
+        ema50 = self.last_ema_1m.get('ema50', 0)
+        
+        if self.strategy_type == 'long':
+            # 롱: EMA20 >= EMA50 * 0.99 (99% 이상)
+            if ema20 >= ema50 * 0.99:
+                return True, "golden_cross_approaching"
+        else:
+            # 숏: EMA20 <= EMA50 * 1.01 (101% 이하)
+            if ema20 <= ema50 * 1.01:
+                return True, "dead_cross_approaching"
+        
+        return False, "entry_condition_not_met"
+    
+    def check_exit_signal(self, price: float) -> tuple:
         """청산 신호 확인"""
         if not self.is_position_open:
             return False, ""
         
         # 트레일링스탑
         if self.strategy_type == 'long':
-            self.highest_price = max(self.highest_price, current_price)
-            drop_pct = (self.highest_price - current_price) / self.highest_price
-            if drop_pct >= self.trailing_stop_pct:
-                return True, f"트레일링스탑 ({drop_pct*100:.1f}%)"
-        else:
-            self.lowest_price = min(self.lowest_price, current_price)
-            rise_pct = (current_price - self.lowest_price) / self.lowest_price
-            if rise_pct >= self.trailing_stop_pct:
-                return True, f"트레일링스탑 ({rise_pct*100:.1f}%)"
-        
-        # EMA 기반 청산
-        if self.strategy_type == 'long':
-            ema20 = self.last_ema_1m.get('ema_20')
-            ema100 = self.last_ema_1m.get('ema_100')
-            prev_20 = self.prev_ema_1m.get('ema_20')
-            prev_100 = self.prev_ema_1m.get('ema_100')
+            stop_price = self.peak_price * (1 - self.trailing_stop)
+            if price <= stop_price:
+                return True, "trailing_stop"
             
-            if all([ema20, ema100, prev_20, prev_100]):
-                was_above = prev_20 >= prev_100
-                is_below = ema20 < ema100
-                if was_above and is_below:
-                    return True, "EMA 20/100 데드크로스"
+            # EMA 데드크로스 (1분봉)
+            if self.last_ema_1m:
+                ema20 = self.last_ema_1m.get('ema20', 0)
+                ema100 = self.last_ema_1m.get('ema100', 0)
+                if ema20 < ema100:
+                    return True, "ema_dead_cross"
         else:
-            ema100 = self.last_ema_30m.get('ema_100')
-            ema200 = self.last_ema_30m.get('ema_200')
-            if ema100 and ema200 and ema100 > ema200:
-                return True, "EMA 100/200 골든크로스"
+            stop_price = self.peak_price * (1 + self.trailing_stop)
+            if price >= stop_price:
+                return True, "trailing_stop"
+            
+            # EMA 골든크로스 (1분봉)
+            if self.last_ema_1m:
+                ema100 = self.last_ema_1m.get('ema100', 0)
+                ema200 = self.last_ema_30m.get('ema200', 0)  # 30분봉 사용
+                if ema100 > ema200:
+                    return True, "ema_golden_cross"
         
         return False, ""
     
     def enter_position(self, price: float) -> Dict:
         """포지션 진입"""
+        capital = self.real_capital if self.is_real_mode else self.virtual_capital
+        
+        # 포지션 크기 계산
+        use_capital = capital * 0.5
+        notional = use_capital * self.leverage
+        size = notional / price
+        
         self.is_position_open = True
         self.entry_price = price
-        self.highest_price = price
-        self.lowest_price = price
+        self.position_size = size
+        self.peak_price = price
         
-        capital = self.real_capital if self.is_real_mode else self.virtual_capital
-        self.position_size = capital * 0.1 / price
-        
-        return {
+        signal = {
             'action': 'enter',
             'symbol': self.symbol,
             'strategy_type': self.strategy_type,
             'price': price,
-            'size': self.position_size,
-            'is_real': self.is_real_mode,
+            'size': size,
             'leverage': self.leverage,
+            'is_real': self.is_real_mode,
         }
+        
+        return signal
     
     def exit_position(self, price: float, reason: str) -> Dict:
         """포지션 청산"""
+        if not self.is_position_open:
+            return {}
+        
+        # PnL 계산
         if self.strategy_type == 'long':
             pnl_pct = (price - self.entry_price) / self.entry_price
         else:
             pnl_pct = (self.entry_price - price) / self.entry_price
         
-        pnl_pct *= self.leverage
+        pnl = self.position_size * self.entry_price * pnl_pct * self.leverage
         
-        capital = self.real_capital if self.is_real_mode else self.virtual_capital
-        pnl = capital * 0.1 * pnl_pct
-        
+        # 자본 업데이트
         if self.is_real_mode:
             self.real_capital += pnl
         else:
             self.virtual_capital += pnl
         
+        # 통계 업데이트
         self.total_trades += 1
         if pnl > 0:
             self.winning_trades += 1
@@ -310,6 +293,7 @@ class MultiTimeframeStrategy:
         return {
             'symbol': self.symbol,
             'type': self.strategy_type,
+            'is_active': self.is_active,  # ⭐ 활성화 상태 추가
             'is_real_mode': self.is_real_mode,
             'is_position_open': self.is_position_open,
             'entry_price': self.entry_price,
@@ -325,271 +309,364 @@ class MultiTimeframeStrategy:
 
 
 class MultiTimeframeTradingEngine:
-    """멀티 타임프레임 자동매매 엔진 - 로그 정리 버전"""
+    """멀티 타임프레임 자동매매 엔진 - 전략 모드 선택 기능 포함"""
     
     def __init__(self, config: Dict = None):
         self.config = config or {}
         
         self.symbols = self.config.get('symbols', ['BTC-USDT-SWAP'])
-        self.initial_capital = self.config.get('initial_capital', 1000)
         self.check_interval = self.config.get('check_interval', 60)
         
-        # 로그 설정
-        self.verbose = self.config.get('verbose', False)  # 상세 로그
-        self.status_interval = self.config.get('status_interval', 300)  # 상태 출력 간격 (초)
+        # ⭐⭐⭐ 전략 모드 설정 (핵심 추가 부분) ⭐⭐⭐
+        self.strategy_mode = self.config.get('strategy_mode', 'long_only')
+        self.long_enabled = self.config.get('long_enabled', True)
+        self.short_enabled = self.config.get('short_enabled', False)
         
-        self.is_running = False
-        self.engine_thread = None
+        # long_only 설정 호환
+        if self.config.get('long_only', True):
+            self.strategy_mode = 'long_only'
+            self.short_enabled = False
         
-        # 버퍼
-        self.buffers_30m: Dict[str, PriceBuffer] = {}
-        self.buffers_1m: Dict[str, PriceBuffer] = {}
-        
-        # 전략
+        # 전략 저장소
         self.strategies: Dict[str, MultiTimeframeStrategy] = {}
         
-        # OrderManager
-        self.order_manager = None
+        # 가격 버퍼
+        self.price_buffers_30m: Dict[str, PriceBuffer] = {}
+        self.price_buffers_1m: Dict[str, PriceBuffer] = {}
+        
+        # 상태
+        self.is_running = False
+        self.run_thread = None
+        self.start_time = None
+        
+        # 통계
+        self.total_signals = 0
+        self.executed_trades = 0
         
         # 콜백
         self.on_signal_callback: Optional[Callable] = None
         self.on_trade_callback: Optional[Callable] = None
         self.on_mode_change_callback: Optional[Callable] = None
-        self.on_log_callback: Optional[Callable] = None  # GUI 로그 콜백
         
-        # 통계
-        self.start_time = None
-        self.total_signals = 0
-        self.executed_trades = 0
-        self.cycle_count = 0
-        
-        self.last_30m_update = None
-    
-    def _log(self, message: str, level: str = "INFO", force: bool = False):
-        """
-        로그 출력
-        
-        Args:
-            message: 로그 메시지
-            level: 로그 레벨 (INFO, WARNING, ERROR, SIGNAL, TRADE)
-            force: True면 verbose 설정 무시하고 항상 출력
-        """
-        # 중요 레벨은 항상 출력
-        important_levels = ["ERROR", "SIGNAL", "TRADE", "MODE"]
-        
-        if force or level in important_levels or self.verbose:
-            print(message, flush=True)
-        
-        # GUI 콜백
-        if self.on_log_callback:
-            self.on_log_callback(message, level)
-    
-    def initialize(self):
-        """엔진 초기화"""
-        self._log("=" * 60)
-        self._log("[*] 멀티 타임프레임 엔진 초기화", force=True)
-        self._log("=" * 60)
-        
-        # OrderManager 초기화 (조용히)
+        # OrderManager
+        self.order_manager = None
         try:
             from okx.order_manager import OrderManager
-            self.order_manager = OrderManager(verbose=False)
-            self._log("[OK] OrderManager 연결", force=True)
-        except Exception as e:
-            self._log(f"[!] OrderManager 없음: {e}", "WARNING", force=True)
+            self.order_manager = OrderManager()
+        except ImportError:
+            print("⚠️ OrderManager를 로드할 수 없습니다.")
         
-        # 버퍼 초기화
-        for symbol in self.symbols:
-            self.buffers_30m[symbol] = PriceBuffer(max_size=1000)
-            self.buffers_1m[symbol] = PriceBuffer(max_size=500)
+        # 전략 생성
+        self._create_strategies()
         
-        # 30분봉 과거 데이터 로드 (2주치)
-        self._log("[*] 과거 데이터 로드 중...", force=True)
-        for symbol in self.symbols:
-            self._load_historical_data(symbol, '30m', self.buffers_30m[symbol], 672)
-            self._load_historical_data(symbol, '1m', self.buffers_1m[symbol], 200)
-            self._log(f"    {symbol}: 30m={len(self.buffers_30m[symbol])}, 1m={len(self.buffers_1m[symbol])}", force=True)
+        # 가격 버퍼 생성
+        self._create_price_buffers()
         
-        # 전략 초기화
-        for symbol in self.symbols:
-            # Long 전략
-            self.strategies[f'long_{symbol}'] = MultiTimeframeStrategy(
-                symbol, 'long', self.config
-            )
-            # Short 전략 (config에서 비활성화 가능)
-            if not self.config.get('long_only', False):
-                self.strategies[f'short_{symbol}'] = MultiTimeframeStrategy(
-                    symbol, 'short', self.config
-                )
+        # ⭐ 초기화 로그
+        self._log_init_status()
+    
+    def _log_init_status(self):
+        """초기화 상태 로그"""
+        print(f"\n{'='*60}")
+        print(f"🚀 자동매매 엔진 초기화")
+        print(f"{'='*60}")
+        print(f"📊 전략 모드: {self.strategy_mode}")
+        print(f"📈 롱 전략: {'✅ 활성' if self.long_enabled else '⛔ 비활성'}")
+        print(f"📉 숏 전략: {'✅ 활성' if self.short_enabled else '⛔ 비활성'}")
+        print(f"🎯 심볼: {', '.join(self.symbols)}")
+        print(f"⏱️ 체크 간격: {self.check_interval}초")
+        print(f"{'='*60}\n")
+    
+    # ⭐⭐⭐ 전략 모드 설정 메서드 (핵심 추가) ⭐⭐⭐
+    def set_strategy_mode(self, mode: str) -> bool:
+        """
+        전략 모드 설정
         
-        self._log(f"[OK] 전략 초기화: {len(self.strategies)}개", force=True)
+        Args:
+            mode: "long_only" 또는 "long_short"
+            
+        Returns:
+            bool: 성공 여부
+        """
+        if mode not in ["long_only", "long_short"]:
+            self._log(f"⚠️ 알 수 없는 전략 모드: {mode}", "WARNING", force=True)
+            return False
+        
+        previous_mode = self.strategy_mode
+        self.strategy_mode = mode
+        
+        if mode == "long_only":
+            self.long_enabled = True
+            self.short_enabled = False
+        else:  # long_short
+            self.long_enabled = True
+            self.short_enabled = True
+        
+        # 전략 객체들의 활성화 상태 업데이트
+        for strategy_key, strategy in self.strategies.items():
+            if 'short' in strategy_key.lower():
+                strategy.is_active = self.short_enabled
+        
+        # 로그 출력
+        self._log(f"\n{'='*60}", force=True)
+        self._log(f"🔄 전략 모드 변경: {previous_mode} → {mode}", "MODE", force=True)
+        self._log(f"{'='*60}", force=True)
+        self._log(f"  📈 롱 전략: {'✅ 활성' if self.long_enabled else '⛔ 비활성'}", force=True)
+        self._log(f"  📉 숏 전략: {'✅ 활성' if self.short_enabled else '⛔ 비활성'}", force=True)
+        self._log(f"{'='*60}\n", force=True)
+        
         return True
     
-    def _load_historical_data(self, symbol: str, bar: str, buffer: PriceBuffer, limit: int):
-        """과거 데이터 로드"""
+    def get_strategy_mode(self) -> str:
+        """현재 전략 모드 반환"""
+        return self.strategy_mode
+    
+    def is_short_enabled_check(self) -> bool:
+        """숏 전략 활성화 여부"""
+        return self.short_enabled
+    
+    def _create_strategies(self):
+        """전략 생성 - 모드에 따라 활성화 상태 설정"""
+        for symbol in self.symbols:
+            # 롱 전략 (항상 생성, 항상 활성화)
+            long_config = {
+                'initial_capital': self.config.get('initial_capital', 1000),
+                'leverage': self.config.get('long_leverage', 10),
+                'trailing_stop': self.config.get('long_trailing_stop', 0.10),
+            }
+            long_strategy = MultiTimeframeStrategy(symbol, 'long', long_config)
+            long_strategy.is_active = True  # 롱은 항상 활성화
+            self.strategies[f'long_{symbol}'] = long_strategy
+            
+            self._log(f"✅ 롱 전략 생성: {symbol} (레버리지: {long_config['leverage']}x)", force=True)
+            
+            # 숏 전략 (생성은 하되 모드에 따라 활성화)
+            short_config = {
+                'initial_capital': self.config.get('initial_capital', 1000),
+                'leverage': self.config.get('short_leverage', 3),
+                'trailing_stop': self.config.get('short_trailing_stop', 0.02),
+            }
+            short_strategy = MultiTimeframeStrategy(symbol, 'short', short_config)
+            short_strategy.is_active = self.short_enabled  # ⭐ 모드에 따라 활성화
+            self.strategies[f'short_{symbol}'] = short_strategy
+            
+            status = "✅ 활성" if self.short_enabled else "⛔ 비활성"
+            self._log(f"{status} 숏 전략 생성: {symbol} (레버리지: {short_config['leverage']}x)", force=True)
+    
+    def _create_price_buffers(self):
+        """가격 버퍼 생성"""
+        for symbol in self.symbols:
+            self.price_buffers_30m[symbol] = PriceBuffer(500)
+            self.price_buffers_1m[symbol] = PriceBuffer(200)
+    
+    def _log(self, message: str, category: str = "INFO", force: bool = False):
+        """로그 출력"""
+        if force or category in ["ERROR", "SIGNAL", "MODE", "WARNING"]:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            print(f"[{timestamp}] {message}")
+    
+    def start(self) -> bool:
+        """엔진 시작"""
+        if self.is_running:
+            return False
+        
+        self._log("🚀 자동매매 엔진 시작 중...", force=True)
+        
+        # 초기 데이터 로드
+        self._load_initial_data()
+        
+        self.is_running = True
+        self.start_time = datetime.now()
+        
+        # 백그라운드 스레드 시작
+        self.run_thread = threading.Thread(target=self._run_loop, daemon=True)
+        self.run_thread.start()
+        
+        self._log("✅ 자동매매 엔진 시작됨!", force=True)
+        return True
+    
+    def stop(self):
+        """엔진 중지"""
+        self.is_running = False
+        if self.run_thread:
+            self.run_thread.join(timeout=5)
+        self._log("🛑 자동매매 엔진 중지됨", force=True)
+    
+    def _load_initial_data(self):
+        """초기 데이터 로드"""
+        for symbol in self.symbols:
+            try:
+                # 30분봉 데이터 로드
+                df_30m = self._fetch_candles(symbol, '30m', 300)
+                if df_30m is not None:
+                    for _, row in df_30m.iterrows():
+                        self.price_buffers_30m[symbol].add_candle(row.to_dict())
+                    self._log(f"✅ {symbol} 30분봉 {len(df_30m)}개 로드", force=True)
+                
+                # 1분봉 데이터 로드
+                df_1m = self._fetch_candles(symbol, '1m', 150)
+                if df_1m is not None:
+                    for _, row in df_1m.iterrows():
+                        self.price_buffers_1m[symbol].add_candle(row.to_dict())
+                    self._log(f"✅ {symbol} 1분봉 {len(df_1m)}개 로드", force=True)
+                    
+            except Exception as e:
+                self._log(f"❌ {symbol} 데이터 로드 실패: {e}", "ERROR", force=True)
+    
+    def _fetch_candles(self, symbol: str, timeframe: str, limit: int) -> Optional[pd.DataFrame]:
+        """캔들 데이터 조회"""
         try:
+            bar_map = {'30m': '30m', '1m': '1m', '1H': '1H'}
+            bar = bar_map.get(timeframe, '30m')
+            
             response = make_api_request(
                 'GET',
                 '/api/v5/market/candles',
-                params={
-                    'instId': symbol,
-                    'bar': bar,
-                    'limit': str(min(limit, 300))
-                }
+                params={'instId': symbol, 'bar': bar, 'limit': str(limit)}
             )
             
             if response and response.get('code') == '0':
-                candles = response['data']
-                for candle in reversed(candles):
-                    buffer.add_candle({
-                        'timestamp': pd.to_datetime(int(candle[0]), unit='ms'),
-                        'open': float(candle[1]),
-                        'high': float(candle[2]),
-                        'low': float(candle[3]),
-                        'close': float(candle[4]),
-                        'volume': float(candle[5]),
-                    })
+                data = response.get('data', [])
+                if data:
+                    df = pd.DataFrame(data, columns=[
+                        'timestamp', 'open', 'high', 'low', 'close', 
+                        'volume', 'volCcy', 'volCcyQuote', 'confirm'
+                    ])
+                    df['timestamp'] = pd.to_datetime(df['timestamp'].astype(int), unit='ms')
+                    for col in ['open', 'high', 'low', 'close', 'volume']:
+                        df[col] = df[col].astype(float)
+                    return df.sort_values('timestamp').reset_index(drop=True)
+            
+            return None
+            
         except Exception as e:
-            self._log(f"[!] 데이터 로드 오류 ({bar}): {e}", "ERROR")
+            self._log(f"캔들 조회 오류: {e}", "ERROR")
+            return None
     
-    def _fetch_current_price(self, symbol: str) -> Optional[float]:
-        """현재가 조회 (로그 제거)"""
+    def _get_current_price(self, symbol: str) -> Optional[float]:
+        """현재 가격 조회"""
         try:
             response = make_api_request(
                 'GET',
                 '/api/v5/market/ticker',
                 params={'instId': symbol}
             )
-            if response and response.get('code') == '0':
-                return float(response['data'][0].get('last', 0))
-        except:
-            pass
-        return None
-    
-    def _fetch_latest_candle(self, symbol: str, bar: str) -> Optional[Dict]:
-        """최신 캔들 조회 (로그 제거)"""
-        try:
-            response = make_api_request(
-                'GET',
-                '/api/v5/market/candles',
-                params={'instId': symbol, 'bar': bar, 'limit': '1'}
-            )
             
             if response and response.get('code') == '0':
-                c = response['data'][0]
-                return {
-                    'timestamp': pd.to_datetime(int(c[0]), unit='ms'),
-                    'open': float(c[1]),
-                    'high': float(c[2]),
-                    'low': float(c[3]),
-                    'close': float(c[4]),
-                    'volume': float(c[5]),
-                    'confirm': c[8] if len(c) > 8 else '0'
-                }
-        except:
-            pass
-        return None
+                data = response.get('data', [])
+                if data:
+                    return float(data[0].get('last', 0))
+            
+            return None
+            
+        except Exception as e:
+            self._log(f"가격 조회 오류: {e}", "ERROR")
+            return None
     
-    def _update_buffers(self, symbol: str, current_price: float):
-        """버퍼 업데이트 (로그 제거)"""
-        # 1분봉
-        latest_1m = self._fetch_latest_candle(symbol, '1m')
-        if latest_1m:
-            buffer = self.buffers_1m[symbol]
-            is_new = buffer.last_timestamp is None or latest_1m['timestamp'] > buffer.last_timestamp
-            is_confirmed = latest_1m.get('confirm') == '1'
-            
-            if is_new and is_confirmed:
-                buffer.add_candle(latest_1m)
-            elif len(buffer) > 0:
-                buffer.update_last(latest_1m['close'], latest_1m['high'], latest_1m['low'])
-        
-        # 30분봉 (30분마다)
-        now = datetime.now()
-        if self.last_30m_update is None or (now - self.last_30m_update).seconds >= 1800:
-            latest_30m = self._fetch_latest_candle(symbol, '30m')
-            if latest_30m:
-                buffer = self.buffers_30m[symbol]
-                is_new = buffer.last_timestamp is None or latest_30m['timestamp'] > buffer.last_timestamp
-                is_confirmed = latest_30m.get('confirm') == '1'
-                
-                if is_new and is_confirmed:
-                    buffer.add_candle(latest_30m)
-                    self.last_30m_update = now
-                elif len(buffer) > 0:
-                    buffer.update_last(latest_30m['close'], latest_30m['high'], latest_30m['low'])
-    
-    def _process_strategies(self):
-        """전략 처리"""
-        for symbol in self.symbols:
-            current_price = self._fetch_current_price(symbol)
-            if not current_price:
-                continue
-            
-            self._update_buffers(symbol, current_price)
-            
-            df_30m = self.buffers_30m[symbol].to_dataframe()
-            df_1m = self.buffers_1m[symbol].to_dataframe()
-            
-            if df_30m is None or len(df_30m) < 200:
-                continue
-            if df_1m is None or len(df_1m) < 100:
-                continue
-            
-            for strategy_key, strategy in self.strategies.items():
-                if symbol not in strategy_key:
-                    continue
-                
-                try:
-                    # EMA 업데이트
-                    strategy.update_30m_emas(df_30m)
-                    strategy.update_1m_emas(df_1m)
-                    strategy.last_price = current_price
-                    
-                    # 모드 체크
-                    if strategy.check_mode_switch():
-                        mode = "REAL" if strategy.is_real_mode else "VIRTUAL"
-                        self._log(f"🔄 [{strategy.strategy_type.upper()}] 모드 전환 → {mode}", "MODE", force=True)
-                        if self.on_mode_change_callback:
-                            prev_mode = "VIRTUAL" if strategy.is_real_mode else "REAL"
-                            self.on_mode_change_callback(prev_mode, mode, "자동 전환")
-                    
-                    # 청산 체크
-                    should_exit, exit_reason = strategy.check_exit_signal(current_price)
-                    if should_exit:
-                        signal = strategy.exit_position(current_price, exit_reason)
-                        self.total_signals += 1
-                        
-                        self._log(f"🔴 [{signal['strategy_type'].upper()}] 청산: ${current_price:,.0f} | {exit_reason} | PnL: ${signal['pnl']:+.2f}", "SIGNAL", force=True)
-                        
-                        if self.on_signal_callback:
-                            self.on_signal_callback(signal)
-                        
-                        if signal['is_real']:
-                            success = self._execute_trade(signal)
-                            if self.on_trade_callback:
-                                self.on_trade_callback(signal, success)
+    def _run_loop(self):
+        """메인 루프"""
+        while self.is_running:
+            try:
+                for symbol in self.symbols:
+                    # 현재 가격
+                    current_price = self._get_current_price(symbol)
+                    if not current_price:
                         continue
                     
-                    # 진입 체크
-                    should_enter, status = strategy.check_entry_signal()
-                    if should_enter:
-                        signal = strategy.enter_position(current_price)
-                        self.total_signals += 1
+                    # 데이터 업데이트
+                    df_30m = self.price_buffers_30m[symbol].to_dataframe()
+                    df_1m = self.price_buffers_1m[symbol].to_dataframe()
+                    
+                    if df_30m is None or len(df_30m) < 200:
+                        continue
+                    if df_1m is None or len(df_1m) < 100:
+                        continue
+                    
+                    # 전략 처리
+                    for strategy_key, strategy in self.strategies.items():
+                        if symbol not in strategy_key:
+                            continue
                         
-                        mode = "REAL" if signal['is_real'] else "VIRT"
-                        self._log(f"🟢 [{signal['strategy_type'].upper()}] 진입: ${current_price:,.0f} | [{mode}] | 레버리지: {signal['leverage']}x", "SIGNAL", force=True)
+                        # ⭐⭐⭐ 비활성화된 전략 스킵 (핵심 수정) ⭐⭐⭐
+                        if not strategy.is_active:
+                            continue
                         
-                        if self.on_signal_callback:
-                            self.on_signal_callback(signal)
+                        # ⭐ 숏 전략 비활성화 확인 (이중 체크)
+                        if 'short' in strategy_key and not self.short_enabled:
+                            continue
                         
-                        if signal['is_real']:
-                            success = self._execute_trade(signal)
-                            if self.on_trade_callback:
-                                self.on_trade_callback(signal, success)
+                        try:
+                            # EMA 업데이트
+                            strategy.update_30m_emas(df_30m)
+                            strategy.update_1m_emas(df_1m)
+                            strategy.last_price = current_price
+                            
+                            # 모드 체크
+                            if strategy.check_mode_switch():
+                                mode = "REAL" if strategy.is_real_mode else "VIRTUAL"
+                                self._log(f"🔄 [{strategy.strategy_type.upper()}] 모드 전환 → {mode}", "MODE", force=True)
+                                if self.on_mode_change_callback:
+                                    prev_mode = "VIRTUAL" if strategy.is_real_mode else "REAL"
+                                    self.on_mode_change_callback(prev_mode, mode, "자동 전환")
+                            
+                            # 포지션 보유 시 청산 체크
+                            if strategy.is_position_open:
+                                # peak 갱신
+                                if strategy.strategy_type == 'long':
+                                    strategy.peak_price = max(strategy.peak_price, current_price)
+                                else:
+                                    strategy.peak_price = min(strategy.peak_price, current_price)
+                                
+                                should_exit, exit_reason = strategy.check_exit_signal(current_price)
+                                if should_exit:
+                                    signal = strategy.exit_position(current_price, exit_reason)
+                                    self.total_signals += 1
+                                    
+                                    self._log(
+                                        f"🔴 [{signal['strategy_type'].upper()}] 청산: "
+                                        f"${current_price:,.0f} | {exit_reason} | "
+                                        f"PnL: ${signal['pnl']:+.2f}",
+                                        "SIGNAL", force=True
+                                    )
+                                    
+                                    if self.on_signal_callback:
+                                        self.on_signal_callback(signal)
+                                    
+                                    if signal['is_real']:
+                                        success = self._execute_trade(signal)
+                                        if self.on_trade_callback:
+                                            self.on_trade_callback(signal, success)
+                                continue
+                            
+                            # 진입 체크
+                            should_enter, status = strategy.check_entry_signal()
+                            if should_enter:
+                                signal = strategy.enter_position(current_price)
+                                self.total_signals += 1
+                                
+                                mode = "REAL" if signal['is_real'] else "VIRT"
+                                self._log(
+                                    f"🟢 [{signal['strategy_type'].upper()}] 진입: "
+                                    f"${current_price:,.0f} | [{mode}] | "
+                                    f"레버리지: {signal['leverage']}x",
+                                    "SIGNAL", force=True
+                                )
+                                
+                                if self.on_signal_callback:
+                                    self.on_signal_callback(signal)
+                                
+                                if signal['is_real']:
+                                    success = self._execute_trade(signal)
+                                    if self.on_trade_callback:
+                                        self.on_trade_callback(signal, success)
+                        
+                        except Exception as e:
+                            self._log(f"[X] 전략 처리 오류: {e}", "ERROR", force=True)
                 
-                except Exception as e:
-                    self._log(f"[X] 전략 처리 오류: {e}", "ERROR", force=True)
+            except Exception as e:
+                self._log(f"[X] 루프 오류: {e}", "ERROR", force=True)
+            
+            time.sleep(self.check_interval)
     
     def _execute_trade(self, signal: Dict) -> bool:
         """거래 실행"""
@@ -619,116 +696,53 @@ class MultiTimeframeTradingEngine:
                 size = int((trade_amount / price) / contract_value)
                 
                 if size < 1:
-                    self._log(f"[!] 주문 수량 부족: ${trade_amount:.2f}", "WARNING")
+                    self._log(f"[!] 주문 수량 부족: {size}", "WARNING")
                     return False
                 
+                # 주문 실행
                 result = self.order_manager.place_market_order(
-                    inst_id=symbol,
+                    symbol=symbol,
                     side=side,
-                    size=size,
-                    leverage=signal.get('leverage', 1)
+                    size=size
                 )
                 
                 if result:
                     self.executed_trades += 1
                     return True
-            
+                    
             elif action == 'exit':
+                # 포지션 청산
                 result = self.order_manager.close_position(symbol)
                 if result:
                     self.executed_trades += 1
                     return True
-        
+            
+            return False
+            
         except Exception as e:
-            self._log(f"[X] 거래 실행 오류: {e}", "ERROR", force=True)
-        
-        return False
-    
-    def _print_status(self):
-        """상태 출력 (간략화)"""
-        if not self.start_time:
-            return
-        
-        runtime = datetime.now() - self.start_time
-        runtime_str = str(runtime).split('.')[0]
-        
-        self._log(f"\n[상태] {datetime.now().strftime('%H:%M:%S')} | 실행: {runtime_str} | 신호: {self.total_signals} | 거래: {self.executed_trades}", force=True)
-        
-        for key, strategy in self.strategies.items():
-            status = strategy.get_status()
-            mode = "R" if status['is_real_mode'] else "V"
-            pos = "●" if status['is_position_open'] else "○"
-            name = "L" if "long" in key else "S"
-            self._log(f"  [{name}] {mode}{pos} ${status['real_capital']:.0f} PnL:${status['total_pnl']:+.0f}", force=True)
-    
-    def _engine_loop(self):
-        """엔진 메인 루프"""
-        self._log("\n[*] 엔진 루프 시작", force=True)
-        
-        self.start_time = datetime.now()
-        self.cycle_count = 0
-        last_status_time = time.time()
-        
-        while self.is_running:
-            try:
-                self.cycle_count += 1
-                
-                # 전략 처리 (로그 없음)
-                self._process_strategies()
-                
-                # 주기적 상태 출력
-                if time.time() - last_status_time >= self.status_interval:
-                    self._print_status()
-                    last_status_time = time.time()
-                
-                time.sleep(self.check_interval)
-                
-            except Exception as e:
-                self._log(f"[X] 루프 오류: {e}", "ERROR", force=True)
-                time.sleep(10)
-        
-        self._log("[!] 엔진 중지됨", force=True)
-    
-    def start(self):
-        """엔진 시작"""
-        if self.is_running:
+            self._log(f"[X] 주문 실행 오류: {e}", "ERROR", force=True)
             return False
-        
-        if not self.initialize():
-            return False
-        
-        self.is_running = True
-        self.engine_thread = threading.Thread(target=self._engine_loop, daemon=True)
-        self.engine_thread.start()
-        
-        return True
-    
-    def stop(self):
-        """엔진 중지"""
-        if not self.is_running:
-            return
-        
-        self._log("[*] 엔진 중지 중...", force=True)
-        self.is_running = False
-        
-        if self.engine_thread:
-            self.engine_thread.join(timeout=10)
-        
-        self._print_status()
-        self._log("[OK] 엔진 중지 완료", force=True)
     
     def get_status(self) -> Dict:
         """엔진 상태 조회"""
+        runtime = ""
+        if self.start_time:
+            elapsed = datetime.now() - self.start_time
+            hours, remainder = divmod(int(elapsed.total_seconds()), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            runtime = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
         return {
             'is_running': self.is_running,
-            'start_time': self.start_time,
-            'cycle_count': self.cycle_count,
+            'strategy_mode': self.strategy_mode,
+            'long_enabled': self.long_enabled,
+            'short_enabled': self.short_enabled,
+            'runtime': runtime,
             'total_signals': self.total_signals,
             'executed_trades': self.executed_trades,
             'strategies': {k: v.get_status() for k, v in self.strategies.items()}
         }
 
 
-# 기존 호환성
+# 별칭 (호환성)
 TradingEngine = MultiTimeframeTradingEngine
-TradingStrategy = MultiTimeframeStrategy
