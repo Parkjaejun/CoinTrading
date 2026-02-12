@@ -7,6 +7,10 @@
 - 가격 차트 (캔들스틱/라인)
 - EMA 라인 표시 (20, 50, 100, 150, 200)
 - 실시간 업데이트
+
+수정사항 (2024-02-12):
+- update_price_only(): 데이터 없을 때 새 DataFrame 생성하도록 개선 (수정됨)
+- 30분 단위 새 캔들 자동 생성 로직 추가 (수정됨)
 """
 
 import pandas as pd
@@ -159,45 +163,147 @@ class DashboardChartWidget(QWidget):
         self._update_info()
         
     def update_candle(self, candle_data: Dict[str, Any]):
-        """새 캔들 데이터 추가"""
+        """새 캔들 데이터 추가/업데이트"""
+        if candle_data is None:
+            return
+        
+        timestamp = candle_data.get('timestamp', 0)
+        
+        # DataFrame 없으면 새로 생성
         if self.df is None:
             self.df = pd.DataFrame([candle_data])
-            self.df['datetime'] = pd.to_datetime(self.df['timestamp'], unit='ms')
-        else:
-            new_row = pd.DataFrame([candle_data])
-            if 'timestamp' in new_row.columns:
-                new_row['datetime'] = pd.to_datetime(new_row['timestamp'], unit='ms')
-            
-            if len(self.df) > 0:
-                last_ts = self.df.iloc[-1].get('timestamp')
-                new_ts = candle_data.get('timestamp')
-                
-                if last_ts == new_ts:
-                    for col in ['open', 'high', 'low', 'close', 'volume']:
-                        if col in candle_data:
-                            self.df.iloc[-1, self.df.columns.get_loc(col)] = candle_data[col]
-                else:
-                    self.df = pd.concat([self.df, new_row], ignore_index=True)
+            if 'timestamp' in self.df.columns:
+                self.df['datetime'] = pd.to_datetime(self.df['timestamp'], unit='ms')
+            self._calculate_emas()
+            self._schedule_redraw()
+            self._update_info()
+            return
         
+        # datetime 변환
+        new_row = pd.DataFrame([candle_data])
+        if 'timestamp' in new_row.columns:
+            new_row['datetime'] = pd.to_datetime(new_row['timestamp'], unit='ms')
+        
+        # 마지막 캔들과 비교
+        if len(self.df) > 0:
+            last_ts = self.df.iloc[-1].get('timestamp', 0)
+            new_ts = candle_data.get('timestamp', 0)
+            
+            if last_ts == new_ts:
+                # 같은 캔들 - 업데이트
+                for col in ['open', 'high', 'low', 'close', 'volume']:
+                    if col in candle_data:
+                        self.df.iloc[-1, self.df.columns.get_loc(col)] = candle_data[col]
+            else:
+                # 새 캔들 - 추가
+                self.df = pd.concat([self.df, new_row], ignore_index=True)
+        else:
+            self.df = pd.concat([self.df, new_row], ignore_index=True)
+        
+        # 최대 캔들 수 제한
         if len(self.df) > self.MAX_CANDLES:
             self.df = self.df.iloc[-self.MAX_CANDLES:]
         
         self._calculate_emas()
         self._schedule_redraw()
         self._update_info()
-        
+    
+    # ========================================
+    # ★ 수정됨: update_price_only - 데이터 없을 때 새 DataFrame 생성
+    # ========================================
     def update_price_only(self, price: float, timestamp: int = None):
-        """가격만 업데이트 (실시간 틱)"""
+        """
+        가격만 업데이트 (실시간 틱) - 개선된 버전 (수정됨)
+        
+        - df가 없으면 새로 생성하여 데이터 축적 시작
+        - 30분 단위로 새 캔들 생성
+        - 같은 캔들 내에서는 close만 업데이트
+        """
+        import time as time_module
+        
+        if timestamp is None:
+            timestamp = int(time_module.time() * 1000)
+        
+        current_dt = datetime.fromtimestamp(timestamp / 1000)
+        
+        # ========================================
+        # Case 1: DataFrame이 없으면 새로 생성
+        # ========================================
         if self.df is None or len(self.df) == 0:
+            # 첫 데이터 포인트로 시작
+            self.df = pd.DataFrame([{
+                'timestamp': timestamp,
+                'datetime': current_dt,
+                'open': price,
+                'high': price,
+                'low': price,
+                'close': price,
+                'volume': 0
+            }])
+            self._calculate_emas()
+            self._schedule_redraw()
+            self._update_info()
+            print(f"📊 차트 데이터 시작: ${price:,.2f}")
             return
         
-        self.df.iloc[-1, self.df.columns.get_loc('close')] = price
+        # ========================================
+        # Case 2: 기존 데이터가 있는 경우
+        # ========================================
+        last_row = self.df.iloc[-1]
+        last_dt = last_row['datetime']
         
-        if price > self.df.iloc[-1]['high']:
-            self.df.iloc[-1, self.df.columns.get_loc('high')] = price
-        if price < self.df.iloc[-1]['low']:
-            self.df.iloc[-1, self.df.columns.get_loc('low')] = price
+        # datetime 타입 확인 및 변환
+        if isinstance(last_dt, pd.Timestamp):
+            last_dt = last_dt.to_pydatetime()
+        elif isinstance(last_dt, str):
+            last_dt = datetime.fromisoformat(last_dt)
         
+        # 30분 단위로 새 캔들 여부 판단
+        # 현재 시간의 30분 블록과 마지막 캔들의 30분 블록 비교
+        current_block = current_dt.replace(minute=(current_dt.minute // 30) * 30, second=0, microsecond=0)
+        last_block = last_dt.replace(minute=(last_dt.minute // 30) * 30, second=0, microsecond=0)
+        
+        is_new_candle = current_block > last_block
+        
+        if is_new_candle:
+            # ========================================
+            # 새 캔들 추가
+            # ========================================
+            new_row = pd.DataFrame([{
+                'timestamp': timestamp,
+                'datetime': current_dt,
+                'open': price,
+                'high': price,
+                'low': price,
+                'close': price,
+                'volume': 0
+            }])
+            self.df = pd.concat([self.df, new_row], ignore_index=True)
+            
+            # 최대 캔들 수 제한
+            if len(self.df) > self.MAX_CANDLES:
+                self.df = self.df.iloc[-self.MAX_CANDLES:]
+            
+            print(f"📊 새 캔들 추가: {current_block.strftime('%H:%M')} ${price:,.2f}")
+        else:
+            # ========================================
+            # 기존 캔들 업데이트
+            # ========================================
+            idx = len(self.df) - 1
+            
+            # close 업데이트
+            self.df.iloc[idx, self.df.columns.get_loc('close')] = price
+            
+            # high/low 업데이트
+            current_high = self.df.iloc[idx]['high']
+            current_low = self.df.iloc[idx]['low']
+            
+            if price > current_high:
+                self.df.iloc[idx, self.df.columns.get_loc('high')] = price
+            if price < current_low:
+                self.df.iloc[idx, self.df.columns.get_loc('low')] = price
+        
+        # EMA 재계산 및 차트 업데이트
         self._calculate_emas()
         self._schedule_redraw()
         
@@ -304,13 +410,21 @@ class DashboardChartWidget(QWidget):
             self.ax.plot(x[valid], y[valid], color=config['color'],
                         linewidth=config['width'], label=config['label'], alpha=0.8, zorder=3)
     
+    # ========================================
+    # ★ 수정됨: _update_info - 마지막 가격 정보 포함
+    # ========================================
     def _update_info(self):
-        """정보 라벨 업데이트"""
+        """정보 라벨 업데이트 (수정됨)"""
         if self.df is None or len(self.df) == 0:
             self.info_label.setText("데이터 대기 중...")
             return
         
         count = len(self.df)
+        
+        # 마지막 가격 정보
+        last_close = self.df.iloc[-1]['close']
+        
+        # 시간 범위
         if 'datetime' in self.df.columns:
             start = self.df.iloc[0]['datetime']
             end = self.df.iloc[-1]['datetime']
@@ -322,9 +436,11 @@ class DashboardChartWidget(QWidget):
                 start_str = str(start)[:16]
                 end_str = str(end)[:16]
             
-            self.info_label.setText(f"{count}개 캔들 | {start_str} ~ {end_str}")
+            self.info_label.setText(
+                f"{count}개 캔들 | ${last_close:,.2f} | {start_str} ~ {end_str}"
+            )
         else:
-            self.info_label.setText(f"{count}개 캔들")
+            self.info_label.setText(f"{count}개 캔들 | ${last_close:,.2f}")
     
     def get_current_ema_values(self) -> Dict[str, float]:
         """현재 EMA 값들 반환"""

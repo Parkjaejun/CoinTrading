@@ -6,10 +6,10 @@ OKX 자동매매 시스템 - 메인 윈도우
 - 상단 바: 잔고, BTC 가격, 연결 상태
 - 탭: 대시보드, 자동매매, 알고리즘 검증
 
-주요 변경사항:
-- 대시보드: EMA 포함 누적 차트 (1주일)
-- 자동매매: 조건 모니터링 위젯 복원
-- 30분봉 EMA 기반 진입/거래
+수정사항 (2024-02-12):
+- update_balance_display(): USDT 실제 잔고 정확히 표시 (수정됨)
+- update_price_display(): 차트 실시간 업데이트 개선 (수정됨)
+- 초기 데이터 자동 로드 기능 추가 (신규)
 """
 
 import sys
@@ -251,6 +251,14 @@ class TradingMainWindow(QMainWindow):
         
         status_layout.addStretch()
         
+        # 모드 상태
+        self.mode_status_label = QLabel("⏸️ 대기 중")
+        self.mode_status_label.setFont(QFont("Arial", 11))
+        self.mode_status_label.setStyleSheet("color: #888888;")
+        status_layout.addWidget(self.mode_status_label)
+        
+        status_layout.addSpacing(20)
+        
         # 연결 상태
         self.connection_indicator = QLabel("●")
         self.connection_indicator.setFont(QFont("Arial", 16))
@@ -269,9 +277,7 @@ class TradingMainWindow(QMainWindow):
         layout = QHBoxLayout(dashboard_widget)
         layout.setSpacing(10)
         
-        # ═══════════════════════════════════════════
         # 왼쪽: 실시간 차트 (70%)
-        # ═══════════════════════════════════════════
         chart_group = QGroupBox("📈 BTC 실시간 차트 (30분봉, EMA 포함)")
         chart_layout = QVBoxLayout(chart_group)
         
@@ -284,9 +290,7 @@ class TradingMainWindow(QMainWindow):
             placeholder.setStyleSheet("color: #888888; font-size: 14px;")
             chart_layout.addWidget(placeholder)
         
-        # ═══════════════════════════════════════════
         # 오른쪽: 정보 패널 (30%)
-        # ═══════════════════════════════════════════
         info_panel = QWidget()
         info_layout = QVBoxLayout(info_panel)
         info_layout.setSpacing(10)
@@ -299,51 +303,58 @@ class TradingMainWindow(QMainWindow):
         self.total_asset_label = QLabel("$0.00")
         self.total_asset_label.setFont(QFont("Arial", 16, QFont.Bold))
         self.total_asset_label.setStyleSheet("color: #00ff88;")
-        
-        self.available_label = QLabel("$0.00")
-        self.available_label.setStyleSheet("color: #ffffff;")
-        
-        self.unrealized_pnl_label = QLabel("$0.00")
-        self.unrealized_pnl_label.setStyleSheet("color: #888888;")
-        
         account_layout.addWidget(QLabel("총 자산:"), 0, 0)
         account_layout.addWidget(self.total_asset_label, 0, 1)
-        account_layout.addWidget(QLabel("가용 잔고:"), 1, 0)
+        
+        self.available_label = QLabel("$0.00")
+        account_layout.addWidget(QLabel("사용 가능:"), 1, 0)
         account_layout.addWidget(self.available_label, 1, 1)
-        account_layout.addWidget(QLabel("미실현손익:"), 2, 0)
+        
+        self.unrealized_pnl_label = QLabel("$0.00")
+        account_layout.addWidget(QLabel("미실현 손익:"), 2, 0)
         account_layout.addWidget(self.unrealized_pnl_label, 2, 1)
         
         info_layout.addWidget(account_group)
         
+        # 트렌드 상태
+        trend_group = QGroupBox("📊 트렌드 상태")
+        trend_layout = QGridLayout(trend_group)
+        
+        self.trend_status_label = QLabel("분석 중...")
+        self.trend_status_label.setFont(QFont("Arial", 12, QFont.Bold))
+        trend_layout.addWidget(QLabel("현재 트렌드:"), 0, 0)
+        trend_layout.addWidget(self.trend_status_label, 0, 1)
+        
+        self.trend_strength_label = QLabel("-")
+        trend_layout.addWidget(QLabel("강도:"), 1, 0)
+        trend_layout.addWidget(self.trend_strength_label, 1, 1)
+        
+        info_layout.addWidget(trend_group)
+        
         # 포지션 요약
-        position_group = QGroupBox("📊 포지션 요약")
+        position_group = QGroupBox("📋 포지션 요약")
         position_layout = QVBoxLayout(position_group)
         
         self.position_summary_table = QTableWidget()
         self.position_summary_table.setColumnCount(4)
-        self.position_summary_table.setHorizontalHeaderLabels(["심볼", "방향", "크기", "PnL"])
+        self.position_summary_table.setHorizontalHeaderLabels(["심볼", "방향", "수량", "손익"])
         self.position_summary_table.horizontalHeader().setStretchLastSection(True)
         self.position_summary_table.setMaximumHeight(150)
         position_layout.addWidget(self.position_summary_table)
         
         info_layout.addWidget(position_group)
         
-        # 현재 상태
-        status_group = QGroupBox("🎯 현재 상태")
+        # 상태 그룹
+        status_group = QGroupBox("🔗 시스템 상태")
         status_layout_inner = QGridLayout(status_group)
         
-        self.mode_status_label = QLabel("⏸️ 대기 중")
-        self.mode_status_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.api_status_label = QLabel("🟡 확인 중")
+        status_layout_inner.addWidget(QLabel("API:"), 0, 0)
+        status_layout_inner.addWidget(self.api_status_label, 0, 1)
         
-        self.trend_status_label = QLabel("📊 분석 중...")
-        self.trend_strength_label = QLabel("-")
-        
-        status_layout_inner.addWidget(QLabel("모드:"), 0, 0)
-        status_layout_inner.addWidget(self.mode_status_label, 0, 1)
-        status_layout_inner.addWidget(QLabel("트렌드:"), 1, 0)
-        status_layout_inner.addWidget(self.trend_status_label, 1, 1)
-        status_layout_inner.addWidget(QLabel("강도:"), 2, 0)
-        status_layout_inner.addWidget(self.trend_strength_label, 2, 1)
+        self.ws_status_label = QLabel("🟡 확인 중")
+        status_layout_inner.addWidget(QLabel("WebSocket:"), 1, 0)
+        status_layout_inner.addWidget(self.ws_status_label, 1, 1)
         
         info_layout.addWidget(status_group)
         
@@ -421,11 +432,15 @@ class TradingMainWindow(QMainWindow):
                 
                 self.data_thread.price_updated.connect(self.update_price_display)
                 self.data_thread.balance_updated.connect(self.update_balance_display)
-                self.data_thread.position_updated.connect(self.update_positions_display)
-                self.data_thread.connection_status.connect(self.update_connection_status)
+                self.data_thread.positions_updated.connect(self.update_positions_display)
+                self.data_thread.connection_changed.connect(self.update_connection_status)
                 
                 self.data_thread.start()
                 print("✅ 데이터 수집 스레드 시작")
+                
+                # ★ 신규: 초기 데이터 자동 로드 (2초 후)
+                self._auto_load_initial_data()
+                
             except Exception as e:
                 print(f"⚠️ 데이터 수집 시작 실패: {e}")
                 self._start_dummy_data()
@@ -451,10 +466,57 @@ class TradingMainWindow(QMainWindow):
         self._dummy_price = base_price
         
         self.update_price_display("BTC-USDT-SWAP", base_price, {'change_24h': random.uniform(-2, 2)})
-        self.update_balance_display({'total': 10000 + random.uniform(-100, 100)})
+        self.update_balance_display({
+            'total_equity': 10000 + random.uniform(-100, 100),
+            'usdt_balance': 10000 + random.uniform(-100, 100),
+            'available_balance': 9500 + random.uniform(-100, 100),
+            'unrealized_pnl': random.uniform(-50, 50)
+        })
+    
+    # ========================================
+    # ★ 신규: 초기 데이터 자동 로드 메서드
+    # ========================================
+    def _auto_load_initial_data(self):
+        """GUI 시작 시 초기 데이터 자동 로드"""
+        if not self.data_loader:
+            print("⚠️ 데이터 로더 없음 - 초기 데이터 로드 건너뜀")
+            return
+        
+        try:
+            print("📊 초기 데이터 자동 로드 예약 (2초 후)...")
+            QTimer.singleShot(2000, self._load_initial_data_async)
+        except Exception as e:
+            print(f"⚠️ 초기 데이터 로드 설정 실패: {e}")
+    
+    def _load_initial_data_async(self):
+        """비동기 초기 데이터 로드"""
+        try:
+            print("📊 초기 데이터 로드 시작...")
+            df = self.data_loader.load_historical_candles_sync(
+                symbol="BTC-USDT-SWAP",
+                timeframe="30m",
+                days=7
+            )
+            
+            if df is not None and len(df) > 0:
+                print(f"✅ 초기 데이터 로드 완료: {len(df)}개 캔들")
+                
+                # 대시보드 차트에 데이터 전달
+                if self.dashboard_chart:
+                    self.dashboard_chart.set_historical_data(df)
+                
+                # 트렌드 상태 업데이트
+                self._update_trend_status()
+                
+                self.statusBar().showMessage(f"✅ {len(df)}개 30분봉 데이터 자동 로드됨", 5000)
+            else:
+                print("⚠️ 초기 데이터 로드 실패 - 실시간 데이터로 시작")
+                
+        except Exception as e:
+            print(f"⚠️ 초기 데이터 로드 오류: {e}")
     
     def load_historical_data(self):
-        """1주일 과거 데이터 로드"""
+        """1주일 과거 데이터 로드 (버튼 클릭)"""
         if not self.data_loader:
             QMessageBox.warning(self, "오류", "데이터 로더가 초기화되지 않았습니다.")
             return
@@ -519,52 +581,111 @@ class TradingMainWindow(QMainWindow):
             
             self.trend_strength_label.setText(f"{strength:+.3f}%")
     
+    # ========================================
+    # ★ 수정됨: update_price_display - 차트 실시간 업데이트 개선
+    # ========================================
     def update_price_display(self, symbol: str, price: float, price_info: dict = None):
-        """가격 표시 업데이트"""
+        """가격 표시 업데이트 - 차트 실시간 반영 (수정됨)"""
         try:
             self.latest_prices[symbol] = price
             
             if "BTC" in symbol:
+                # 상단 BTC 가격 표시
                 self.btc_price_display.setText(f"${price:,.2f}")
                 
-                # 대시보드 차트 실시간 업데이트
+                # 24시간 변화율 표시 (있는 경우)
+                if price_info and 'change_24h' in price_info:
+                    change = price_info['change_24h']
+                    color = "#28a745" if change >= 0 else "#dc3545"
+                    self.btc_price_display.setStyleSheet(f"color: {color};")
+                
+                # ★ 수정됨: 대시보드 차트 실시간 업데이트
                 if self.dashboard_chart:
-                    self.dashboard_chart.update_price_only(price)
+                    timestamp = int(time.time() * 1000)  # 밀리초 단위
+                    self.dashboard_chart.update_price_only(price, timestamp)
                 
                 # 데이터 로더 업데이트
                 if self.data_loader:
                     self.data_loader.update_current_price(symbol, price)
                     
-                    # 자동매매 위젯에 데이터 전달
-                    if self.auto_trading_widget and self.auto_trading_widget.is_running:
-                        strategy_data = self.data_loader.get_latest_strategy_data()
-                        if strategy_data:
-                            self.auto_trading_widget.update_from_external(strategy_data)
+                    # 자동매매 위젯이 실행 중이면 전략 데이터 전달
+                    if hasattr(self, 'auto_trading_widget') and self.auto_trading_widget:
+                        if self.auto_trading_widget.is_running:
+                            strategy_data = self.data_loader.get_latest_strategy_data()
+                            if strategy_data:
+                                strategy_data['close'] = price
+                                self.auto_trading_widget.update_from_external(strategy_data)
                 
         except Exception as e:
-            print(f"가격 표시 업데이트 오류: {e}")
+            print(f"⚠️ 가격 표시 업데이트 오류: {e}")
     
+    # ========================================
+    # ★ 수정됨: update_balance_display - USDT 실제 잔고 표시
+    # ========================================
     def update_balance_display(self, balance_data: dict):
-        """잔고 표시 업데이트"""
+        """잔고 표시 업데이트 - USDT 실제 잔고 정확히 표시 (수정됨)"""
         try:
-            self.balance_data = balance_data
-            total = balance_data.get('total', 0)
-            self.balance_display.setText(f"${total:,.2f}")
-            self.total_asset_label.setText(f"${total:,.2f}")
+            # data_thread.py에서 emit하는 구조에 맞춤
+            # {'total_equity': xxx, 'usdt_balance': xxx, 'available_balance': xxx, 'currencies': {...}}
             
-            available = balance_data.get('available', total)
-            self.available_label.setText(f"${available:,.2f}")
+            # 1. 총 자산 (totalEq)
+            total_equity = balance_data.get('total_equity', 0)
+            if total_equity == 0:
+                total_equity = balance_data.get('total', 0)
             
-            upl = balance_data.get('unrealized_pnl', 0)
-            self.unrealized_pnl_label.setText(f"${upl:+,.2f}")
+            # 2. USDT 잔고
+            usdt_balance = balance_data.get('usdt_balance', 0)
+            available_balance = balance_data.get('available_balance', 0)
             
-            if upl >= 0:
-                self.unrealized_pnl_label.setStyleSheet("color: #28a745;")
-            else:
-                self.unrealized_pnl_label.setStyleSheet("color: #dc3545;")
-                
+            # currencies에서 USDT 정보 추출 (대안)
+            currencies = balance_data.get('currencies', {})
+            if usdt_balance == 0 and 'USDT' in currencies:
+                usdt_info = currencies['USDT']
+                usdt_balance = usdt_info.get('equity', 0)
+                available_balance = usdt_info.get('available', 0)
+            
+            # 3. 미실현 손익
+            unrealized_pnl = balance_data.get('unrealized_pnl', 0)
+            
+            # ========================================
+            # UI 업데이트
+            # ========================================
+            
+            # 상단 상태바 - 총 자산 표시
+            if hasattr(self, 'balance_display'):
+                self.balance_display.setText(f"${total_equity:,.2f}")
+            
+            # 대시보드 계좌 정보 - 총 자산
+            if hasattr(self, 'total_asset_label'):
+                self.total_asset_label.setText(f"${total_equity:,.2f}")
+            
+            # 대시보드 계좌 정보 - 사용 가능 잔고
+            if hasattr(self, 'available_label'):
+                self.available_label.setText(f"${available_balance:,.2f}")
+            
+            # 대시보드 계좌 정보 - 미실현 손익
+            if hasattr(self, 'unrealized_pnl_label'):
+                self.unrealized_pnl_label.setText(f"${unrealized_pnl:+,.2f}")
+                if unrealized_pnl >= 0:
+                    self.unrealized_pnl_label.setStyleSheet("color: #28a745;")
+                else:
+                    self.unrealized_pnl_label.setStyleSheet("color: #dc3545;")
+            
+            # 자동매매 위젯에 잔고 전달
+            if hasattr(self, 'auto_trading_widget') and self.auto_trading_widget:
+                if hasattr(self.auto_trading_widget, 'update_balance'):
+                    self.auto_trading_widget.update_balance(available_balance)
+            
+            # 내부 저장
+            self.balance_data = {
+                'total': total_equity,
+                'available': available_balance,
+                'usdt': usdt_balance,
+                'unrealized_pnl': unrealized_pnl
+            }
+            
         except Exception as e:
-            print(f"잔고 표시 업데이트 오류: {e}")
+            print(f"⚠️ 잔고 표시 업데이트 오류: {e}")
     
     def update_positions_display(self, positions: list):
         """포지션 표시 업데이트"""
@@ -598,9 +719,13 @@ class TradingMainWindow(QMainWindow):
         if connected:
             self.connection_indicator.setStyleSheet("color: #28a745;")
             self.connection_label.setText("연결됨")
+            self.api_status_label.setText("🟢 연결됨")
+            self.ws_status_label.setText("🟢 연결됨")
         else:
             self.connection_indicator.setStyleSheet("color: #dc3545;")
             self.connection_label.setText("연결 끊김")
+            self.api_status_label.setText("🔴 끊김")
+            self.ws_status_label.setText("🔴 끊김")
     
     def _on_trading_started(self):
         """자동매매 시작 시"""
