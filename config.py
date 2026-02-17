@@ -10,13 +10,27 @@ import json
 import hmac
 import hashlib
 import base64
+import socket
 import requests
+from requests.adapters import HTTPAdapter
 import time
 import threading
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from urllib.parse import urlencode
 from dataclasses import dataclass
+
+
+# =================================================================
+# IPv4 강제 사용 (OKX IP 화이트리스트 호환)
+# =================================================================
+_original_getaddrinfo = socket.getaddrinfo
+
+def _ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    """IPv4만 사용하도록 강제"""
+    return _original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+socket.getaddrinfo = _ipv4_only_getaddrinfo
 
 
 # =================================================================
